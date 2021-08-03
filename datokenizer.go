@@ -11,10 +11,13 @@ package datokenizer
 // - Strip first state and make everything start with 0!
 // - Serialize!
 // - Split Tokenizer and DATokenizer
+// - Make epsilon etc. properties
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -33,6 +36,8 @@ const (
 	NONE    = 4
 	NEWLINE = '\u000a'
 	DEBUG   = false
+	MAGIC   = "DATOK"
+	VERSION = uint16(1)
 )
 
 // Special symbols in sigma
@@ -40,6 +45,8 @@ var EPSILON = -1
 var UNKNOWN = -1
 var IDENTITY = -1
 var FINAL = -1
+
+var bo binary.ByteOrder = binary.LittleEndian
 
 type mapping struct {
 	source int
@@ -403,7 +410,8 @@ func Parse(ior io.Reader) *Tokenizer {
 func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	dat := &DaTokenizer{
-		sigma: make(map[rune]int),
+		sigma:     make(map[rune]int),
+		loadLevel: -1,
 	}
 
 	for num, sym := range tok.sigmaRev {
@@ -592,6 +600,80 @@ func (dat *DaTokenizer) LoadLevel() float64 {
 	}
 	dat.loadLevel = float64(nonEmpty) / float64(all) * 100
 	return dat.loadLevel
+}
+
+// WriteTo stores the double array data in an io.Writer.
+func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
+
+	// Store magical header
+	all, err := w.Write([]byte(MAGIC))
+	if err != nil {
+		log.Error().Msg("Unable to write data")
+	}
+
+	// Get sigma as a list
+	sigmalist := make([]rune, len(dat.sigma)+16)
+	max := 0
+	for sym, num := range dat.sigma {
+		sigmalist[num] = sym
+		if num > max {
+			max = num
+		}
+	}
+
+	sigmalist = sigmalist[:max+1]
+
+	buf := make([]byte, 0, 12)
+	bo.PutUint16(buf[0:2], VERSION)
+	bo.PutUint16(buf[2:4], uint16(EPSILON))
+	bo.PutUint16(buf[4:6], uint16(UNKNOWN))
+	bo.PutUint16(buf[6:8], uint16(IDENTITY))
+	bo.PutUint16(buf[8:10], uint16(FINAL))
+	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
+	more, err := w.Write(buf[0:12])
+	if err != nil {
+		log.Error().Msg("Unable to write data")
+	}
+
+	all += more
+
+	wbuf := bytes.NewBuffer(nil)
+	wbufWrap := bufio.NewWriter(wbuf)
+
+	// Write sigma
+	for _, sym := range sigmalist {
+		more, err = wbufWrap.WriteRune(sym)
+		if err != nil {
+			log.Error().Msg("Unable to write data")
+		}
+		all += more
+	}
+	wbufWrap.Flush()
+	more, err = w.Write(wbuf.Bytes())
+	if err != nil {
+		log.Error().Msg("Unable to write data")
+	}
+	all += more
+
+	// Test marker - could be checksum
+	more, err = w.Write([]byte("T"))
+	if err != nil {
+		log.Error().Msg("Unable to write data")
+	}
+	all += more
+
+	wbuf.Reset()
+
+	for _, d := range dat.array {
+		bo.PutUint32(buf[0:4], uint32(d))
+		more, err := w.Write(buf[0:4])
+		if err != nil {
+			log.Error().Msg("Unable to write data")
+		}
+		all += more
+	}
+
+	return int64(all), err
 }
 
 // Match an input string against the double array
