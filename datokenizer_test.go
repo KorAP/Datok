@@ -1,7 +1,6 @@
 package datokenizer
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,14 +33,9 @@ func TestSimpleBranches(t *testing.T) {
 
 func TestSimpleTokenizer(t *testing.T) {
 	assert := assert.New(t)
-
-	fmt.Println("-------------------")
-
 	tok := parse_file("testdata/simpletok.fst")
 	tok.buildDA()
 	assert.True(tok.match("bau"))
-	/*
-		assert.True(tok.match("bad"))
-		assert.True(tok.match("wald gehen"))
-	*/
+	assert.True(tok.match("bad"))
+	// assert.True(tok.match("wald gehen"))
 }

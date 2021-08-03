@@ -523,25 +523,36 @@ func (tok *Tokenizer) match(input string) bool {
 	t := 1 // Start position
 	chars := []rune(input)
 	i := 0
+	var a int
+	var tu int
+	var ok bool
+
 	//	fmt.Println("Length of string is", len(chars))
 	for ; i < len(chars); i++ {
-		a, ok := tok.sigma[chars[i]]
+		a, ok = tok.sigma[chars[i]]
 
 		// Support identity symbol if char not in sigma
 		if !ok && IDENTITY != -1 {
 			fmt.Println("IDENTITY symbol", chars[i], "->", IDENTITY)
 			a = IDENTITY
 		}
-		tu := t
+		tu = t
 	CHECK:
 		t = tok.get_base(tu) + a
 		if t > tok.get_check(1) || tok.get_check(t) != tu {
 			fmt.Println("Match is not fine!", t, "and", tok.get_check(t), "vs", tu)
 
 			// Try again with unknown symbol, in case identity failed
-			if !ok && a == IDENTITY {
-				a = UNKNOWN
-				goto CHECK
+			if ok {
+				if a == IDENTITY {
+					fmt.Println("UNKNOWN symbol", chars[i], "->", UNKNOWN)
+					a = UNKNOWN
+					goto CHECK
+				} else if a == UNKNOWN {
+					fmt.Println("EPSILON symbol", chars[i], "->", EPSILON)
+					a = EPSILON
+					goto CHECK
+				}
 			}
 			break
 		} else if tok.get_base(t) < 0 {
@@ -557,12 +568,34 @@ func (tok *Tokenizer) match(input string) bool {
 		return false
 	}
 
-	fmt.Println("Hmm...", tok.get_check(tok.get_base(t)+FINAL), "-", t)
+	// fmt.Println("Hmm...", tok.get_check(tok.get_base(t)+FINAL), "-", t)
 
+FINALCHECK:
 	if tok.get_check(tok.get_base(t)+FINAL) == t {
 		return true
 	}
-	return false
+
+	//	if a != EPSILON {
+	// EPSILONCHECK:
+	tu = t
+	a = EPSILON
+
+	t = tok.get_base(tu) + a
+	if t > tok.get_check(1) || tok.get_check(t) != tu {
+		fmt.Println("xMatch is not fine!", t, "and", tok.get_check(t), "vs", tu)
+		return false
+	} else if tok.get_base(t) < 0 {
+		// Move to representative state
+		t = -1 * tok.get_base(t)
+		goto FINALCHECK
+	}
+	goto FINALCHECK
+	// return true
+	/*
+		}
+
+			return false
+	*/
 }
 
 // In the final realization, the states can only have 30 bits:
