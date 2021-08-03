@@ -62,10 +62,11 @@ type Tokenizer struct {
 }
 
 type DaTokenizer struct {
-	sigma map[rune]int
 	// sigmaRev map[int]rune
-	maxSize int
-	array   []int
+	sigma     map[rune]int
+	maxSize   int
+	loadLevel float64
+	array     []int
 }
 
 func ParseFile(file string) *Tokenizer {
@@ -434,6 +435,10 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		// Set base to the first free slot in the double array
 		dat.setBase(t, dat.xCheck(A))
 
+		// TODO:
+		//   Sort the outgoing transitions based onm the
+		//   outdegree of .end
+
 		// Iterate over all outgoing symbols
 		for _, a := range A {
 
@@ -522,7 +527,7 @@ func (tok *DaTokenizer) setSize(p, v int) {
 }
 
 // Get size of double array
-func (tok *DaTokenizer) getSize(p int) int {
+func (tok *DaTokenizer) GetSize(p int) int {
 	return tok.getCheck(1)
 }
 
@@ -573,8 +578,11 @@ OVERLAP:
 	return base
 }
 
-func (dat *DaTokenizer) loadLevel() float64 {
+func (dat *DaTokenizer) LoadLevel() float64 {
 
+	if dat.loadLevel >= 0 {
+		return dat.loadLevel
+	}
 	nonEmpty := 0
 	all := len(dat.array) / 2
 	for x := 1; x <= len(dat.array); x = x + 2 {
@@ -582,8 +590,8 @@ func (dat *DaTokenizer) loadLevel() float64 {
 			nonEmpty++
 		}
 	}
-	fmt.Println("all:", all, "nonEmpty", nonEmpty)
-	return float64(nonEmpty) / float64(all) * 100
+	dat.loadLevel = float64(nonEmpty) / float64(all) * 100
+	return dat.loadLevel
 }
 
 // Match an input string against the double array
@@ -671,8 +679,7 @@ FINALCHECK:
 
 	// Check epsilon transitions until a final state is reached
 	tu = t
-	a = EPSILON
-	t = tok.getBase(tu) + a
+	t = tok.getBase(tu) + EPSILON
 
 	// Epsilon transition failed
 	if t > tok.getCheck(1) || tok.getCheck(t) != tu {

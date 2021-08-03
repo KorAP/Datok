@@ -44,8 +44,9 @@ func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := ParseFile("testdata/tokenizer.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(dat.loadLevel() >= 70)
+	assert.True(dat.LoadLevel() >= 70)
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
 	assert.True(dat.Match("wald gehen"))
+	assert.Fail("1")
 }
