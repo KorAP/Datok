@@ -1,6 +1,7 @@
 package datokenizer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,13 +41,12 @@ func TestSimpleTokenizer(t *testing.T) {
 	assert.True(tok.Match("wald gehen"))
 }
 
-/*
 func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := ParseFile("testdata/tokenizer.fst")
 	tok.ToDoubleArray()
+	fmt.Println("Size:", tok.maxSize)
 	assert.True(tok.Match("bau"))
 	assert.True(tok.Match("bad"))
 	assert.True(tok.Match("wald gehen"))
 }
-*/

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -532,6 +533,9 @@ func (tok *Tokenizer) get_set(s int, A *[]int) {
 	for a := range tok.transitions[s] {
 		*A = append(*A, a)
 	}
+
+	// Not required, but simplifies bug hunting
+	sort.Ints(*A)
 }
 
 // Based on Mizobuchi et al (2000), p. 124
