@@ -9,9 +9,6 @@ package datokenizer
 // TODO:
 // - replace maxSize with the check value
 // - Strip first state and make everything start with 0!
-// - Serialize!
-// - Split Tokenizer and DATokenizer
-// - Make epsilon etc. properties
 
 import (
 	"bufio"
@@ -40,12 +37,6 @@ const (
 	VERSION = uint16(1)
 )
 
-// Special symbols in sigma
-var EPSILON = -1
-var UNKNOWN = -1
-var IDENTITY = -1
-var FINAL = -1
-
 var bo binary.ByteOrder = binary.LittleEndian
 
 type mapping struct {
@@ -66,6 +57,12 @@ type Tokenizer struct {
 	stateCount  int
 	sigmaCount  int
 	transitions []map[int]*edge
+
+	// Special symbols in sigma
+	epsilon  int
+	unknown  int
+	identity int
+	final    int
 }
 
 type DaTokenizer struct {
@@ -74,9 +71,15 @@ type DaTokenizer struct {
 	maxSize   int
 	loadLevel float64
 	array     []int
+
+	// Special symbols in sigma
+	epsilon  int
+	unknown  int
+	identity int
+	final    int
 }
 
-func ParseFile(file string) *Tokenizer {
+func ParseFoma(file string) *Tokenizer {
 	f, err := os.Open(file)
 	if err != nil {
 		log.Error().Err(err)
@@ -98,8 +101,11 @@ func Parse(ior io.Reader) *Tokenizer {
 	r := bufio.NewReader(ior)
 
 	tok := &Tokenizer{
-		// sigma:    make(map[rune]int),
 		sigmaRev: make(map[int]rune),
+		epsilon:  -1,
+		unknown:  -1,
+		identity: -1,
+		final:    -1,
 	}
 
 	var state, inSym, outSym, end, final int
@@ -130,7 +136,7 @@ func Parse(ior io.Reader) *Tokenizer {
 			// Adds a final transition symbol to sigma
 			// written as '#' in Mizobuchi et al (2000)
 			tok.sigmaCount++
-			FINAL = tok.sigmaCount
+			tok.final = tok.sigmaCount
 			continue
 		}
 		if strings.HasPrefix(line, "##sigma##") {
@@ -267,10 +273,10 @@ func Parse(ior io.Reader) *Tokenizer {
 				if inSym != outSym {
 
 					// Allow any epsilon to become a newline
-					if !(inSym == EPSILON && tok.sigmaRev[outSym] == NEWLINE) &&
+					if !(inSym == tok.epsilon && tok.sigmaRev[outSym] == NEWLINE) &&
 
 						// Allow any whitespace to be ignored
-						!(inSym != EPSILON && outSym == EPSILON) &&
+						!(inSym != tok.epsilon && outSym == tok.epsilon) &&
 
 						// Allow any whitespace to become a new line
 						!(tok.sigmaRev[outSym] == NEWLINE) {
@@ -320,7 +326,7 @@ func Parse(ior io.Reader) *Tokenizer {
 
 				// Add final transition
 				if final == 1 {
-					tok.transitions[state+1][FINAL] = &edge{}
+					tok.transitions[state+1][tok.final] = &edge{}
 				}
 
 				if DEBUG {
@@ -364,18 +370,18 @@ func Parse(ior io.Reader) *Tokenizer {
 					switch elem[1] {
 					case "@_EPSILON_SYMBOL_@":
 						{
-							EPSILON = number
+							tok.epsilon = number
 							continue
 						}
 					case "@_UNKNOWN_SYMBOL_@":
 						{
-							UNKNOWN = number
+							tok.unknown = number
 							continue
 						}
 
 					case "@_IDENTITY_SYMBOL_@":
 						{
-							IDENTITY = number
+							tok.identity = number
 							continue
 						}
 					default:
@@ -412,6 +418,10 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 	dat := &DaTokenizer{
 		sigma:     make(map[rune]int),
 		loadLevel: -1,
+		final:     tok.final,
+		unknown:   tok.unknown,
+		identity:  tok.identity,
+		epsilon:   tok.epsilon,
 	}
 
 	for num, sym := range tok.sigmaRev {
@@ -450,7 +460,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		// Iterate over all outgoing symbols
 		for _, a := range A {
 
-			if a != FINAL {
+			if a != tok.final {
 
 				// Aka g(s, a)
 				s1 := tok.transitions[s][a].end
@@ -472,7 +482,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				}
 			} else {
 				// Store a final transition
-				dat.setCheck(dat.getBase(t)+FINAL, t)
+				dat.setCheck(dat.getBase(t)+dat.final, t)
 			}
 		}
 	}
@@ -576,7 +586,7 @@ func (dat *DaTokenizer) xCheck(symbols []int) int {
 OVERLAP:
 
 	// Resize the array if necessary
-	dat.resize((base + FINAL) * 2)
+	dat.resize((base + dat.final) * 2)
 	for _, a := range symbols {
 		if dat.getCheck(base+a) != 0 {
 			base++
@@ -625,10 +635,10 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 
 	buf := make([]byte, 0, 12)
 	bo.PutUint16(buf[0:2], VERSION)
-	bo.PutUint16(buf[2:4], uint16(EPSILON))
-	bo.PutUint16(buf[4:6], uint16(UNKNOWN))
-	bo.PutUint16(buf[6:8], uint16(IDENTITY))
-	bo.PutUint16(buf[8:10], uint16(FINAL))
+	bo.PutUint16(buf[2:4], uint16(dat.epsilon))
+	bo.PutUint16(buf[4:6], uint16(dat.unknown))
+	bo.PutUint16(buf[6:8], uint16(dat.identity))
+	bo.PutUint16(buf[8:10], uint16(dat.final))
 	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
 	more, err := w.Write(buf[0:12])
 	if err != nil {
@@ -695,11 +705,11 @@ func (tok *DaTokenizer) Match(input string) bool {
 		a, ok = tok.sigma[chars[i]]
 
 		// Support identity symbol if character is not in sigma
-		if !ok && IDENTITY != -1 {
+		if !ok && tok.identity != -1 {
 			if DEBUG {
-				fmt.Println("IDENTITY symbol", string(chars[i]), "->", IDENTITY)
+				fmt.Println("IDENTITY symbol", string(chars[i]), "->", tok.identity)
 			}
-			a = IDENTITY
+			a = tok.identity
 		} else if DEBUG {
 			fmt.Println("Sigma transition is okay for [", string(chars[i]), "]")
 		}
@@ -714,19 +724,19 @@ func (tok *DaTokenizer) Match(input string) bool {
 				fmt.Println("Match is not fine!", t, "and", tok.getCheck(t), "vs", tu)
 			}
 
-			if !ok && a == IDENTITY {
+			if !ok && a == tok.identity {
 				// Try again with unknown symbol, in case identity failed
 				if DEBUG {
-					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", UNKNOWN)
+					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", tok.unknown)
 				}
-				a = UNKNOWN
+				a = tok.unknown
 
-			} else if a != EPSILON {
+			} else if a != tok.epsilon {
 				// Try again with epsilon symbol, in case everything else failed
 				if DEBUG {
-					fmt.Println("EPSILON symbol", string(chars[i]), "->", EPSILON)
+					fmt.Println("EPSILON symbol", string(chars[i]), "->", tok.epsilon)
 				}
-				a = EPSILON
+				a = tok.epsilon
 			} else {
 				break
 			}
@@ -737,7 +747,7 @@ func (tok *DaTokenizer) Match(input string) bool {
 		}
 
 		// Transition is fine
-		if a != EPSILON {
+		if a != tok.epsilon {
 			// Character consumed
 			i++
 		}
@@ -755,13 +765,13 @@ func (tok *DaTokenizer) Match(input string) bool {
 FINALCHECK:
 
 	// Automaton is in a final state
-	if tok.getCheck(tok.getBase(t)+FINAL) == t {
+	if tok.getCheck(tok.getBase(t)+tok.final) == t {
 		return true
 	}
 
 	// Check epsilon transitions until a final state is reached
 	tu = t
-	t = tok.getBase(tu) + EPSILON
+	t = tok.getBase(tu) + tok.epsilon
 
 	// Epsilon transition failed
 	if t > tok.getCheck(1) || tok.getCheck(t) != tu {
