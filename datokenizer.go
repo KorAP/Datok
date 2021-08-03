@@ -53,14 +53,19 @@ type edge struct {
 }
 
 type Tokenizer struct {
-	sigma       map[rune]int
+	// sigma       map[rune]int
 	sigmaRev    map[int]rune
 	arcCount    int
 	stateCount  int
 	sigmaCount  int
-	maxSize     int
-	array       []int
 	transitions []map[int]*edge
+}
+
+type DaTokenizer struct {
+	sigma map[rune]int
+	// sigmaRev map[int]rune
+	maxSize int
+	array   []int
 }
 
 func ParseFile(file string) *Tokenizer {
@@ -85,7 +90,7 @@ func Parse(ior io.Reader) *Tokenizer {
 	r := bufio.NewReader(ior)
 
 	tok := &Tokenizer{
-		sigma:    make(map[rune]int),
+		// sigma:    make(map[rune]int),
 		sigmaRev: make(map[int]rune),
 	}
 
@@ -385,7 +390,6 @@ func Parse(ior io.Reader) *Tokenizer {
 					symbol = rune(NEWLINE)
 				}
 
-				tok.sigma[symbol] = number
 				tok.sigmaRev[number] = symbol
 			}
 		}
@@ -395,7 +399,15 @@ func Parse(ior io.Reader) *Tokenizer {
 }
 
 // Implementation of Mizobuchi et al (2000), p.128
-func (tok *Tokenizer) ToDoubleArray() *Tokenizer {
+func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
+
+	dat := &DaTokenizer{
+		sigma: make(map[rune]int),
+	}
+
+	for num, sym := range tok.sigmaRev {
+		dat.sigma[sym] = num
+	}
 
 	mark := 0
 	size := 0
@@ -420,7 +432,7 @@ func (tok *Tokenizer) ToDoubleArray() *Tokenizer {
 		tok.get_set(s, &A)
 
 		// Set base to the first free slot in the double array
-		tok.setBase(t, tok.xCheck(A))
+		dat.setBase(t, dat.xCheck(A))
 
 		// Iterate over all outgoing symbols
 		for _, a := range A {
@@ -431,8 +443,8 @@ func (tok *Tokenizer) ToDoubleArray() *Tokenizer {
 				s1 := tok.transitions[s][a].end
 
 				// Store the transition
-				t1 := tok.getBase(t) + a
-				tok.setCheck(t1, t)
+				t1 := dat.getBase(t) + a
+				dat.setCheck(t1, t)
 
 				// Check for representative states
 				r := in_table(s1, table, size)
@@ -443,24 +455,24 @@ func (tok *Tokenizer) ToDoubleArray() *Tokenizer {
 					size++
 				} else {
 					// Overwrite with the representative state
-					tok.setBase(t1, -1*r)
+					dat.setBase(t1, -1*r)
 				}
 			} else {
 				// Store a final transition
-				tok.setCheck(tok.getBase(t)+FINAL, t)
+				dat.setCheck(dat.getBase(t)+FINAL, t)
 			}
 		}
 	}
 
 	// Following Mizobuchi et al (2000) the size of the
 	// FSA should be stored in check(1).
-	tok.setCheck(1, tok.maxSize+1)
-	tok.array = tok.array[:tok.maxSize+1]
-	return tok
+	dat.setCheck(1, dat.maxSize+1)
+	dat.array = dat.array[:dat.maxSize+1]
+	return dat
 }
 
 // Resize double array when necessary
-func (tok *Tokenizer) resize(l int) {
+func (tok *DaTokenizer) resize(l int) {
 	// TODO:
 	//   This is a bit too aggressive atm and should be calmed down.
 	if len(tok.array) <= l {
@@ -469,7 +481,7 @@ func (tok *Tokenizer) resize(l int) {
 }
 
 // Set base value in double array
-func (tok *Tokenizer) setBase(p int, v int) {
+func (tok *DaTokenizer) setBase(p int, v int) {
 	l := p*2 + 1
 	tok.resize(l)
 	if tok.maxSize < l {
@@ -479,7 +491,7 @@ func (tok *Tokenizer) setBase(p int, v int) {
 }
 
 // Get base value in double array
-func (tok *Tokenizer) getBase(p int) int {
+func (tok *DaTokenizer) getBase(p int) int {
 	if p*2 >= len(tok.array) {
 		return 0
 	}
@@ -487,7 +499,7 @@ func (tok *Tokenizer) getBase(p int) int {
 }
 
 // Set check value in double array
-func (tok *Tokenizer) setCheck(p int, v int) {
+func (tok *DaTokenizer) setCheck(p int, v int) {
 	l := p*2 + 1
 	tok.resize(l)
 	if tok.maxSize < l {
@@ -497,7 +509,7 @@ func (tok *Tokenizer) setCheck(p int, v int) {
 }
 
 // Get check value in double array
-func (tok *Tokenizer) getCheck(p int) int {
+func (tok *DaTokenizer) getCheck(p int) int {
 	if (p*2)+1 >= len(tok.array) {
 		return 0
 	}
@@ -505,12 +517,12 @@ func (tok *Tokenizer) getCheck(p int) int {
 }
 
 // Set size of double array
-func (tok *Tokenizer) setSize(p, v int) {
+func (tok *DaTokenizer) setSize(p, v int) {
 	tok.setCheck(1, v)
 }
 
 // Get size of double array
-func (tok *Tokenizer) getSize(p int) int {
+func (tok *DaTokenizer) getSize(p int) int {
 	return tok.getCheck(1)
 }
 
@@ -543,7 +555,7 @@ func (tok *Tokenizer) get_set(s int, A *[]int) {
 // structure until it finds a gap that fits all outgoing transitions
 // of the state. This is extremely slow, but is only necessary in the
 // construction phase of the tokenizer.
-func (tok *Tokenizer) xCheck(symbols []int) int {
+func (dat *DaTokenizer) xCheck(symbols []int) int {
 
 	// Start at the first entry of the double array list
 	base := 1
@@ -551,9 +563,9 @@ func (tok *Tokenizer) xCheck(symbols []int) int {
 OVERLAP:
 
 	// Resize the array if necessary
-	tok.resize((base + FINAL) * 2)
+	dat.resize((base + FINAL) * 2)
 	for _, a := range symbols {
-		if tok.getCheck(base+a) != 0 {
+		if dat.getCheck(base+a) != 0 {
 			base++
 			goto OVERLAP
 		}
@@ -567,7 +579,7 @@ OVERLAP:
 // Based on Mizobuchi et al (2000), p. 129,
 // with additional support for IDENTITY, UNKNOWN
 // and EPSILON transitions.
-func (tok *Tokenizer) Match(input string) bool {
+func (tok *DaTokenizer) Match(input string) bool {
 	var a int
 	var tu int
 	var ok bool

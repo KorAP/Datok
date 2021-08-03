@@ -12,10 +12,10 @@ func TestSimpleString(t *testing.T) {
 
 	// bau | bauamt
 	tok := ParseFile("testdata/bauamt.fst")
-	tok.ToDoubleArray()
-	assert.True(tok.Match("bau"))
-	assert.True(tok.Match("bauamt"))
-	assert.False(tok.Match("baum"))
+	dat := tok.ToDoubleArray()
+	assert.True(dat.Match("bau"))
+	assert.True(dat.Match("bauamt"))
+	assert.False(dat.Match("baum"))
 }
 
 func TestSimpleBranches(t *testing.T) {
@@ -23,30 +23,30 @@ func TestSimpleBranches(t *testing.T) {
 
 	// (bau | wahl) (amt | en)
 	tok := ParseFile("testdata/wahlamt.fst")
-	tok.ToDoubleArray()
-	assert.False(tok.Match("bau"))
-	assert.True(tok.Match("bauamt"))
-	assert.True(tok.Match("wahlamt"))
-	assert.True(tok.Match("bauen"))
-	assert.True(tok.Match("wahlen"))
-	assert.False(tok.Match("baum"))
+	dat := tok.ToDoubleArray()
+	assert.False(dat.Match("bau"))
+	assert.True(dat.Match("bauamt"))
+	assert.True(dat.Match("wahlamt"))
+	assert.True(dat.Match("bauen"))
+	assert.True(dat.Match("wahlen"))
+	assert.False(dat.Match("baum"))
 }
 
 func TestSimpleTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := ParseFile("testdata/simpletok.fst")
-	tok.ToDoubleArray()
-	assert.True(tok.Match("bau"))
-	assert.True(tok.Match("bad"))
-	assert.True(tok.Match("wald gehen"))
+	dat := tok.ToDoubleArray()
+	assert.True(dat.Match("bau"))
+	assert.True(dat.Match("bad"))
+	assert.True(dat.Match("wald gehen"))
 }
 
 func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := ParseFile("testdata/tokenizer.fst")
-	tok.ToDoubleArray()
-	fmt.Println("Size:", tok.maxSize)
-	assert.True(tok.Match("bau"))
-	assert.True(tok.Match("bad"))
-	assert.True(tok.Match("wald gehen"))
+	dat := tok.ToDoubleArray()
+	fmt.Println("Size:", dat.maxSize)
+	assert.True(dat.Match("bau"))
+	assert.True(dat.Match("bad"))
+	assert.True(dat.Match("wald gehen"))
 }
