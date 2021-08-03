@@ -1,7 +1,6 @@
 package datokenizer
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +44,7 @@ func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := ParseFile("testdata/tokenizer.fst")
 	dat := tok.ToDoubleArray()
-	fmt.Println("Size:", dat.maxSize)
+	assert.True(dat.loadLevel() >= 70)
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
 	assert.True(dat.Match("wald gehen"))

@@ -573,6 +573,19 @@ OVERLAP:
 	return base
 }
 
+func (dat *DaTokenizer) loadLevel() float64 {
+
+	nonEmpty := 0
+	all := len(dat.array) / 2
+	for x := 1; x <= len(dat.array); x = x + 2 {
+		if dat.array[x] != 0 {
+			nonEmpty++
+		}
+	}
+	fmt.Println("all:", all, "nonEmpty", nonEmpty)
+	return float64(nonEmpty) / float64(all) * 100
+}
+
 // Match an input string against the double array
 // FSA.
 //
