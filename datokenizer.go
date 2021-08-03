@@ -26,7 +26,10 @@ const (
 )
 
 // Special symbols in sigma
-var EPSILON, UNKNOWN, IDENTITY, FINAL int
+var EPSILON = -1
+var UNKNOWN = -1
+var IDENTITY = -1
+var FINAL = -1
 
 type mapping struct {
 	source int
@@ -292,7 +295,17 @@ func parse(ior io.Reader) *Tokenizer {
 					tok.transitions[arrstate+1][FINAL] = &edge{}
 				}
 
-				fmt.Println("Add", arrstate+1, "->", arrtarget+1, "(", string(tok.sigma_rev[arrin]), ":", string(tok.sigma_rev[arrout]), ")")
+				fmt.Println("Add",
+					arrstate+1, "->", arrtarget+1,
+					"(",
+					arrin,
+					":",
+					arrout,
+					") (",
+					string(tok.sigma_rev[arrin]),
+					":",
+					string(tok.sigma_rev[arrout]),
+					")")
 
 				continue
 			}
@@ -510,21 +523,30 @@ func (tok *Tokenizer) match(input string) bool {
 	t := 1 // Start position
 	chars := []rune(input)
 	i := 0
-	fmt.Println("Length of string is", len(chars))
+	//	fmt.Println("Length of string is", len(chars))
 	for ; i < len(chars); i++ {
-		a := tok.sigma[chars[i]]
+		a, ok := tok.sigma[chars[i]]
+
+		// Support identity symbol if char not in sigma
+		if !ok && IDENTITY != -1 {
+			fmt.Println("IDENTITY symbol", chars[i], "->", IDENTITY)
+			a = IDENTITY
+		}
 		tu := t
+	CHECK:
 		t = tok.get_base(tu) + a
-		fmt.Println("Check", string(tok.sigma_rev[a]), ":", t)
-		if t > tok.get_check(1) {
-			fmt.Println("Out of array")
-			break
-		} else if tok.get_check(t) != tu {
+		if t > tok.get_check(1) || tok.get_check(t) != tu {
 			fmt.Println("Match is not fine!", t, "and", tok.get_check(t), "vs", tu)
+
+			// Try again with unknown symbol, in case identity failed
+			if !ok && a == IDENTITY {
+				a = UNKNOWN
+				goto CHECK
+			}
 			break
 		} else if tok.get_base(t) < 0 {
+			// Move to representative state
 			t = -1 * tok.get_base(t)
-			// } else {
 		}
 	}
 
@@ -535,7 +557,7 @@ func (tok *Tokenizer) match(input string) bool {
 		return false
 	}
 
-	// fmt.Println("Hmm...", tok.get_check(tok.get_base(t)+FINAL), "-", t)
+	fmt.Println("Hmm...", tok.get_check(tok.get_base(t)+FINAL), "-", t)
 
 	if tok.get_check(tok.get_base(t)+FINAL) == t {
 		return true
