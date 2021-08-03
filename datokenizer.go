@@ -519,6 +519,7 @@ OVERLAP:
 }
 
 // Based on Mizobuchi et al (2000), p. 129
+// Added support for IDENTITY, UNKNOWN and EPSILON
 func (tok *Tokenizer) match(input string) bool {
 	t := 1 // Start position
 	chars := []rune(input)
@@ -528,13 +529,15 @@ func (tok *Tokenizer) match(input string) bool {
 	var ok bool
 
 	//	fmt.Println("Length of string is", len(chars))
-	for ; i < len(chars); i++ {
+	for i < len(chars) {
 		a, ok = tok.sigma[chars[i]]
 
 		// Support identity symbol if char not in sigma
 		if !ok && IDENTITY != -1 {
-			fmt.Println("IDENTITY symbol", chars[i], "->", IDENTITY)
+			fmt.Println("IDENTITY symbol", string(chars[i]), "->", IDENTITY)
 			a = IDENTITY
+		} else {
+			fmt.Println("Sigma transition is okay for [", string(chars[i]), "]")
 		}
 		tu = t
 	CHECK:
@@ -543,21 +546,32 @@ func (tok *Tokenizer) match(input string) bool {
 			fmt.Println("Match is not fine!", t, "and", tok.get_check(t), "vs", tu)
 
 			// Try again with unknown symbol, in case identity failed
-			if ok {
+			if !ok {
 				if a == IDENTITY {
-					fmt.Println("UNKNOWN symbol", chars[i], "->", UNKNOWN)
+					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", UNKNOWN)
 					a = UNKNOWN
 					goto CHECK
 				} else if a == UNKNOWN {
-					fmt.Println("EPSILON symbol", chars[i], "->", EPSILON)
+					fmt.Println("aEPSILON symbol", string(chars[i]), "->", EPSILON)
 					a = EPSILON
+					// In the worst case, this checks epsilon twice at the same state -
+					// here and at the end
 					goto CHECK
 				}
+			} else if a != EPSILON {
+				fmt.Println("bEPSILON symbol", string(chars[i]), "->", EPSILON)
+				a = EPSILON
+				// In the worst case, this checks epsilon twice at the same state -
+				// here and at the end
+				goto CHECK
 			}
 			break
 		} else if tok.get_base(t) < 0 {
 			// Move to representative state
 			t = -1 * tok.get_base(t)
+		}
+		if a != EPSILON {
+			i++
 		}
 	}
 
@@ -575,8 +589,6 @@ FINALCHECK:
 		return true
 	}
 
-	//	if a != EPSILON {
-	// EPSILONCHECK:
 	tu = t
 	a = EPSILON
 
@@ -590,12 +602,6 @@ FINALCHECK:
 		goto FINALCHECK
 	}
 	goto FINALCHECK
-	// return true
-	/*
-		}
-
-			return false
-	*/
 }
 
 // In the final realization, the states can only have 30 bits:

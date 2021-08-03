@@ -37,5 +37,5 @@ func TestSimpleTokenizer(t *testing.T) {
 	tok.buildDA()
 	assert.True(tok.match("bau"))
 	assert.True(tok.match("bad"))
-	// assert.True(tok.match("wald gehen"))
+	assert.True(tok.match("wald gehen"))
 }
