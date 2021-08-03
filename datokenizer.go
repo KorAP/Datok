@@ -79,7 +79,7 @@ type DaTokenizer struct {
 	final    int
 }
 
-func ParseFoma(file string) *Tokenizer {
+func LoadFomaFile(file string) *Tokenizer {
 	f, err := os.Open(file)
 	if err != nil {
 		log.Error().Err(err)
@@ -94,10 +94,10 @@ func ParseFoma(file string) *Tokenizer {
 	}
 	defer gz.Close()
 
-	return Parse(gz)
+	return ParseFome(gz)
 }
 
-func Parse(ior io.Reader) *Tokenizer {
+func ParseFome(ior io.Reader) *Tokenizer {
 	r := bufio.NewReader(ior)
 
 	tok := &Tokenizer{
@@ -412,6 +412,17 @@ func Parse(ior io.Reader) *Tokenizer {
 	return tok
 }
 
+// Set alphabet A to the list of all symbols
+// outgoing from s
+func (tok *Tokenizer) get_set(s int, A *[]int) {
+	for a := range tok.transitions[s] {
+		*A = append(*A, a)
+	}
+
+	// Not required, but simplifies bug hunting
+	sort.Ints(*A)
+}
+
 // Implementation of Mizobuchi et al (2000), p.128
 func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
@@ -494,61 +505,6 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 	return dat
 }
 
-// Resize double array when necessary
-func (tok *DaTokenizer) resize(l int) {
-	// TODO:
-	//   This is a bit too aggressive atm and should be calmed down.
-	if len(tok.array) <= l {
-		tok.array = append(tok.array, make([]int, l)...)
-	}
-}
-
-// Set base value in double array
-func (tok *DaTokenizer) setBase(p int, v int) {
-	l := p*2 + 1
-	tok.resize(l)
-	if tok.maxSize < l {
-		tok.maxSize = l
-	}
-	tok.array[p*2] = v
-}
-
-// Get base value in double array
-func (tok *DaTokenizer) getBase(p int) int {
-	if p*2 >= len(tok.array) {
-		return 0
-	}
-	return tok.array[p*2]
-}
-
-// Set check value in double array
-func (tok *DaTokenizer) setCheck(p int, v int) {
-	l := p*2 + 1
-	tok.resize(l)
-	if tok.maxSize < l {
-		tok.maxSize = l
-	}
-	tok.array[(p*2)+1] = v
-}
-
-// Get check value in double array
-func (tok *DaTokenizer) getCheck(p int) int {
-	if (p*2)+1 >= len(tok.array) {
-		return 0
-	}
-	return tok.array[(p*2)+1]
-}
-
-// Set size of double array
-func (tok *DaTokenizer) setSize(p, v int) {
-	tok.setCheck(1, v)
-}
-
-// Get size of double array
-func (tok *DaTokenizer) GetSize(p int) int {
-	return tok.getCheck(1)
-}
-
 // Check the table if a mapping of s
 // exists and return this as a representative.
 // Currently iterates through the whole table
@@ -562,15 +518,59 @@ func in_table(s int, table []*mapping, size int) int {
 	return 0
 }
 
-// Set alphabet A to the list of all symbols
-// outgoing from s
-func (tok *Tokenizer) get_set(s int, A *[]int) {
-	for a := range tok.transitions[s] {
-		*A = append(*A, a)
+// Resize double array when necessary
+func (dat *DaTokenizer) resize(l int) {
+	// TODO:
+	//   This is a bit too aggressive atm and should be calmed down.
+	if len(dat.array) <= l {
+		dat.array = append(dat.array, make([]int, l)...)
 	}
+}
 
-	// Not required, but simplifies bug hunting
-	sort.Ints(*A)
+// Set base value in double array
+func (dat *DaTokenizer) setBase(p int, v int) {
+	l := p*2 + 1
+	dat.resize(l)
+	if dat.maxSize < l {
+		dat.maxSize = l
+	}
+	dat.array[p*2] = v
+}
+
+// Get base value in double array
+func (dat *DaTokenizer) getBase(p int) int {
+	if p*2 >= len(dat.array) {
+		return 0
+	}
+	return dat.array[p*2]
+}
+
+// Set check value in double array
+func (dat *DaTokenizer) setCheck(p int, v int) {
+	l := p*2 + 1
+	dat.resize(l)
+	if dat.maxSize < l {
+		dat.maxSize = l
+	}
+	dat.array[(p*2)+1] = v
+}
+
+// Get check value in double array
+func (dat *DaTokenizer) getCheck(p int) int {
+	if (p*2)+1 >= len(dat.array) {
+		return 0
+	}
+	return dat.array[(p*2)+1]
+}
+
+// Set size of double array
+func (dat *DaTokenizer) setSize(p, v int) {
+	dat.setCheck(1, v)
+}
+
+// Get size of double array
+func (dat *DaTokenizer) GetSize(p int) int {
+	return dat.getCheck(1)
 }
 
 // Based on Mizobuchi et al (2000), p. 124
@@ -692,7 +692,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 // Based on Mizobuchi et al (2000), p. 129,
 // with additional support for IDENTITY, UNKNOWN
 // and EPSILON transitions.
-func (tok *DaTokenizer) Match(input string) bool {
+func (dat *DaTokenizer) Match(input string) bool {
 	var a int
 	var tu int
 	var ok bool
@@ -702,52 +702,52 @@ func (tok *DaTokenizer) Match(input string) bool {
 	i := 0
 
 	for i < len(chars) {
-		a, ok = tok.sigma[chars[i]]
+		a, ok = dat.sigma[chars[i]]
 
 		// Support identity symbol if character is not in sigma
-		if !ok && tok.identity != -1 {
+		if !ok && dat.identity != -1 {
 			if DEBUG {
-				fmt.Println("IDENTITY symbol", string(chars[i]), "->", tok.identity)
+				fmt.Println("IDENTITY symbol", string(chars[i]), "->", dat.identity)
 			}
-			a = tok.identity
+			a = dat.identity
 		} else if DEBUG {
 			fmt.Println("Sigma transition is okay for [", string(chars[i]), "]")
 		}
 		tu = t
 	CHECK:
-		t = tok.getBase(tu) + a
+		t = dat.getBase(tu) + a
 
 		// Check if the transition is valid according to the double array
-		if t > tok.getCheck(1) || tok.getCheck(t) != tu {
+		if t > dat.getCheck(1) || dat.getCheck(t) != tu {
 
 			if DEBUG {
-				fmt.Println("Match is not fine!", t, "and", tok.getCheck(t), "vs", tu)
+				fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", tu)
 			}
 
-			if !ok && a == tok.identity {
+			if !ok && a == dat.identity {
 				// Try again with unknown symbol, in case identity failed
 				if DEBUG {
-					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", tok.unknown)
+					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", dat.unknown)
 				}
-				a = tok.unknown
+				a = dat.unknown
 
-			} else if a != tok.epsilon {
+			} else if a != dat.epsilon {
 				// Try again with epsilon symbol, in case everything else failed
 				if DEBUG {
-					fmt.Println("EPSILON symbol", string(chars[i]), "->", tok.epsilon)
+					fmt.Println("EPSILON symbol", string(chars[i]), "->", dat.epsilon)
 				}
-				a = tok.epsilon
+				a = dat.epsilon
 			} else {
 				break
 			}
 			goto CHECK
-		} else if tok.getBase(t) < 0 {
+		} else if dat.getBase(t) < 0 {
 			// Move to representative state
-			t = -1 * tok.getBase(t)
+			t = -1 * dat.getBase(t)
 		}
 
 		// Transition is fine
-		if a != tok.epsilon {
+		if a != dat.epsilon {
 			// Character consumed
 			i++
 		}
@@ -765,24 +765,24 @@ func (tok *DaTokenizer) Match(input string) bool {
 FINALCHECK:
 
 	// Automaton is in a final state
-	if tok.getCheck(tok.getBase(t)+tok.final) == t {
+	if dat.getCheck(dat.getBase(t)+dat.final) == t {
 		return true
 	}
 
 	// Check epsilon transitions until a final state is reached
 	tu = t
-	t = tok.getBase(tu) + tok.epsilon
+	t = dat.getBase(tu) + dat.epsilon
 
 	// Epsilon transition failed
-	if t > tok.getCheck(1) || tok.getCheck(t) != tu {
+	if t > dat.getCheck(1) || dat.getCheck(t) != tu {
 		if DEBUG {
-			fmt.Println("Match is not fine!", t, "and", tok.getCheck(t), "vs", tu)
+			fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", tu)
 		}
 		return false
 
-	} else if tok.getBase(t) < 0 {
+	} else if dat.getBase(t) < 0 {
 		// Move to representative state
-		t = -1 * tok.getBase(t)
+		t = -1 * dat.getBase(t)
 	}
 
 	goto FINALCHECK

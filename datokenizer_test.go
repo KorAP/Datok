@@ -11,7 +11,7 @@ func TestSimpleString(t *testing.T) {
 	assert := assert.New(t)
 
 	// bau | bauamt
-	tok := ParseFoma("testdata/bauamt.fst")
+	tok := LoadFomaFile("testdata/bauamt.fst")
 	dat := tok.ToDoubleArray()
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bauamt"))
@@ -22,7 +22,7 @@ func TestSimpleBranches(t *testing.T) {
 	assert := assert.New(t)
 
 	// (bau | wahl) (amt | en)
-	tok := ParseFoma("testdata/wahlamt.fst")
+	tok := LoadFomaFile("testdata/wahlamt.fst")
 	dat := tok.ToDoubleArray()
 	assert.False(dat.Match("bau"))
 	assert.True(dat.Match("bauamt"))
@@ -34,7 +34,7 @@ func TestSimpleBranches(t *testing.T) {
 
 func TestSimpleTokenizer(t *testing.T) {
 	assert := assert.New(t)
-	tok := ParseFoma("testdata/simpletok.fst")
+	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
@@ -43,7 +43,7 @@ func TestSimpleTokenizer(t *testing.T) {
 
 func TestWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
-	tok := ParseFoma("testdata/simpletok.fst")
+	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
