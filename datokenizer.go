@@ -6,6 +6,12 @@ package datokenizer
  * and written by Mans Hulden.
  */
 
+// TODO:
+// - replace maxSize with the check value
+// - Strip first state and make everything start with 0!
+// - Serialize!
+// - Split Tokenizer and DATokenizer
+
 import (
 	"bufio"
 	"compress/gzip"
@@ -15,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -23,6 +31,7 @@ const (
 	STATES  = 3
 	NONE    = 4
 	NEWLINE = '\u000a'
+	DEBUG   = false
 )
 
 // Special symbols in sigma
@@ -37,49 +46,49 @@ type mapping struct {
 }
 
 type edge struct {
-	in     int
-	out    int
-	target int
+	inSym  int
+	outSym int
+	end    int
 }
 
 type Tokenizer struct {
 	sigma       map[rune]int
-	sigma_rev   map[int]rune
-	arccount    int
-	statecount  int
-	sigmacount  int
-	maxsize     int
+	sigmaRev    map[int]rune
+	arcCount    int
+	stateCount  int
+	sigmaCount  int
+	maxSize     int
 	array       []int
 	transitions []map[int]*edge
 }
 
-func parse_file(file string) *Tokenizer {
+func ParseFile(file string) *Tokenizer {
 	f, err := os.Open(file)
 	if err != nil {
-		panic(err)
+		log.Error().Err(err)
+		os.Exit(0)
 	}
 	defer f.Close()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
-		panic(err)
+		log.Error().Err(err)
+		os.Exit(0)
 	}
 	defer gz.Close()
 
-	return parse(gz)
+	return Parse(gz)
 }
 
-func parse(ior io.Reader) *Tokenizer {
+func Parse(ior io.Reader) *Tokenizer {
 	r := bufio.NewReader(ior)
 
 	tok := &Tokenizer{
-		sigma:     make(map[rune]int),
-		sigma_rev: make(map[int]rune),
+		sigma:    make(map[rune]int),
+		sigmaRev: make(map[int]rune),
 	}
 
-	final := false
-
-	var arrstate, arrin, arrout, arrtarget, arrfinal int
+	var state, inSym, outSym, end, final int
 
 	mode := 0
 	var elem []string
@@ -91,7 +100,8 @@ func parse(ior io.Reader) *Tokenizer {
 			if err == io.EOF {
 				break
 			}
-			panic(err)
+			log.Error().Err(err)
+			os.Exit(0)
 		}
 		if strings.HasPrefix(line, "##foma-net") {
 			continue
@@ -105,8 +115,8 @@ func parse(ior io.Reader) *Tokenizer {
 
 			// Adds a final transition symbol to sigma
 			// written as '#' in Mizobuchi et al (2000)
-			tok.sigmacount++
-			FINAL = tok.sigmacount
+			tok.sigmaCount++
+			FINAL = tok.sigmaCount
 			continue
 		}
 		if strings.HasPrefix(line, "##sigma##") {
@@ -138,26 +148,30 @@ func parse(ior io.Reader) *Tokenizer {
 					fmt.Println("name:             " + elem[12])
 				*/
 				if elem[6] != "1" {
-					panic("The FST needs to be deterministic")
+					log.Error().Msg("The FST needs to be deterministic")
+					os.Exit(1)
 				}
 				if elem[9] != "1" {
-					panic("The FST needs to be epsilon free")
+					log.Error().Msg("The FST needs to be epsilon free")
+					os.Exit(1)
 				}
 
 				elemint[0], err = strconv.Atoi(elem[1])
 				if err != nil {
-					panic("Can't read arccount")
+					log.Error().Msg("Can't read arccount")
+					os.Exit(1)
 				}
-				tok.arccount = elemint[0]
+				tok.arcCount = elemint[0]
 
 				// States start at 1 in Mizobuchi et al (2000),
 				// as the state 0 is associated with a fail.
 				// Initialize states and transitions
 				elemint[0], err = strconv.Atoi(elem[2])
 				if err != nil {
-					panic("Can't read statecount")
+					log.Error().Msg("Can't read statecount")
+					os.Exit(1)
 				}
-				tok.statecount = elemint[0]
+				tok.stateCount = elemint[0]
 				tok.transitions = make([]map[int]*edge, elemint[0]+1)
 				continue
 			}
@@ -200,73 +214,71 @@ func parse(ior io.Reader) *Tokenizer {
 				switch len(elem) {
 				case 5:
 					{
-						arrstate = elemint[0]
-						arrin = elemint[1]
-						arrout = elemint[2]
-						arrtarget = elemint[3]
-						arrfinal = elemint[4]
+						state = elemint[0]
+						inSym = elemint[1]
+						outSym = elemint[2]
+						end = elemint[3]
+						final = elemint[4]
 					}
 				case 4:
 					{
 						if elemint[1] == -1 {
-							arrstate = elemint[0]
-							arrfinal = elemint[3]
+							state = elemint[0]
+							final = elemint[3]
 						} else {
-							arrstate = elemint[0]
-							arrin = elemint[1]
-							arrtarget = elemint[2]
-							arrfinal = elemint[3]
-							arrout = arrin
+							state = elemint[0]
+							inSym = elemint[1]
+							end = elemint[2]
+							final = elemint[3]
+							outSym = inSym
 						}
 					}
 				case 3:
 					{
-						arrin = elemint[0]
-						arrout = elemint[1]
-						arrtarget = elemint[2]
+						inSym = elemint[0]
+						outSym = elemint[1]
+						end = elemint[2]
 					}
 				case 2:
 					{
-						arrin = elemint[0]
-						arrtarget = elemint[1]
-						arrout = arrin
+						inSym = elemint[0]
+						end = elemint[1]
+						outSym = inSym
 					}
-				}
-
-				// This collects all edges until arrstate changes
-				if arrfinal == 1 {
-					final = true
-				} else {
-					final = false
 				}
 
 				// While the states in foma start with 0, the states in the
 				// Mizobuchi FSA start with one - so we increase every state by 1.
 
-				/*
-					if arrin != arrout && arrin != EPSILON && tok.sigma_rev[arrin] != '\n' {
-						panic("Problem: " + strconv.Itoa(arrstate) + " -> " + strconv.Itoa(arrtarget) + " (" + strconv.Itoa(arrin) + ":" + strconv.Itoa(arrout) + ") ")
-					}
-				*/
-				if arrin != arrout {
-					if arrin == EPSILON && tok.sigma_rev[arrout] == NEWLINE {
-					} else if arrin != EPSILON && arrout == EPSILON {
-					} else {
-						panic(
-							"Problem: " +
-								strconv.Itoa(arrstate) +
-								" -> " + strconv.Itoa(arrtarget) +
+				if inSym != outSym {
+
+					// Allow any epsilon to become a newline
+					if !(inSym == EPSILON && tok.sigmaRev[outSym] == NEWLINE) &&
+
+						// Allow any whitespace to be ignored
+						!(inSym != EPSILON && outSym == EPSILON) &&
+
+						// Allow any whitespace to become a new line
+						!(tok.sigmaRev[outSym] == NEWLINE) {
+
+						log.Error().Msg(
+							"Unsupported transition: " +
+								strconv.Itoa(state) +
+								" -> " + strconv.Itoa(end) +
 								" (" +
-								strconv.Itoa(arrin) +
+								strconv.Itoa(inSym) +
 								":" +
-								strconv.Itoa(arrout) +
+								strconv.Itoa(outSym) +
 								") (" +
-								string(tok.sigma_rev[arrin]) +
+								string(tok.sigmaRev[inSym]) +
 								":" +
-								string(tok.sigma_rev[arrout]) +
+								string(tok.sigmaRev[outSym]) +
 								")")
+						os.Exit(1)
 					}
 				}
+
+				// This collects all edges until arrstate changes
 
 				// TODO:
 				//   if arrin == EPSILON && arrout == TOKENEND, mark state as newline
@@ -277,35 +289,39 @@ func parse(ior io.Reader) *Tokenizer {
 				//   if arrout == EPSILON, mark the transition as NOTOKEN
 
 				targetObj := &edge{
-					in:     arrin,
-					out:    arrout,
-					target: arrtarget + 1,
+					inSym:  inSym,
+					outSym: outSym,
+					end:    end + 1,
 				}
 
-				// Initialize outgoing state
-				if tok.transitions[arrstate+1] == nil {
-					tok.transitions[arrstate+1] = make(map[int]*edge)
+				// Initialize outgoing states
+				if tok.transitions[state+1] == nil {
+					tok.transitions[state+1] = make(map[int]*edge)
 				}
 
-				if arrin >= 0 {
-					tok.transitions[arrstate+1][arrin] = targetObj
+				// Ignore transitions with invalid symbols
+				if inSym >= 0 {
+					tok.transitions[state+1][inSym] = targetObj
 				}
 
-				if final {
-					tok.transitions[arrstate+1][FINAL] = &edge{}
+				// Add final transition
+				if final == 1 {
+					tok.transitions[state+1][FINAL] = &edge{}
 				}
 
-				fmt.Println("Add",
-					arrstate+1, "->", arrtarget+1,
-					"(",
-					arrin,
-					":",
-					arrout,
-					") (",
-					string(tok.sigma_rev[arrin]),
-					":",
-					string(tok.sigma_rev[arrout]),
-					")")
+				if DEBUG {
+					fmt.Println("Add",
+						state+1, "->", end+1,
+						"(",
+						inSym,
+						":",
+						outSym,
+						") (",
+						string(tok.sigmaRev[inSym]),
+						":",
+						string(tok.sigmaRev[outSym]),
+						")")
+				}
 
 				continue
 			}
@@ -317,10 +333,11 @@ func parse(ior io.Reader) *Tokenizer {
 				number, err := strconv.Atoi(elem[0])
 
 				if err != nil {
-					panic(err)
+					log.Error().Err(err)
+					os.Exit(0)
 				}
 
-				tok.sigmacount = number
+				tok.sigmaCount = number
 
 				var symbol rune
 
@@ -348,23 +365,27 @@ func parse(ior io.Reader) *Tokenizer {
 							continue
 						}
 					default:
-						panic("MCS not supported: " + line)
+						{
+							log.Error().Msg("MCS not supported: " + line)
+							os.Exit(1)
+						}
 					}
 
-					// Probably a new line symbol
-				} else {
+				} else { // Probably a new line symbol
 					line, err = r.ReadString('\n')
 					if err != nil {
-						panic(err)
+						log.Error().Err(err)
+						os.Exit(0)
 					}
 					if len(line) != 1 {
-						panic("MCS not supported:" + line)
+						log.Error().Msg("MCS not supported:" + line)
+						os.Exit(0)
 					}
-					symbol = rune('\n')
+					symbol = rune(NEWLINE)
 				}
 
 				tok.sigma[symbol] = number
-				tok.sigma_rev[number] = symbol
+				tok.sigmaRev[number] = symbol
 			}
 		}
 	}
@@ -373,110 +394,129 @@ func parse(ior io.Reader) *Tokenizer {
 }
 
 // Implementation of Mizobuchi et al (2000), p.128
-func (tok *Tokenizer) buildDA() *Tokenizer {
+func (tok *Tokenizer) ToDoubleArray() *Tokenizer {
 
 	mark := 0
 	size := 0
 
 	// Create a mapping from s to t
-	table := make([]*mapping, tok.arccount+1)
+	table := make([]*mapping, tok.arcCount+1)
 
 	table[size] = &mapping{source: 1, target: 1}
 	size++
 
-	A := make([]int, 0, 256)
+	// Allocate space for the outgoing symbol range
+	A := make([]int, 0, tok.sigmaCount)
 
 	for mark < size {
 		s := table[mark].source // This is a state in Ms
 		t := table[mark].target // This is a state in Mt
 		mark++
-		//		fmt.Println("Increase mark", mark)
-		// St := append(St, t)
+
+		// Following the paper, here the state t can be remembered
+		// in the set of states St
 		A = A[:0]
 		tok.get_set(s, &A)
 
-		// fmt.Println("Outgoing arcs from t", t, A)
+		// Set base to the first free slot in the double array
+		tok.setBase(t, tok.xCheck(A))
 
-		// tok.array[t].base = tok.x_check(A)
-		tok.set_base(t, tok.x_check(A))
-
+		// Iterate over all outgoing symbols
 		for _, a := range A {
 
 			if a != FINAL {
-				s1 := tok.transitions[s][a].target // g(s, a)
 
-				// fmt.Println("Found", s, "to", s1, "via", a)
+				// Aka g(s, a)
+				s1 := tok.transitions[s][a].end
 
-				t1 := tok.get_base(t) + a
-				tok.set_check(t1, t)
+				// Store the transition
+				t1 := tok.getBase(t) + a
+				tok.setCheck(t1, t)
 
+				// Check for representative states
 				r := in_table(s1, table, size)
+
 				if r == 0 {
-					// fmt.Println("Increase size", t1)
+					// Remember the mapping
 					table[size] = &mapping{source: s1, target: t1}
 					size++
 				} else {
-					//fmt.Println("Rep is there", t1, r)
-					tok.set_base(t1, -1*r)
-					// tok.array[t1].base = -1 * r
+					// Overwrite with the representative state
+					tok.setBase(t1, -1*r)
 				}
 			} else {
-				fmt.Println("I set a final")
-				// t1 := tok.array[t].base + FINAL
-				t1 := tok.get_base(t) + FINAL
-				// tok.array[t1].check = t
-				tok.set_check(t1, t)
+				// Store a final transition
+				tok.setCheck(tok.getBase(t)+FINAL, t)
 			}
 		}
 	}
 
 	// Following Mizobuchi et al (2000) the size of the
 	// FSA should be stored in check(1).
-	tok.set_check(1, tok.maxsize+1)
-	tok.array = tok.array[:tok.maxsize+1]
+	tok.setCheck(1, tok.maxSize+1)
+	tok.array = tok.array[:tok.maxSize+1]
 	return tok
 }
 
+// Resize double array when necessary
 func (tok *Tokenizer) resize(l int) {
+	// TODO:
+	//   This is a bit too aggressive atm and should be calmed down.
 	if len(tok.array) <= l {
 		tok.array = append(tok.array, make([]int, l)...)
 	}
 }
 
-func (tok *Tokenizer) set_base(p int, v int) {
+// Set base value in double array
+func (tok *Tokenizer) setBase(p int, v int) {
 	l := p*2 + 1
 	tok.resize(l)
-	if tok.maxsize < l {
-		tok.maxsize = l
+	if tok.maxSize < l {
+		tok.maxSize = l
 	}
 	tok.array[p*2] = v
 }
 
-func (tok *Tokenizer) get_base(p int) int {
+// Get base value in double array
+func (tok *Tokenizer) getBase(p int) int {
 	if p*2 >= len(tok.array) {
 		return 0
 	}
 	return tok.array[p*2]
 }
 
-func (tok *Tokenizer) set_check(p int, v int) {
+// Set check value in double array
+func (tok *Tokenizer) setCheck(p int, v int) {
 	l := p*2 + 1
 	tok.resize(l)
-	if tok.maxsize < l {
-		tok.maxsize = l
+	if tok.maxSize < l {
+		tok.maxSize = l
 	}
 	tok.array[(p*2)+1] = v
 }
 
-func (tok *Tokenizer) get_check(p int) int {
+// Get check value in double array
+func (tok *Tokenizer) getCheck(p int) int {
 	if (p*2)+1 >= len(tok.array) {
 		return 0
 	}
 	return tok.array[(p*2)+1]
 }
 
+// Set size of double array
+func (tok *Tokenizer) setSize(p, v int) {
+	tok.setCheck(1, v)
+}
+
+// Get size of double array
+func (tok *Tokenizer) getSize(p int) int {
+	return tok.getCheck(1)
+}
+
 // Check the table if a mapping of s
-// exists and return this as a representative
+// exists and return this as a representative.
+// Currently iterates through the whole table
+// in a bruteforce manner.
 func in_table(s int, table []*mapping, size int) int {
 	for x := 0; x < size; x++ {
 		if table[x].source == s {
@@ -499,114 +539,123 @@ func (tok *Tokenizer) get_set(s int, A *[]int) {
 // structure until it finds a gap that fits all outgoing transitions
 // of the state. This is extremely slow, but is only necessary in the
 // construction phase of the tokenizer.
-func (tok *Tokenizer) x_check(symbols []int) int {
-	// see https://github.com/bramstein/datrie/blob/master/lib/trie.js
+func (tok *Tokenizer) xCheck(symbols []int) int {
+
+	// Start at the first entry of the double array list
 	base := 1
 
-	// 	fmt.Println("Resize", len(tok.linarray), "<", ((base + FINAL + 1) * 2))
-
 OVERLAP:
+
+	// Resize the array if necessary
 	tok.resize((base + FINAL) * 2)
 	for _, a := range symbols {
-		// if tok.array[base+a].check != 0 {
-		if tok.get_check(base+a) != 0 {
+		if tok.getCheck(base+a) != 0 {
 			base++
 			goto OVERLAP
 		}
 	}
-	//	fmt.Println("Found a nice place at", base, "for", len(symbols))
 	return base
 }
 
-// Based on Mizobuchi et al (2000), p. 129
-// Added support for IDENTITY, UNKNOWN and EPSILON
-func (tok *Tokenizer) match(input string) bool {
-	t := 1 // Start position
-	chars := []rune(input)
-	i := 0
+// Match an input string against the double array
+// FSA.
+//
+// Based on Mizobuchi et al (2000), p. 129,
+// with additional support for IDENTITY, UNKNOWN
+// and EPSILON transitions.
+func (tok *Tokenizer) Match(input string) bool {
 	var a int
 	var tu int
 	var ok bool
 
-	//	fmt.Println("Length of string is", len(chars))
+	t := 1 // Initial state
+	chars := []rune(input)
+	i := 0
+
 	for i < len(chars) {
 		a, ok = tok.sigma[chars[i]]
 
-		// Support identity symbol if char not in sigma
+		// Support identity symbol if character is not in sigma
 		if !ok && IDENTITY != -1 {
-			fmt.Println("IDENTITY symbol", string(chars[i]), "->", IDENTITY)
+			if DEBUG {
+				fmt.Println("IDENTITY symbol", string(chars[i]), "->", IDENTITY)
+			}
 			a = IDENTITY
-		} else {
+		} else if DEBUG {
 			fmt.Println("Sigma transition is okay for [", string(chars[i]), "]")
 		}
 		tu = t
 	CHECK:
-		t = tok.get_base(tu) + a
-		if t > tok.get_check(1) || tok.get_check(t) != tu {
-			fmt.Println("Match is not fine!", t, "and", tok.get_check(t), "vs", tu)
+		t = tok.getBase(tu) + a
 
-			// Try again with unknown symbol, in case identity failed
-			if !ok {
-				if a == IDENTITY {
-					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", UNKNOWN)
-					a = UNKNOWN
-					goto CHECK
-				} else if a == UNKNOWN {
-					fmt.Println("aEPSILON symbol", string(chars[i]), "->", EPSILON)
-					a = EPSILON
-					// In the worst case, this checks epsilon twice at the same state -
-					// here and at the end
-					goto CHECK
-				}
-			} else if a != EPSILON {
-				fmt.Println("bEPSILON symbol", string(chars[i]), "->", EPSILON)
-				a = EPSILON
-				// In the worst case, this checks epsilon twice at the same state -
-				// here and at the end
-				goto CHECK
+		// Check if the transition is valid according to the double array
+		if t > tok.getCheck(1) || tok.getCheck(t) != tu {
+
+			if DEBUG {
+				fmt.Println("Match is not fine!", t, "and", tok.getCheck(t), "vs", tu)
 			}
-			break
-		} else if tok.get_base(t) < 0 {
+
+			if !ok && a == IDENTITY {
+				// Try again with unknown symbol, in case identity failed
+				if DEBUG {
+					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", UNKNOWN)
+				}
+				a = UNKNOWN
+
+			} else if a != EPSILON {
+				// Try again with epsilon symbol, in case everything else failed
+				if DEBUG {
+					fmt.Println("EPSILON symbol", string(chars[i]), "->", EPSILON)
+				}
+				a = EPSILON
+			} else {
+				break
+			}
+			goto CHECK
+		} else if tok.getBase(t) < 0 {
 			// Move to representative state
-			t = -1 * tok.get_base(t)
+			t = -1 * tok.getBase(t)
 		}
+
+		// Transition is fine
 		if a != EPSILON {
+			// Character consumed
 			i++
 		}
+		// TODO:
+		//   Prevent endless epsilon loops!
 	}
 
-	if i == len(chars) {
-		fmt.Println("At the end")
-	} else {
-		fmt.Println("Not at the end")
+	if i != len(chars) {
+		if DEBUG {
+			fmt.Println("Not at the end")
+		}
 		return false
 	}
 
-	// fmt.Println("Hmm...", tok.get_check(tok.get_base(t)+FINAL), "-", t)
-
 FINALCHECK:
-	if tok.get_check(tok.get_base(t)+FINAL) == t {
+
+	// Automaton is in a final state
+	if tok.getCheck(tok.getBase(t)+FINAL) == t {
 		return true
 	}
 
+	// Check epsilon transitions until a final state is reached
 	tu = t
 	a = EPSILON
+	t = tok.getBase(tu) + a
 
-	t = tok.get_base(tu) + a
-	if t > tok.get_check(1) || tok.get_check(t) != tu {
-		fmt.Println("xMatch is not fine!", t, "and", tok.get_check(t), "vs", tu)
+	// Epsilon transition failed
+	if t > tok.getCheck(1) || tok.getCheck(t) != tu {
+		if DEBUG {
+			fmt.Println("Match is not fine!", t, "and", tok.getCheck(t), "vs", tu)
+		}
 		return false
-	} else if tok.get_base(t) < 0 {
+
+	} else if tok.getBase(t) < 0 {
 		// Move to representative state
-		t = -1 * tok.get_base(t)
-		goto FINALCHECK
+		t = -1 * tok.getBase(t)
 	}
+
 	goto FINALCHECK
 }
-
-// In the final realization, the states can only have 30 bits:
-// base[1] -> is final
-// base[2] -> is_separate
-// check[1] -> translates to epsilon
-// check[2] -> appends newine (Maybe)
-// If check[1] && check[2] is set, this translates to a sentence split (Maybe)
