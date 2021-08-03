@@ -18,10 +18,11 @@ import (
 )
 
 const (
-	PROPS  = 1
-	SIGMA  = 2
-	STATES = 3
-	NONE   = 4
+	PROPS   = 1
+	SIGMA   = 2
+	STATES  = 3
+	NONE    = 4
+	NEWLINE = '\u000a'
 )
 
 // Special symbols in sigma
@@ -164,6 +165,9 @@ func parse(ior io.Reader) *Tokenizer {
 					continue
 				}
 				elemint[0], err = strconv.Atoi(elem[0])
+				if err != nil {
+					break
+				}
 
 				if len(elem) > 1 {
 					elemint[1], err = strconv.Atoi(elem[1])
@@ -221,7 +225,7 @@ func parse(ior io.Reader) *Tokenizer {
 				case 2:
 					{
 						arrin = elemint[0]
-						arrtarget = elemint[2]
+						arrtarget = elemint[1]
 						arrout = arrin
 					}
 				}
@@ -236,8 +240,29 @@ func parse(ior io.Reader) *Tokenizer {
 				// While the states in foma start with 0, the states in the
 				// Mizobuchi FSA start with one - so we increase every state by 1.
 
-				if arrin != arrout && arrin != EPSILON && tok.sigma_rev[arrin] != '\n' {
-					panic("Problem: " + strconv.Itoa(arrstate) + " -> " + strconv.Itoa(arrtarget) + " (" + strconv.Itoa(arrin) + ":" + strconv.Itoa(arrout) + ") ")
+				/*
+					if arrin != arrout && arrin != EPSILON && tok.sigma_rev[arrin] != '\n' {
+						panic("Problem: " + strconv.Itoa(arrstate) + " -> " + strconv.Itoa(arrtarget) + " (" + strconv.Itoa(arrin) + ":" + strconv.Itoa(arrout) + ") ")
+					}
+				*/
+				if arrin != arrout {
+					if arrin == EPSILON && tok.sigma_rev[arrout] == NEWLINE {
+					} else if arrin != EPSILON && arrout == EPSILON {
+					} else {
+						panic(
+							"Problem: " +
+								strconv.Itoa(arrstate) +
+								" -> " + strconv.Itoa(arrtarget) +
+								" (" +
+								strconv.Itoa(arrin) +
+								":" +
+								strconv.Itoa(arrout) +
+								") (" +
+								string(tok.sigma_rev[arrin]) +
+								":" +
+								string(tok.sigma_rev[arrout]) +
+								")")
+					}
 				}
 
 				// TODO:
@@ -259,11 +284,15 @@ func parse(ior io.Reader) *Tokenizer {
 					tok.transitions[arrstate+1] = make(map[int]*edge)
 				}
 
-				tok.transitions[arrstate+1][arrin] = targetObj
+				if arrin >= 0 {
+					tok.transitions[arrstate+1][arrin] = targetObj
+				}
 
 				if final {
 					tok.transitions[arrstate+1][FINAL] = &edge{}
 				}
+
+				fmt.Println("Add", arrstate+1, "->", arrtarget+1, "(", string(tok.sigma_rev[arrin]), ":", string(tok.sigma_rev[arrout]), ")")
 
 				continue
 			}
@@ -396,7 +425,7 @@ func (tok *Tokenizer) buildDA() *Tokenizer {
 }
 
 func (tok *Tokenizer) resize(l int) {
-	if len(tok.array) < l {
+	if len(tok.array) <= l {
 		tok.array = append(tok.array, make([]int, l)...)
 	}
 }
@@ -447,7 +476,7 @@ func in_table(s int, table []*mapping, size int) int {
 // Set alphabet A to the list of all symbols
 // outgoing from s
 func (tok *Tokenizer) get_set(s int, A *[]int) {
-	for a, _ := range tok.transitions[s] {
+	for a := range tok.transitions[s] {
 		*A = append(*A, a)
 	}
 }
@@ -472,7 +501,7 @@ OVERLAP:
 			goto OVERLAP
 		}
 	}
-	fmt.Println("Found a nice place at", base, "for", len(symbols))
+	//	fmt.Println("Found a nice place at", base, "for", len(symbols))
 	return base
 }
 
@@ -481,33 +510,34 @@ func (tok *Tokenizer) match(input string) bool {
 	t := 1 // Start position
 	chars := []rune(input)
 	i := 0
+	fmt.Println("Length of string is", len(chars))
 	for ; i < len(chars); i++ {
 		a := tok.sigma[chars[i]]
 		tu := t
 		t = tok.get_base(tu) + a
-		fmt.Println("Check", a, t, tok.get_check(1))
+		fmt.Println("Check", string(tok.sigma_rev[a]), ":", t)
 		if t > tok.get_check(1) {
+			fmt.Println("Out of array")
 			break
 		} else if tok.get_check(t) != tu {
+			fmt.Println("Match is not fine!", t, "and", tok.get_check(t), "vs", tu)
 			break
 		} else if tok.get_base(t) < 0 {
 			t = -1 * tok.get_base(t)
-			// fmt.Println("Match is representative!")
-		} else {
-			// fmt.Println("Match is fine!")
+			// } else {
 		}
 	}
 
 	if i == len(chars) {
 		fmt.Println("At the end")
 	} else {
+		fmt.Println("Not at the end")
 		return false
 	}
 
 	// fmt.Println("Hmm...", tok.get_check(tok.get_base(t)+FINAL), "-", t)
 
 	if tok.get_check(tok.get_base(t)+FINAL) == t {
-		fmt.Println("FINE")
 		return true
 	}
 	return false
