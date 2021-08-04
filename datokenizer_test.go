@@ -41,6 +41,18 @@ func TestSimpleTokenizer(t *testing.T) {
 	assert.True(dat.Match("wald gehen"))
 }
 
+func TestSimpleTokenizerTransduce(t *testing.T) {
+	/*
+		assert := assert.New(t)
+		tok := LoadFomaFile("testdata/simpletok.fst")
+		dat := tok.ToDoubleArray()
+		// assert.True(dat.Transduce("bau"))
+		// assert.True(dat.Match("bad"))
+		assert.True(dat.Transduce("wald  gehen"))
+		assert.Fail("!")
+	*/
+}
+
 func TestWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
@@ -58,7 +70,6 @@ func TestWriteTokenizer(t *testing.T) {
 	assert.Equal(n, int64(186))
 }
 
-/*
 func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/tokenizer.fst")
@@ -68,4 +79,3 @@ func TestFullTokenizer(t *testing.T) {
 	assert.True(dat.Match("bad"))
 	assert.True(dat.Match("wald gehen"))
 }
-*/

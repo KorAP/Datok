@@ -305,20 +305,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						os.Exit(1)
 					}
 
-					/*
-						// Allow any epsilon to become a newline
-						if !(inSym == tok.epsilon && tok.sigmaRev[outSym] == NEWLINE) &&
-
-							// Allow any whitespace to be ignored
-							!(inSym != tok.epsilon && outSym == tok.epsilon) &&
-
-							// Allow any whitespace to become a new line
-							!(tok.sigmaRev[outSym] == NEWLINE) {
-
-						}
-					*/
 				} else if inSym == tok.epsilon {
-					panic("Epsilon transitions not allowed")
+					log.Error().Msg("Epsilon transitions not supported")
+					os.Exit(1)
 				}
 
 				// This collects all edges until arrstate changes
@@ -490,7 +479,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		dat.setBase(t, dat.xCheck(A))
 
 		// TODO:
-		//   Sort the outgoing transitions based onm the
+		//   Sort the outgoing transitions based on the
 		//   outdegree of .end
 
 		// Iterate over all outgoing symbols
@@ -507,7 +496,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 				// Mark the state as being the target of a nontoken transition
 				if tok.transitions[s][a].nontoken {
-					dat.setNonToken(t, true)
+					dat.setNonToken(t1, true)
 				}
 
 				// Check for representative states
@@ -846,6 +835,131 @@ FINALCHECK:
 	} else if dat.isSeparate(t) {
 		// Move to representative state
 		t = dat.getBase(t)
+	}
+
+	goto FINALCHECK
+}
+
+// Match an input string against the double array
+// FSA.
+//
+// Based on Match with additional support
+// for NONTOKEN handling
+func (dat *DaTokenizer) Transduce(input string) bool {
+	var a int
+	var tu uint32
+	var ok, nontoken bool
+
+	t := uint32(1) // Initial state
+	chars := []rune(input)
+	i := 0
+
+	for i < len(chars) {
+		a, ok = dat.sigma[chars[i]]
+
+		// Support identity symbol if character is not in sigma
+		if !ok && dat.identity != -1 {
+			if DEBUG {
+				fmt.Println("IDENTITY symbol", string(chars[i]), "->", dat.identity)
+			}
+			a = dat.identity
+		} else if DEBUG {
+			fmt.Println("Sigma transition is okay for [", string(chars[i]), "]")
+		}
+		tu = t
+	CHECK:
+		nontoken = false
+		t = dat.getBase(tu) + uint32(a)
+
+		// Check if the transition is valid according to the double array
+		if t > dat.getCheck(1) || dat.getCheck(t) != tu {
+
+			if DEBUG {
+				fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", tu)
+			}
+
+			if !ok && a == dat.identity {
+				// Try again with unknown symbol, in case identity failed
+				if DEBUG {
+					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", dat.unknown)
+				}
+				a = dat.unknown
+
+			} else if a != dat.epsilon {
+				// Try again with epsilon symbol, in case everything else failed
+				if DEBUG {
+					fmt.Println("EPSILON symbol", string(chars[i]), "->", dat.epsilon)
+				}
+				a = dat.epsilon
+			} else {
+				break
+			}
+			goto CHECK
+		} else if dat.isSeparate(t) {
+			// Move to representative state
+			nontoken = dat.isNonToken(t)
+
+			t = dat.getBase(t)
+		} else {
+			nontoken = dat.isNonToken(t)
+		}
+
+		// Transition is fine
+		if a != dat.epsilon {
+			// Character consumed
+
+			if !nontoken {
+				fmt.Print("[", string(chars[i]), "]")
+			}
+			i++
+		}
+
+		if nontoken {
+			fmt.Print("<|>")
+		}
+
+		// TODO:
+		//   Prevent endless epsilon loops!
+	}
+
+	if i != len(chars) {
+		if DEBUG {
+			fmt.Println("Not at the end")
+		}
+		return false
+	}
+
+FINALCHECK:
+
+	// Automaton is in a final state
+	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
+		if dat.isNonToken(t) {
+			fmt.Print("<|>")
+		}
+		return true
+	}
+
+	// Check epsilon transitions until a final state is reached
+	tu = t
+	t = dat.getBase(tu) + uint32(dat.epsilon)
+
+	// Epsilon transition failed
+	if t > dat.getCheck(1) || dat.getCheck(t) != tu {
+		if DEBUG {
+			fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", tu)
+		}
+		return false
+
+	} else if dat.isSeparate(t) {
+		nontoken = dat.isNonToken(t)
+		// Move to representative state
+		t = dat.getBase(t)
+	} else {
+		nontoken = dat.isNonToken(t)
+	}
+
+	if nontoken {
+		fmt.Print("<|>")
 	}
 
 	goto FINALCHECK
