@@ -27,21 +27,23 @@ import (
 )
 
 const (
-	PROPS   = 1
-	SIGMA   = 2
-	STATES  = 3
-	NONE    = 4
-	NEWLINE = '\u000a'
-	DEBUG   = false
-	MAGIC   = "DATOK"
-	VERSION = uint16(1)
+	PROPS             = 1
+	SIGMA             = 2
+	STATES            = 3
+	NONE              = 4
+	NEWLINE           = '\u000a'
+	DEBUG             = false
+	MAGIC             = "DATOK"
+	VERSION           = uint16(1)
+	leadingBit uint32 = 1 << 31
+	restBit    uint32 = ^uint32(0) &^ (1 << 31)
 )
 
 var bo binary.ByteOrder = binary.LittleEndian
 
 type mapping struct {
 	source int
-	target int
+	target uint32
 }
 
 type edge struct {
@@ -70,7 +72,7 @@ type DaTokenizer struct {
 	sigma     map[rune]int
 	maxSize   int
 	loadLevel float64
-	array     []int
+	array     []uint32
 
 	// Special symbols in sigma
 	epsilon  int
@@ -94,10 +96,10 @@ func LoadFomaFile(file string) *Tokenizer {
 	}
 	defer gz.Close()
 
-	return ParseFome(gz)
+	return ParseFoma(gz)
 }
 
-func ParseFome(ior io.Reader) *Tokenizer {
+func ParseFoma(ior io.Reader) *Tokenizer {
 	r := bufio.NewReader(ior)
 
 	tok := &Tokenizer{
@@ -477,7 +479,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				s1 := tok.transitions[s][a].end
 
 				// Store the transition
-				t1 := dat.getBase(t) + a
+				t1 := dat.getBase(t) + uint32(a)
 				dat.setCheck(t1, t)
 
 				// Check for representative states
@@ -489,18 +491,19 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 					size++
 				} else {
 					// Overwrite with the representative state
-					dat.setBase(t1, -1*r)
+					dat.setBase(t1, r)
+					dat.setSeparate(t1, true)
 				}
 			} else {
 				// Store a final transition
-				dat.setCheck(dat.getBase(t)+dat.final, t)
+				dat.setCheck(dat.getBase(t)+uint32(dat.final), t)
 			}
 		}
 	}
 
 	// Following Mizobuchi et al (2000) the size of the
 	// FSA should be stored in check(1).
-	dat.setCheck(1, dat.maxSize+1)
+	dat.setSize(dat.maxSize + 1)
 	dat.array = dat.array[:dat.maxSize+1]
 	return dat
 }
@@ -509,7 +512,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 // exists and return this as a representative.
 // Currently iterates through the whole table
 // in a bruteforce manner.
-func in_table(s int, table []*mapping, size int) int {
+func in_table(s int, table []*mapping, size int) uint32 {
 	for x := 0; x < size; x++ {
 		if table[x].source == s {
 			return table[x].target
@@ -523,13 +526,13 @@ func (dat *DaTokenizer) resize(l int) {
 	// TODO:
 	//   This is a bit too aggressive atm and should be calmed down.
 	if len(dat.array) <= l {
-		dat.array = append(dat.array, make([]int, l)...)
+		dat.array = append(dat.array, make([]uint32, l)...)
 	}
 }
 
 // Set base value in double array
-func (dat *DaTokenizer) setBase(p int, v int) {
-	l := p*2 + 1
+func (dat *DaTokenizer) setBase(p uint32, v uint32) {
+	l := int(p*2 + 1)
 	dat.resize(l)
 	if dat.maxSize < l {
 		dat.maxSize = l
@@ -537,17 +540,31 @@ func (dat *DaTokenizer) setBase(p int, v int) {
 	dat.array[p*2] = v
 }
 
+// Returns true if a state is separate pointing to a representative
+func (dat *DaTokenizer) isSeparate(p uint32) bool {
+	return dat.array[p*2]&leadingBit != 0
+}
+
+// Mark a state as separate pointing to a representative
+func (dat *DaTokenizer) setSeparate(p uint32, sep bool) {
+	if sep {
+		dat.array[p*2] |= leadingBit
+	} else {
+		dat.array[p*2] &= restBit
+	}
+}
+
 // Get base value in double array
-func (dat *DaTokenizer) getBase(p int) int {
-	if p*2 >= len(dat.array) {
+func (dat *DaTokenizer) getBase(p uint32) uint32 {
+	if int(p*2) >= len(dat.array) {
 		return 0
 	}
-	return dat.array[p*2]
+	return dat.array[p*2] & restBit
 }
 
 // Set check value in double array
-func (dat *DaTokenizer) setCheck(p int, v int) {
-	l := p*2 + 1
+func (dat *DaTokenizer) setCheck(p uint32, v uint32) {
+	l := int(p*2 + 1)
 	dat.resize(l)
 	if dat.maxSize < l {
 		dat.maxSize = l
@@ -556,21 +573,21 @@ func (dat *DaTokenizer) setCheck(p int, v int) {
 }
 
 // Get check value in double array
-func (dat *DaTokenizer) getCheck(p int) int {
-	if (p*2)+1 >= len(dat.array) {
+func (dat *DaTokenizer) getCheck(p uint32) uint32 {
+	if int((p*2)+1) >= len(dat.array) {
 		return 0
 	}
-	return dat.array[(p*2)+1]
+	return dat.array[(p*2)+1] & restBit
 }
 
 // Set size of double array
-func (dat *DaTokenizer) setSize(p, v int) {
-	dat.setCheck(1, v)
+func (dat *DaTokenizer) setSize(v int) {
+	dat.setCheck(1, uint32(v))
 }
 
 // Get size of double array
-func (dat *DaTokenizer) GetSize(p int) int {
-	return dat.getCheck(1)
+func (dat *DaTokenizer) GetSize() int {
+	return int(dat.getCheck(1))
 }
 
 // Based on Mizobuchi et al (2000), p. 124
@@ -578,17 +595,17 @@ func (dat *DaTokenizer) GetSize(p int) int {
 // structure until it finds a gap that fits all outgoing transitions
 // of the state. This is extremely slow, but is only necessary in the
 // construction phase of the tokenizer.
-func (dat *DaTokenizer) xCheck(symbols []int) int {
+func (dat *DaTokenizer) xCheck(symbols []int) uint32 {
 
 	// Start at the first entry of the double array list
-	base := 1
+	base := uint32(1)
 
 OVERLAP:
 
 	// Resize the array if necessary
-	dat.resize((base + dat.final) * 2)
+	dat.resize((int(base) + dat.final) * 2)
 	for _, a := range symbols {
-		if dat.getCheck(base+a) != 0 {
+		if dat.getCheck(base+uint32(a)) != 0 {
 			base++
 			goto OVERLAP
 		}
@@ -675,7 +692,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	wbuf.Reset()
 
 	for _, d := range dat.array {
-		bo.PutUint32(buf[0:4], uint32(d))
+		bo.PutUint32(buf[0:4], d)
 		more, err := w.Write(buf[0:4])
 		if err != nil {
 			log.Error().Msg("Unable to write data")
@@ -694,10 +711,10 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 // and EPSILON transitions.
 func (dat *DaTokenizer) Match(input string) bool {
 	var a int
-	var tu int
+	var tu uint32
 	var ok bool
 
-	t := 1 // Initial state
+	t := uint32(1) // Initial state
 	chars := []rune(input)
 	i := 0
 
@@ -715,7 +732,7 @@ func (dat *DaTokenizer) Match(input string) bool {
 		}
 		tu = t
 	CHECK:
-		t = dat.getBase(tu) + a
+		t = dat.getBase(tu) + uint32(a)
 
 		// Check if the transition is valid according to the double array
 		if t > dat.getCheck(1) || dat.getCheck(t) != tu {
@@ -741,9 +758,9 @@ func (dat *DaTokenizer) Match(input string) bool {
 				break
 			}
 			goto CHECK
-		} else if dat.getBase(t) < 0 {
+		} else if dat.isSeparate(t) {
 			// Move to representative state
-			t = -1 * dat.getBase(t)
+			t = dat.getBase(t)
 		}
 
 		// Transition is fine
@@ -765,13 +782,13 @@ func (dat *DaTokenizer) Match(input string) bool {
 FINALCHECK:
 
 	// Automaton is in a final state
-	if dat.getCheck(dat.getBase(t)+dat.final) == t {
+	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
 		return true
 	}
 
 	// Check epsilon transitions until a final state is reached
 	tu = t
-	t = dat.getBase(tu) + dat.epsilon
+	t = dat.getBase(tu) + uint32(dat.epsilon)
 
 	// Epsilon transition failed
 	if t > dat.getCheck(1) || dat.getCheck(t) != tu {
@@ -780,9 +797,9 @@ FINALCHECK:
 		}
 		return false
 
-	} else if dat.getBase(t) < 0 {
+	} else if dat.isSeparate(t) {
 		// Move to representative state
-		t = -1 * dat.getBase(t)
+		t = dat.getBase(t)
 	}
 
 	goto FINALCHECK
