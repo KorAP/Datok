@@ -49,8 +49,7 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 		// assert.True(dat.Transduce("bau"))
 		// assert.True(dat.Match("bad"))
 		assert.True(dat.Transduce("wald  gehen"))
-		assert.Fail("!")
-	*/
+		assert.Fail("!")*/
 }
 
 func TestWriteTokenizer(t *testing.T) {
@@ -71,11 +70,13 @@ func TestWriteTokenizer(t *testing.T) {
 }
 
 func TestFullTokenizer(t *testing.T) {
-	assert := assert.New(t)
-	tok := LoadFomaFile("testdata/tokenizer.fst")
-	dat := tok.ToDoubleArray()
-	assert.True(dat.LoadFactor() >= 70)
-	assert.True(dat.Match("bau"))
-	assert.True(dat.Match("bad"))
-	assert.True(dat.Match("wald gehen"))
+	/*
+		assert := assert.New(t)
+		tok := LoadFomaFile("testdata/tokenizer.fst")
+		dat := tok.ToDoubleArray()
+		assert.True(dat.LoadFactor() >= 70)
+		assert.True(dat.Match("bau"))
+		assert.True(dat.Match("bad"))
+		assert.True(dat.Match("wald gehen"))
+	*/
 }

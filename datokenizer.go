@@ -32,16 +32,17 @@ import (
 )
 
 const (
-	PROPS             = 1
-	SIGMA             = 2
-	STATES            = 3
-	NONE              = 4
-	NEWLINE           = '\u000a'
-	DEBUG             = false
-	MAGIC             = "DATOK"
-	VERSION           = uint16(1)
-	leadingBit uint32 = 1 << 31
-	restBit    uint32 = ^uint32(0) &^ (1 << 31)
+	PROPS            = 1
+	SIGMA            = 2
+	STATES           = 3
+	NONE             = 4
+	NEWLINE          = '\u000a'
+	DEBUG            = false
+	MAGIC            = "DATOK"
+	VERSION          = uint16(1)
+	firstBit  uint32 = 1 << 31
+	secondBit uint32 = 1 << 30
+	restBit   uint32 = ^uint32(0) &^ (firstBit | secondBit)
 )
 
 var bo binary.ByteOrder = binary.LittleEndian
@@ -559,29 +560,29 @@ func (dat *DaTokenizer) setBase(p uint32, v uint32) {
 
 // Returns true if a state is separate pointing to a representative
 func (dat *DaTokenizer) isSeparate(p uint32) bool {
-	return dat.array[p*2]&leadingBit != 0
+	return dat.array[p*2]&firstBit != 0
 }
 
 // Mark a state as separate pointing to a representative
 func (dat *DaTokenizer) setSeparate(p uint32, sep bool) {
 	if sep {
-		dat.array[p*2] |= leadingBit
+		dat.array[p*2] |= firstBit
 	} else {
-		dat.array[p*2] &= restBit
+		dat.array[p*2] &= (restBit | secondBit)
 	}
 }
 
 // Returns true if a state is the target of a nontoken transition
 func (dat *DaTokenizer) isNonToken(p uint32) bool {
-	return dat.array[p*2+1]&leadingBit != 0
+	return dat.array[p*2+1]&firstBit != 0
 }
 
 // Mark a state as being the target of a nontoken transition
 func (dat *DaTokenizer) setNonToken(p uint32, sep bool) {
 	if sep {
-		dat.array[p*2+1] |= leadingBit
+		dat.array[p*2+1] |= firstBit
 	} else {
-		dat.array[p*2+1] &= restBit
+		dat.array[p*2+1] &= (restBit | secondBit)
 	}
 }
 
