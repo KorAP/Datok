@@ -58,6 +58,7 @@ func TestWriteTokenizer(t *testing.T) {
 	assert.Equal(n, int64(186))
 }
 
+/*
 func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/tokenizer.fst")
@@ -67,3 +68,4 @@ func TestFullTokenizer(t *testing.T) {
 	assert.True(dat.Match("bad"))
 	assert.True(dat.Match("wald gehen"))
 }
+*/

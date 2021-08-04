@@ -6,6 +6,11 @@ package datokenizer
  * and written by Mans Hulden.
  */
 
+// The maximum number of states is 107.3741.823 (30bit),
+// with a loadfactor of ~70, this means roughly 70 million
+// states in the FSA, which is sufficient for the current
+// job.
+
 // TODO:
 // - replace maxSize with the check value
 // - Strip first state and make everything start with 0!
@@ -47,9 +52,11 @@ type mapping struct {
 }
 
 type edge struct {
-	inSym  int
-	outSym int
-	end    int
+	inSym    int
+	outSym   int
+	end      int
+	nontoken bool
+	tokenend bool
 }
 
 type Tokenizer struct {
@@ -272,17 +279,16 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				// While the states in foma start with 0, the states in the
 				// Mizobuchi FSA start with one - so we increase every state by 1.
 
+				nontoken := false
+				tokenend := false
+
 				if inSym != outSym {
 
-					// Allow any epsilon to become a newline
-					if !(inSym == tok.epsilon && tok.sigmaRev[outSym] == NEWLINE) &&
-
-						// Allow any whitespace to be ignored
-						!(inSym != tok.epsilon && outSym == tok.epsilon) &&
-
-						// Allow any whitespace to become a new line
-						!(tok.sigmaRev[outSym] == NEWLINE) {
-
+					if tok.sigmaRev[outSym] == NEWLINE {
+						tokenend = true
+					} else if outSym == tok.epsilon {
+						nontoken = true
+					} else {
 						log.Error().Msg(
 							"Unsupported transition: " +
 								strconv.Itoa(state) +
@@ -298,6 +304,21 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 								")")
 						os.Exit(1)
 					}
+
+					/*
+						// Allow any epsilon to become a newline
+						if !(inSym == tok.epsilon && tok.sigmaRev[outSym] == NEWLINE) &&
+
+							// Allow any whitespace to be ignored
+							!(inSym != tok.epsilon && outSym == tok.epsilon) &&
+
+							// Allow any whitespace to become a new line
+							!(tok.sigmaRev[outSym] == NEWLINE) {
+
+						}
+					*/
+				} else if inSym == tok.epsilon {
+					panic("Epsilon transitions not allowed")
 				}
 
 				// This collects all edges until arrstate changes
@@ -311,9 +332,11 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				//   if arrout == EPSILON, mark the transition as NOTOKEN
 
 				targetObj := &edge{
-					inSym:  inSym,
-					outSym: outSym,
-					end:    end + 1,
+					inSym:    inSym,
+					outSym:   outSym,
+					end:      end + 1,
+					tokenend: tokenend,
+					nontoken: nontoken,
 				}
 
 				// Initialize outgoing states
@@ -482,6 +505,11 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				t1 := dat.getBase(t) + uint32(a)
 				dat.setCheck(t1, t)
 
+				// Mark the state as being the target of a nontoken transition
+				if tok.transitions[s][a].nontoken {
+					dat.setNonToken(t, true)
+				}
+
 				// Check for representative states
 				r := in_table(s1, table, size)
 
@@ -551,6 +579,20 @@ func (dat *DaTokenizer) setSeparate(p uint32, sep bool) {
 		dat.array[p*2] |= leadingBit
 	} else {
 		dat.array[p*2] &= restBit
+	}
+}
+
+// Returns true if a state is the target of a nontoken transition
+func (dat *DaTokenizer) isNonToken(p uint32) bool {
+	return dat.array[p*2+1]&leadingBit != 0
+}
+
+// Mark a state as being the target of a nontoken transition
+func (dat *DaTokenizer) setNonToken(p uint32, sep bool) {
+	if sep {
+		dat.array[p*2+1] |= leadingBit
+	} else {
+		dat.array[p*2+1] &= restBit
 	}
 }
 
@@ -771,6 +813,7 @@ func (dat *DaTokenizer) Match(input string) bool {
 			// Character consumed
 			i++
 		}
+
 		// TODO:
 		//   Prevent endless epsilon loops!
 	}
