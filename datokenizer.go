@@ -69,10 +69,10 @@ type Tokenizer struct {
 
 type DaTokenizer struct {
 	// sigmaRev map[int]rune
-	sigma     map[rune]int
-	maxSize   int
-	loadLevel float64
-	array     []uint32
+	sigma      map[rune]int
+	maxSize    int
+	loadFactor float64
+	array      []uint32
 
 	// Special symbols in sigma
 	epsilon  int
@@ -429,12 +429,12 @@ func (tok *Tokenizer) get_set(s int, A *[]int) {
 func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	dat := &DaTokenizer{
-		sigma:     make(map[rune]int),
-		loadLevel: -1,
-		final:     tok.final,
-		unknown:   tok.unknown,
-		identity:  tok.identity,
-		epsilon:   tok.epsilon,
+		sigma:      make(map[rune]int),
+		loadFactor: -1,
+		final:      tok.final,
+		unknown:    tok.unknown,
+		identity:   tok.identity,
+		epsilon:    tok.epsilon,
 	}
 
 	for num, sym := range tok.sigmaRev {
@@ -613,10 +613,13 @@ OVERLAP:
 	return base
 }
 
-func (dat *DaTokenizer) LoadLevel() float64 {
+// LoadFactor as defined in Kanda et al (2018),
+// i.e. the proportion of non-empty elements to all elements.
+func (dat *DaTokenizer) LoadFactor() float64 {
 
-	if dat.loadLevel >= 0 {
-		return dat.loadLevel
+	// Cache the loadfactor
+	if dat.loadFactor >= 0 {
+		return dat.loadFactor
 	}
 	nonEmpty := 0
 	all := len(dat.array) / 2
@@ -625,8 +628,8 @@ func (dat *DaTokenizer) LoadLevel() float64 {
 			nonEmpty++
 		}
 	}
-	dat.loadLevel = float64(nonEmpty) / float64(all) * 100
-	return dat.loadLevel
+	dat.loadFactor = float64(nonEmpty) / float64(all) * 100
+	return dat.loadFactor
 }
 
 // WriteTo stores the double array data in an io.Writer.
