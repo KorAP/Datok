@@ -500,6 +500,11 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 					dat.setNonToken(t1, true)
 				}
 
+				// Mark the state as being the target of a tokenend transition
+				if tok.transitions[s][a].tokenend {
+					dat.setTokenEnd(t1, true)
+				}
+
 				// Check for representative states
 				r := in_table(s1, table, size)
 
@@ -583,6 +588,20 @@ func (dat *DaTokenizer) setNonToken(p uint32, sep bool) {
 		dat.array[p*2+1] |= firstBit
 	} else {
 		dat.array[p*2+1] &= (restBit | secondBit)
+	}
+}
+
+// Returns true if a state is the target of a tokenend transition
+func (dat *DaTokenizer) isTokenEnd(p uint32) bool {
+	return dat.array[p*2+1]&secondBit != 0
+}
+
+// Mark a state as being the target of a tokenend transition
+func (dat *DaTokenizer) setTokenEnd(p uint32, sep bool) {
+	if sep {
+		dat.array[p*2+1] |= secondBit
+	} else {
+		dat.array[p*2+1] &= (restBit | firstBit)
 	}
 }
 
@@ -841,15 +860,15 @@ FINALCHECK:
 	goto FINALCHECK
 }
 
-// Match an input string against the double array
+// Transduce an input string against the double array
 // FSA.
 //
 // Based on Match with additional support
-// for NONTOKEN handling
+// for NONTOKEN and TOKENEND handling
 func (dat *DaTokenizer) Transduce(input string) bool {
 	var a int
 	var tu uint32
-	var ok, nontoken bool
+	var ok, nontoken, tokenend bool
 
 	t := uint32(1) // Initial state
 	chars := []rune(input)
@@ -870,6 +889,8 @@ func (dat *DaTokenizer) Transduce(input string) bool {
 		tu = t
 	CHECK:
 		nontoken = false
+		tokenend = false
+
 		t = dat.getBase(tu) + uint32(a)
 
 		// Check if the transition is valid according to the double array
@@ -899,10 +920,13 @@ func (dat *DaTokenizer) Transduce(input string) bool {
 		} else if dat.isSeparate(t) {
 			// Move to representative state
 			nontoken = dat.isNonToken(t)
+			tokenend = dat.isTokenEnd(t)
 
 			t = dat.getBase(t)
+
 		} else {
 			nontoken = dat.isNonToken(t)
+			tokenend = dat.isTokenEnd(t)
 		}
 
 		// Transition is fine
@@ -917,6 +941,10 @@ func (dat *DaTokenizer) Transduce(input string) bool {
 
 		if nontoken {
 			fmt.Print("<|>")
+		}
+
+		if tokenend {
+			fmt.Print("< !!! >")
 		}
 
 		// TODO:
@@ -937,6 +965,11 @@ FINALCHECK:
 		if dat.isNonToken(t) {
 			fmt.Print("<|>")
 		}
+		if dat.isTokenEnd(t) {
+			fmt.Print("< !!! >")
+		}
+
+		// There may be a new line at the end, from an epsilon, so we go on!
 		return true
 	}
 

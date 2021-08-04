@@ -42,14 +42,15 @@ func TestSimpleTokenizer(t *testing.T) {
 }
 
 func TestSimpleTokenizerTransduce(t *testing.T) {
-	/*
-		assert := assert.New(t)
-		tok := LoadFomaFile("testdata/simpletok.fst")
-		dat := tok.ToDoubleArray()
-		// assert.True(dat.Transduce("bau"))
-		// assert.True(dat.Match("bad"))
-		assert.True(dat.Transduce("wald  gehen"))
-		assert.Fail("!")*/
+	assert := assert.New(t)
+	tok := LoadFomaFile("testdata/simpletok.fst")
+	// tok := LoadFomaFile("testdata/tokenizer.fst")
+	dat := tok.ToDoubleArray()
+	// assert.True(dat.Transduce("bau"))
+	// assert.True(dat.Match("bad"))
+	assert.True(dat.Transduce("wald   gehen"))
+	// assert.True(dat.Transduce("wald gehen"))
+	assert.Fail("!")
 }
 
 func TestWriteTokenizer(t *testing.T) {
