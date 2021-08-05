@@ -14,10 +14,10 @@ package datokenizer
 // TODO:
 // - replace maxSize with the check value
 // - Strip first state and make everything start with 0!
+// - Add checksum to serialization.
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"encoding/binary"
 	"fmt"
@@ -717,10 +717,32 @@ func (dat *DaTokenizer) LoadFactor() float64 {
 }
 
 // WriteTo stores the double array data in an io.Writer.
+func (dat *DaTokenizer) Save(file string) (n int64, err error) {
+	f, err := os.Create(file)
+	if err != nil {
+		log.Error().Err(err)
+		return 0, nil
+	}
+	defer f.Close()
+	gz := gzip.NewWriter(f)
+	defer gz.Close()
+	n, err = dat.WriteTo(gz)
+	if err != nil {
+		log.Error().Err(err)
+		return n, err
+	}
+	gz.Flush()
+	return n, nil
+}
+
+// WriteTo stores the double array data in an io.Writer.
 func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 
+	wb := bufio.NewWriter(w)
+	defer wb.Flush()
+
 	// Store magical header
-	all, err := w.Write([]byte(MAGIC))
+	all, err := wb.Write([]byte(MAGIC))
 	if err != nil {
 		log.Error().Err(err)
 		return int64(all), err
@@ -746,7 +768,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	bo.PutUint16(buf[8:10], uint16(dat.final))
 	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
 	bo.PutUint32(buf[12:16], uint32(len(dat.array)))
-	more, err := w.Write(buf[0:16])
+	more, err := wb.Write(buf[0:16])
 	if err != nil {
 		log.Error().Err(err)
 		return int64(all), err
@@ -754,46 +776,53 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 
 	all += more
 
-	wbuf := bytes.NewBuffer(nil)
-	wbufWrap := bufio.NewWriter(wbuf)
+	//  wbuf := bytes.NewBuffer(nil)
+	// wbufWrap := bufio.NewWriter(wbuf)
 
 	// Write sigma
 	for _, sym := range sigmalist {
 
-		more, err = wbufWrap.WriteRune(sym)
+		more, err = wb.WriteRune(sym)
 		if err != nil {
 			log.Error().Err(err)
 			return int64(all), err
 		}
 		all += more
 	}
-	wbufWrap.Flush()
-	more, err = w.Write(wbuf.Bytes())
+	// wbufWrap.Flush()
+	// more, err = w.Write(wbuf.Bytes())
 	if err != nil {
 		log.Error().Err(err)
 		return int64(all), err
 	}
-	all += more
+	// all += more
 
 	// Test marker - could be checksum
-	more, err = w.Write([]byte("T"))
+	more, err = wb.Write([]byte("T"))
 	if err != nil {
 		log.Error().Err(err)
 		return int64(all), err
 	}
 	all += more
 
-	wbuf.Reset()
+	// wbuf.Reset()
 
-	for _, d := range dat.array {
-		bo.PutUint32(buf[0:4], d)
-		more, err := w.Write(buf[0:4])
+	for x := 0; x < len(dat.array); x++ {
+		//	for _, d := range dat.array {
+		bo.PutUint32(buf[0:4], dat.array[x])
+		more, err := wb.Write(buf[0:4])
 		if err != nil {
 			log.Error().Err(err)
 			return int64(all), err
 		}
+		if more != 4 {
+			log.Error().Msg("Can not write uint32")
+			return int64(all), err
+		}
 		all += more
 	}
+
+	// wbufWrap.Flush()
 
 	return int64(all), err
 }
@@ -813,6 +842,7 @@ func LoadDatokFile(file string) *DaTokenizer {
 	}
 	defer gz.Close()
 
+	// Todo: Read the whole file!
 	return ParseDatok(gz)
 }
 
@@ -848,7 +878,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 		return nil
 	}
 
-	more, err = r.Read(buf[0:16])
+	more, err = io.ReadFull(r, buf[0:16])
 	if err != nil {
 		log.Error().Err(err)
 		return nil
@@ -856,7 +886,13 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 
 	all += more
 
-	// version := bo.Uint16(buf[0:2])
+	version := bo.Uint16(buf[0:2])
+
+	if version != VERSION {
+		log.Error().Msg("Version not compatible")
+		return nil
+	}
+
 	dat.epsilon = int(bo.Uint16(buf[2:4]))
 	dat.unknown = int(bo.Uint16(buf[4:6]))
 	dat.identity = int(bo.Uint16(buf[6:8]))
@@ -864,6 +900,9 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 
 	sigmaCount := int(bo.Uint16(buf[10:12]))
 	arraySize := int(bo.Uint32(buf[12:16]))
+
+	// Shouldn't be relevant though
+	dat.maxSize = arraySize - 1
 
 	for x := 0; x < sigmaCount; x++ {
 		sym, more, err := r.ReadRune()
@@ -873,7 +912,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 		all += more
 	}
 
-	more, err = r.Read(buf[0:1])
+	more, err = io.ReadFull(r, buf[0:1])
 
 	if err != nil {
 		log.Error().Err(err)
@@ -891,8 +930,12 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	dat.array = make([]uint32, arraySize)
 
 	for x := 0; x < arraySize; x++ {
-		more, err = r.Read(buf[0:4])
+		more, err = io.ReadFull(r, buf[0:4])
 		if err != nil {
+			if err == io.EOF {
+				fmt.Println(arraySize, x)
+				break
+			}
 			log.Error().Err(err)
 			return nil
 		}
