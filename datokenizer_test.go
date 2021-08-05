@@ -2,6 +2,7 @@ package datokenizer
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,16 +45,38 @@ func TestSimpleTokenizer(t *testing.T) {
 func TestSimpleTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
-	// tok := LoadFomaFile("testdata/tokenizer.fst")
 	dat := tok.ToDoubleArray()
-	// assert.True(dat.Transduce("bau"))
-	// assert.True(dat.Match("bad"))
-	assert.True(dat.Transduce("wald   gehen"))
-	// assert.True(dat.Transduce("wald gehen"))
-	assert.Fail("!")
+
+	r := strings.NewReader("  wald   gehen Da kann\t man was \"erleben\"!")
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	dat.Transduce(r, w)
+
+	tokens := strings.Split(string(w.Bytes()), "\n")
+	assert.Equal("wald", tokens[0])
+	assert.Equal("gehen", tokens[1])
+	assert.Equal("Da", tokens[2])
+	assert.Equal("kann", tokens[3])
+	assert.Equal("man", tokens[4])
+	assert.Equal("was", tokens[5])
+	assert.Equal("\"erleben\"", tokens[6])
+
+	/*
+		r = strings.NewReader(" In den Wald gehen? -- Da kann\t man was \"erleben\"!")
+		w.Reset()
+		dat.Transduce(r, w)
+
+		tokens = strings.Split(string(w.Bytes()), "\n")
+		assert.Equal("In", tokens[0])
+		assert.Equal("den", tokens[1])
+		assert.Equal("Wald", tokens[2])
+		assert.Equal("gehen", tokens[3])
+		assert.Equal("?", tokens[4])
+		assert.Equal("--", tokens[5])
+	*/
 }
 
-func TestWriteTokenizer(t *testing.T) {
+func TestReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
@@ -63,11 +86,24 @@ func TestWriteTokenizer(t *testing.T) {
 
 	assert.True(dat.LoadFactor() >= 70)
 
-	b := make([]byte, 1024)
+	b := make([]byte, 0, 1024)
 	buf := bytes.NewBuffer(b)
 	n, err := dat.WriteTo(buf)
 	assert.Nil(err)
-	assert.Equal(n, int64(186))
+	assert.Equal(int64(208), n)
+
+	dat2 := ParseDatok(buf)
+	assert.NotNil(dat2)
+	assert.Equal(dat.array, dat2.array)
+	assert.Equal(dat.sigma, dat2.sigma)
+	assert.Equal(dat.epsilon, dat2.epsilon)
+	assert.Equal(dat.unknown, dat2.unknown)
+	assert.Equal(dat.identity, dat2.identity)
+	assert.Equal(dat.final, dat2.final)
+	assert.Equal(dat.LoadFactor(), dat2.LoadFactor())
+	assert.True(dat2.Match("bau"))
+	assert.True(dat2.Match("bad"))
+	assert.True(dat2.Match("wald gehen"))
 }
 
 func TestFullTokenizer(t *testing.T) {
@@ -75,9 +111,31 @@ func TestFullTokenizer(t *testing.T) {
 		assert := assert.New(t)
 		tok := LoadFomaFile("testdata/tokenizer.fst")
 		dat := tok.ToDoubleArray()
+
+		f, _ := os.Create("testdata/tokenizer.datok")
+		gz := gzip.NewWriter(f)
+		defer f.Close()
+		dat.WriteTo(gz)
+		assert.NotNil(gz)
+
 		assert.True(dat.LoadFactor() >= 70)
 		assert.True(dat.Match("bau"))
 		assert.True(dat.Match("bad"))
 		assert.True(dat.Match("wald gehen"))
+	*/
+}
+
+func TestFullTokenizerTransduce(t *testing.T) {
+	/*
+		assert := assert.New(t)
+		// tok := LoadFomaFile("testdata/tokenizer.fst")
+		tok := LoadFomaFile("testdata/simpletok.fst")
+		dat := tok.ToDoubleArray()
+
+		dat := LoadDatokFile("testdata/tokenizer.datok")
+		r := strings.NewReader("wald   gehen! Da kann\t man was \"erleben\"!")
+		assert.True(dat.Transduce(r, os.Stdout))
+
+		assert.Fail("!")
 	*/
 }

@@ -81,6 +81,7 @@ type DaTokenizer struct {
 	maxSize    int
 	loadFactor float64
 	array      []uint32
+	// lastFilledBase uint32
 
 	// Special symbols in sigma
 	epsilon  int
@@ -448,6 +449,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		unknown:    tok.unknown,
 		identity:   tok.identity,
 		epsilon:    tok.epsilon,
+		// lastFilledBase: 1,
 	}
 
 	for num, sym := range tok.sigmaRev {
@@ -649,9 +651,19 @@ func (dat *DaTokenizer) GetSize() int {
 func (dat *DaTokenizer) xCheck(symbols []int) uint32 {
 
 	// Start at the first entry of the double array list
-	base := uint32(1)
-
+	base := uint32(1) // dat.lastFilledBase
+	// skip := false
 OVERLAP:
+
+	/*
+		if !skip {
+			if dat.getCheck(base) != 0 {
+				dat.lastFilledBase = base
+			} else {
+				skip = true
+			}
+		}
+	*/
 
 	// Resize the array if necessary
 	dat.resize((int(base) + dat.final) * 2)
@@ -669,7 +681,7 @@ OVERLAP:
 func (dat *DaTokenizer) LoadFactor() float64 {
 
 	// Cache the loadfactor
-	if dat.loadFactor >= 0 {
+	if dat.loadFactor > 0 {
 		return dat.loadFactor
 	}
 	nonEmpty := 0
@@ -689,7 +701,8 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	// Store magical header
 	all, err := w.Write([]byte(MAGIC))
 	if err != nil {
-		log.Error().Msg("Unable to write data")
+		log.Error().Err(err)
+		return int64(all), err
 	}
 
 	// Get sigma as a list
@@ -704,16 +717,18 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 
 	sigmalist = sigmalist[:max+1]
 
-	buf := make([]byte, 0, 12)
+	buf := make([]byte, 0, 16)
 	bo.PutUint16(buf[0:2], VERSION)
 	bo.PutUint16(buf[2:4], uint16(dat.epsilon))
 	bo.PutUint16(buf[4:6], uint16(dat.unknown))
 	bo.PutUint16(buf[6:8], uint16(dat.identity))
 	bo.PutUint16(buf[8:10], uint16(dat.final))
 	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
-	more, err := w.Write(buf[0:12])
+	bo.PutUint32(buf[12:16], uint32(len(dat.array)))
+	more, err := w.Write(buf[0:16])
 	if err != nil {
-		log.Error().Msg("Unable to write data")
+		log.Error().Err(err)
+		return int64(all), err
 	}
 
 	all += more
@@ -723,23 +738,27 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 
 	// Write sigma
 	for _, sym := range sigmalist {
+
 		more, err = wbufWrap.WriteRune(sym)
 		if err != nil {
-			log.Error().Msg("Unable to write data")
+			log.Error().Err(err)
+			return int64(all), err
 		}
 		all += more
 	}
 	wbufWrap.Flush()
 	more, err = w.Write(wbuf.Bytes())
 	if err != nil {
-		log.Error().Msg("Unable to write data")
+		log.Error().Err(err)
+		return int64(all), err
 	}
 	all += more
 
 	// Test marker - could be checksum
 	more, err = w.Write([]byte("T"))
 	if err != nil {
-		log.Error().Msg("Unable to write data")
+		log.Error().Err(err)
+		return int64(all), err
 	}
 	all += more
 
@@ -749,12 +768,118 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 		bo.PutUint32(buf[0:4], d)
 		more, err := w.Write(buf[0:4])
 		if err != nil {
-			log.Error().Msg("Unable to write data")
+			log.Error().Err(err)
+			return int64(all), err
 		}
 		all += more
 	}
 
 	return int64(all), err
+}
+
+func LoadDatokFile(file string) *DaTokenizer {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Error().Err(err)
+		os.Exit(0)
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		log.Error().Err(err)
+		os.Exit(0)
+	}
+	defer gz.Close()
+
+	return ParseDatok(gz)
+}
+
+func ParseDatok(ior io.Reader) *DaTokenizer {
+
+	dat := &DaTokenizer{
+		sigma:      make(map[rune]int),
+		epsilon:    0,
+		unknown:    0,
+		identity:   0,
+		final:      0,
+		loadFactor: 0,
+	}
+
+	r := bufio.NewReader(ior)
+
+	all := 0
+
+	buf := make([]byte, 1024)
+	buf = buf[0:len(MAGIC)]
+
+	more, err := r.Read(buf)
+
+	if err != nil {
+		log.Error().Err(err)
+		return nil
+	}
+
+	all += more
+
+	if string(MAGIC) != string(buf) {
+		log.Error().Msg("Not a datok file")
+		return nil
+	}
+
+	more, err = r.Read(buf[0:16])
+	if err != nil {
+		log.Error().Err(err)
+		return nil
+	}
+
+	all += more
+
+	// version := bo.Uint16(buf[0:2])
+	dat.epsilon = int(bo.Uint16(buf[2:4]))
+	dat.unknown = int(bo.Uint16(buf[4:6]))
+	dat.identity = int(bo.Uint16(buf[6:8]))
+	dat.final = int(bo.Uint16(buf[8:10]))
+
+	sigmaCount := int(bo.Uint16(buf[10:12]))
+	arraySize := int(bo.Uint32(buf[12:16]))
+
+	for x := 0; x < sigmaCount; x++ {
+		sym, more, err := r.ReadRune()
+		if err == nil && sym != 0 {
+			dat.sigma[sym] = x
+		}
+		all += more
+	}
+
+	more, err = r.Read(buf[0:1])
+
+	if err != nil {
+		log.Error().Err(err)
+		return nil
+	}
+
+	all += more
+
+	if string("T") != string(buf[0:1]) {
+		log.Error().Msg("Not a datok file")
+		return nil
+	}
+
+	// Read based on length
+	dat.array = make([]uint32, arraySize)
+
+	for x := 0; x < arraySize; x++ {
+		more, err = r.Read(buf[0:4])
+		if err != nil {
+			log.Error().Err(err)
+			return nil
+		}
+		all += more
+		dat.array[x] = bo.Uint32(buf[0:4])
+	}
+
+	return dat
 }
 
 // Match an input string against the double array
@@ -865,26 +990,44 @@ FINALCHECK:
 //
 // Based on Match with additional support
 // for NONTOKEN and TOKENEND handling
-func (dat *DaTokenizer) Transduce(input string) bool {
+func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	var a int
 	var tu uint32
 	var ok, nontoken, tokenend bool
 
-	t := uint32(1) // Initial state
-	chars := []rune(input)
-	i := 0
+	reader := bufio.NewReader(r)
+	writer := bufio.NewWriter(w)
+	defer writer.Flush()
 
-	for i < len(chars) {
-		a, ok = dat.sigma[chars[i]]
+	t := uint32(1) // Initial state
+	// chars := []rune(input)
+	skip := false
+
+	var char rune
+	var err error
+	eof := false
+
+	for {
+
+		if !skip {
+			char, _, err = reader.ReadRune()
+			if err != nil {
+				eof = true
+				break
+			}
+		}
+		skip = false
+
+		a, ok = dat.sigma[char]
 
 		// Support identity symbol if character is not in sigma
 		if !ok && dat.identity != -1 {
 			if DEBUG {
-				fmt.Println("IDENTITY symbol", string(chars[i]), "->", dat.identity)
+				fmt.Println("IDENTITY symbol", string(char), "->", dat.identity)
 			}
 			a = dat.identity
 		} else if DEBUG {
-			fmt.Println("Sigma transition is okay for [", string(chars[i]), "]")
+			fmt.Println("Sigma transition is okay for [", string(char), "]")
 		}
 		tu = t
 	CHECK:
@@ -903,14 +1046,14 @@ func (dat *DaTokenizer) Transduce(input string) bool {
 			if !ok && a == dat.identity {
 				// Try again with unknown symbol, in case identity failed
 				if DEBUG {
-					fmt.Println("UNKNOWN symbol", string(chars[i]), "->", dat.unknown)
+					fmt.Println("UNKNOWN symbol", string(char), "->", dat.unknown)
 				}
 				a = dat.unknown
 
 			} else if a != dat.epsilon {
 				// Try again with epsilon symbol, in case everything else failed
 				if DEBUG {
-					fmt.Println("EPSILON symbol", string(chars[i]), "->", dat.epsilon)
+					fmt.Println("EPSILON symbol", string(char), "->", dat.epsilon)
 				}
 				a = dat.epsilon
 			} else {
@@ -930,28 +1073,28 @@ func (dat *DaTokenizer) Transduce(input string) bool {
 		}
 
 		// Transition is fine
-		if a != dat.epsilon {
+		if a == dat.epsilon {
+			skip = true
 			// Character consumed
+		} else if !nontoken {
+			writer.WriteRune(char)
+		}
 
-			if !nontoken {
-				fmt.Print("[", string(chars[i]), "]")
+		/*
+			if nontoken {
+				writer.WriteRune(("<|>")
 			}
-			i++
-		}
-
-		if nontoken {
-			fmt.Print("<|>")
-		}
+		*/
 
 		if tokenend {
-			fmt.Print("< !!! >")
+			writer.WriteRune('\n')
 		}
 
 		// TODO:
 		//   Prevent endless epsilon loops!
 	}
 
-	if i != len(chars) {
+	if !eof {
 		if DEBUG {
 			fmt.Println("Not at the end")
 		}
@@ -962,11 +1105,13 @@ FINALCHECK:
 
 	// Automaton is in a final state
 	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
-		if dat.isNonToken(t) {
-			fmt.Print("<|>")
-		}
+		/*
+			if dat.isNonToken(t) {
+				fmt.Print("<|>")
+			}
+		*/
 		if dat.isTokenEnd(t) {
-			fmt.Print("< !!! >")
+			writer.WriteRune('\n')
 		}
 
 		// There may be a new line at the end, from an epsilon, so we go on!
@@ -985,15 +1130,24 @@ FINALCHECK:
 		return false
 
 	} else if dat.isSeparate(t) {
-		nontoken = dat.isNonToken(t)
+		// nontoken = dat.isNonToken(t)
+		tokenend = dat.isTokenEnd(t)
+
 		// Move to representative state
 		t = dat.getBase(t)
 	} else {
-		nontoken = dat.isNonToken(t)
+		tokenend = dat.isTokenEnd(t)
+		// nontoken = dat.isNonToken(t)
 	}
 
-	if nontoken {
-		fmt.Print("<|>")
+	/*
+		if nontoken {
+			fmt.Print("<|>")
+		}
+	*/
+
+	if tokenend {
+		writer.WriteRune('\n')
 	}
 
 	goto FINALCHECK
