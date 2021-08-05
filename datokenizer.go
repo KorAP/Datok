@@ -284,6 +284,10 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				nontoken := false
 				tokenend := false
 
+				// ID needs to be > 1
+				inSym++
+				outSym++
+
 				if inSym != outSym {
 
 					if tok.sigmaRev[outSym] == NEWLINE {
@@ -356,7 +360,10 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						string(tok.sigmaRev[inSym]),
 						":",
 						string(tok.sigmaRev[outSym]),
-						")")
+						")",
+						";",
+						"TE:", tokenend,
+						"NT:", nontoken)
 				}
 
 				continue
@@ -367,6 +374,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				// Turn string into sigma id
 				number, err := strconv.Atoi(elem[0])
+
+				// ID needs to be > 1
+				number++
 
 				if err != nil {
 					log.Error().Err(err)
@@ -497,14 +507,25 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				t1 := dat.getBase(t) + uint32(a)
 				dat.setCheck(t1, t)
 
+				if DEBUG {
+					fmt.Println("Translate transition",
+						s, "->", s1, "(", a, ")", "to", t, "->", t1)
+				}
+
 				// Mark the state as being the target of a nontoken transition
 				if tok.transitions[s][a].nontoken {
 					dat.setNonToken(t1, true)
+					if DEBUG {
+						fmt.Println("Set", t1, "to nontoken")
+					}
 				}
 
 				// Mark the state as being the target of a tokenend transition
 				if tok.transitions[s][a].tokenend {
 					dat.setTokenEnd(t1, true)
+					if DEBUG {
+						fmt.Println("Set", t1, "to tokenend")
+					}
 				}
 
 				// Check for representative states
@@ -1000,7 +1021,6 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	defer writer.Flush()
 
 	t := uint32(1) // Initial state
-	// chars := []rune(input)
 	skip := false
 
 	var char rune
@@ -1036,6 +1056,10 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 
 		t = dat.getBase(tu) + uint32(a)
 
+		if DEBUG {
+			fmt.Println("Check", tu, "-", a, "(", string(char), ")", "->", t)
+		}
+
 		// Check if the transition is valid according to the double array
 		if t > dat.getCheck(1) || dat.getCheck(t) != tu {
 
@@ -1067,6 +1091,10 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 
 			t = dat.getBase(t)
 
+			if DEBUG {
+				fmt.Println("Representative pointing to", t)
+			}
+
 		} else {
 			nontoken = dat.isNonToken(t)
 			tokenend = dat.isTokenEnd(t)
@@ -1078,6 +1106,10 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			// Character consumed
 		} else if !nontoken {
 			writer.WriteRune(char)
+		}
+
+		if DEBUG {
+			fmt.Println("  --> ok!")
 		}
 
 		/*

@@ -50,9 +50,10 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	r := strings.NewReader("  wald   gehen Da kann\t man was \"erleben\"!")
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
-	dat.Transduce(r, w)
+	var tokens []string
 
-	tokens := strings.Split(string(w.Bytes()), "\n")
+	dat.Transduce(r, w)
+	tokens = strings.Split(w.String(), "\n")
 	assert.Equal("wald", tokens[0])
 	assert.Equal("gehen", tokens[1])
 	assert.Equal("Da", tokens[2])
@@ -61,19 +62,28 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	assert.Equal("was", tokens[5])
 	assert.Equal("\"erleben\"", tokens[6])
 
-	/*
-		r = strings.NewReader(" In den Wald gehen? -- Da kann\t man was \"erleben\"!")
-		w.Reset()
-		dat.Transduce(r, w)
+	r = strings.NewReader(" In den Wald gehen? -- Da kann\t man was \"erleben\"!")
+	w.Reset()
+	dat.Transduce(r, w)
+	tokens = strings.Split(w.String(), "\n")
+	assert.Equal("In", tokens[0])
+	assert.Equal("den", tokens[1])
+	assert.Equal("Wald", tokens[2])
+	assert.Equal("gehen", tokens[3])
+	assert.Equal("?", tokens[4])
+	assert.Equal("--", tokens[5])
 
-		tokens = strings.Split(string(w.Bytes()), "\n")
-		assert.Equal("In", tokens[0])
-		assert.Equal("den", tokens[1])
-		assert.Equal("Wald", tokens[2])
-		assert.Equal("gehen", tokens[3])
-		assert.Equal("?", tokens[4])
-		assert.Equal("--", tokens[5])
-	*/
+	r = strings.NewReader(" g? -- D")
+	w.Reset()
+	dat.Transduce(r, w)
+	tokens = strings.Split(w.String(), "\n")
+	assert.Equal("g", tokens[0])
+	assert.Equal("?", tokens[1])
+	assert.Equal("--", tokens[2])
+	assert.Equal("D", tokens[3])
+	assert.Equal("", tokens[4])
+	assert.Equal("", tokens[5])
+	assert.Equal(6, len(tokens))
 }
 
 func TestReadWriteTokenizer(t *testing.T) {
@@ -90,7 +100,7 @@ func TestReadWriteTokenizer(t *testing.T) {
 	buf := bytes.NewBuffer(b)
 	n, err := dat.WriteTo(buf)
 	assert.Nil(err)
-	assert.Equal(int64(208), n)
+	assert.Equal(int64(218), n)
 
 	dat2 := ParseDatok(buf)
 	assert.NotNil(dat2)
