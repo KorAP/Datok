@@ -119,6 +119,8 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 		final:    -1,
 	}
 
+	checkmap := make(map[string]bool)
+
 	var state, inSym, outSym, end, final int
 
 	mode := 0
@@ -210,31 +212,39 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 			{
 				elem = strings.Split(line[0:len(line)-1], " ")
 				if elem[0] == "-1" {
+					if DEBUG {
+						fmt.Println("Skip", elem)
+					}
 					continue
 				}
 				elemint[0], err = strconv.Atoi(elem[0])
 				if err != nil {
+					fmt.Println("Unable to translate", elem[0])
 					break
 				}
 
 				if len(elem) > 1 {
 					elemint[1], err = strconv.Atoi(elem[1])
 					if err != nil {
+						fmt.Println("Unable to translate", elem[1])
 						break
 					}
 					if len(elem) > 2 {
 						elemint[2], err = strconv.Atoi(elem[2])
 						if err != nil {
+							fmt.Println("Unable to translate", elem[2])
 							break
 						}
 						if len(elem) > 3 {
 							elemint[3], err = strconv.Atoi(elem[3])
 							if err != nil {
+								fmt.Println("Unable to translate", elem[3])
 								break
 							}
 							if len(elem) > 4 {
 								elemint[4], err = strconv.Atoi(elem[4])
 								if err != nil {
+									fmt.Println("Unable to translate", elem[4])
 									break
 								}
 							}
@@ -346,10 +356,19 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				// Add final transition
 				if final == 1 {
+					// TODO: maybe this is irrelevant for tokenizers
 					tok.transitions[state+1][tok.final] = &edge{}
 				}
 
-				if DEBUG {
+				test := fmt.Sprint(state+1) + ":" + fmt.Sprint(inSym)
+				if checkmap[test] {
+					fmt.Println("Path already defined!", test)
+					os.Exit(0)
+				} else {
+					checkmap[test] = true
+				}
+
+				if DEBUG || state+1 == 281 {
 					fmt.Println("Add",
 						state+1, "->", end+1,
 						"(",
@@ -363,7 +382,8 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						")",
 						";",
 						"TE:", tokenend,
-						"NT:", nontoken)
+						"NT:", nontoken,
+						"FIN:", final)
 				}
 
 				continue
@@ -483,6 +503,10 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		t := table[mark].target // This is a state in Mt
 		mark++
 
+		if t == 6288 {
+			fmt.Println("1 State", t, "was", s)
+		}
+
 		// Following the paper, here the state t can be remembered
 		// in the set of states St
 		A = A[:0]
@@ -507,7 +531,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				t1 := dat.getBase(t) + uint32(a)
 				dat.setCheck(t1, t)
 
-				if DEBUG {
+				if DEBUG || t1 == 6288 {
 					fmt.Println("Translate transition",
 						s, "->", s1, "(", a, ")", "to", t, "->", t1)
 				}
@@ -695,6 +719,31 @@ OVERLAP:
 		}
 	}
 	return base
+}
+
+// List all outgoing transitions for a state
+// for testing purposes
+func (dat *DaTokenizer) outgoing(t uint32) []int {
+
+	valid := make([]int, 0, len(dat.sigma))
+
+	for _, a := range dat.sigma {
+		t1 := dat.getBase(t) + uint32(a)
+		if t1 <= dat.getCheck(1) && dat.getCheck(t1) == t {
+			valid = append(valid, a)
+		}
+	}
+
+	for _, a := range []int{dat.epsilon, dat.unknown, dat.identity, dat.final} {
+		t1 := dat.getBase(t) + uint32(a)
+		if t1 <= dat.getCheck(1) && dat.getCheck(t1) == t {
+			valid = append(valid, -1*a)
+		}
+	}
+
+	sort.Ints(valid)
+
+	return valid
 }
 
 // LoadFactor as defined in Kanda et al (2018),
@@ -1049,8 +1098,24 @@ FINALCHECK:
 	goto FINALCHECK
 }
 
+func showBuffer(buffer []rune, buffo int, buffi int) string {
+	out := make([]rune, 0, 1024)
+	for x := 0; x < len(buffer); x++ {
+		if buffi == x {
+			out = append(out, '^')
+		}
+		if buffo == x {
+			out = append(out, '[', buffer[x], ']')
+		} else {
+			out = append(out, buffer[x])
+		}
+	}
+	return string(out)
+}
+
 // Transduce an input string against the double array
-// FSA.
+// FSA. The rules are always greedy. If the automaton fails,
+// it takes the last possible token ending branch.
 //
 // Based on Match with additional support
 // for NONTOKEN and TOKENEND handling
@@ -1059,27 +1124,77 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	var tu uint32
 	var ok, nontoken, tokenend bool
 
+	// Remember the last position of a possible tokenend,
+	// in case the automaton fails.
+	epsilonState := uint32(0)
+	epsilonOffset := 0
+
+	// Implement a low level buffer for full control,
+	// however - it is probably better to introduce
+	// this on a higher level with a io.Reader interface
+	// The buffer stores a single word and may have white
+	// space at the end (but not at the beginning).
+	//
+	// This is the only backtracking requirement because of
+	// epsilon transitions, to support tokenizations like:
+	// "this is an example|.| And it works." vs
+	// "this is an example.com| application."
+	buffer := make([]rune, 1024)
+	buffo := 0 // Buffer offset
+	buffi := 0 // Buffer length
+
 	reader := bufio.NewReader(r)
 	writer := bufio.NewWriter(w)
 	defer writer.Flush()
 
 	t := uint32(1) // Initial state
-	skip := false
+	// skip := false
 
 	var char rune
 	var err error
 	eof := false
 
+	// TODO:
+	//   Write all characters first into a buffer
+	//   and flush when necessary
+	// TODO:
+	//   Create an epsilon stack
 	for {
 
-		if !skip {
+		// if !skip {
+		if buffo >= buffi {
 			char, _, err = reader.ReadRune()
 			if err != nil {
 				eof = true
 				break
 			}
+			buffer[buffi] = char
+			buffi++
 		}
-		skip = false
+
+		/*
+			if buffo < buffi {
+				char = buffer[buffo]
+				fmt.Println("Read from buffer", string(char), "=", buffo, ':', buffi)
+				buffo++
+			} else {
+				// Possible read from buffer
+				char, _, err = reader.ReadRune()
+				fmt.Println("Read from reader", string(char))
+
+				if err != nil {
+					eof = true
+					break
+				}
+			}
+		*/
+		// }
+		char = buffer[buffo]
+		// skip = false
+
+		if DEBUG {
+			fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
+		}
 
 		a, ok = dat.sigma[char]
 
@@ -1093,6 +1208,15 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			fmt.Println("Sigma transition is okay for [", string(char), "]")
 		}
 		tu = t
+
+		if dat.getCheck(dat.getBase(tu)+uint32(dat.epsilon)) == tu {
+			if DEBUG {
+				fmt.Println("Remember for epsilon tu:charcount", tu, buffo)
+			}
+			epsilonState = tu
+			epsilonOffset = buffo
+		}
+
 	CHECK:
 		nontoken = false
 		tokenend = false
@@ -1101,6 +1225,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 
 		if DEBUG {
 			fmt.Println("Check", tu, "-", a, "(", string(char), ")", "->", t)
+			fmt.Println("Valid:", dat.outgoing(tu))
 		}
 
 		// Check if the transition is valid according to the double array
@@ -1122,7 +1247,13 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 				if DEBUG {
 					fmt.Println("EPSILON symbol", string(char), "->", dat.epsilon)
 				}
+				tu = epsilonState
 				a = dat.epsilon
+				epsilonState = 0 // reset
+				buffo = epsilonOffset
+				if DEBUG {
+					fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
+				}
 			} else {
 				break
 			}
@@ -1145,10 +1276,36 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 
 		// Transition is fine
 		if a == dat.epsilon {
-			skip = true
+			// skip = true
+			if DEBUG {
+				fmt.Println("Input ignored because of epsilon", showBuffer(buffer, buffo, buffi))
+			}
+		} else {
 			// Character consumed
-		} else if !nontoken {
-			writer.WriteRune(char)
+			buffo++
+			if !nontoken {
+				// buffer[buffo] = char
+				if DEBUG {
+					fmt.Println("Move forward in buffer", showBuffer(buffer, buffo, buffi))
+				}
+				// buffi++
+				// writer.WriteRune(char)
+			} else {
+				if DEBUG {
+					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
+				}
+				// Maybe remove the first character, if buffo == 0?
+				if buffo == 1 {
+					// Better as a ring buffer
+					for x, i := range buffer[buffo:buffi] {
+						buffer[x] = i
+					}
+					//	writer.WriteRune('\n')
+					buffi -= buffo
+					epsilonOffset -= buffo
+					buffo = 0
+				}
+			}
 		}
 
 		if DEBUG {
@@ -1162,7 +1319,27 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 		*/
 
 		if tokenend {
+			data := []byte(string(buffer[:buffo]))
+			if DEBUG {
+				fmt.Println("-> Flush buffer:", string(data))
+			}
+			writer.Write(data)
 			writer.WriteRune('\n')
+			if DEBUG {
+				fmt.Println("Remaining (1):", showBuffer(buffer, buffo, buffi))
+			}
+
+			// Better as a ring buffer
+			for x, i := range buffer[buffo:buffi] {
+				buffer[x] = i
+			}
+			//	writer.WriteRune('\n')
+			buffi -= buffo
+			epsilonOffset -= buffo
+			buffo = 0
+			if DEBUG {
+				fmt.Println("Remaining (2):", showBuffer(buffer, buffo, buffi))
+			}
 		}
 
 		// TODO:
@@ -1172,6 +1349,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	if !eof {
 		if DEBUG {
 			fmt.Println("Not at the end")
+			fmt.Println("Problem", tu, ":", dat.outgoing(tu))
 		}
 		return false
 	}
@@ -1186,6 +1364,14 @@ FINALCHECK:
 			}
 		*/
 		if dat.isTokenEnd(t) {
+			if buffi > 0 {
+				data := []byte(string(buffer[:buffi]))
+				if DEBUG {
+					fmt.Println("-> Flush buffer:", string(data))
+				}
+				writer.Write(data)
+				// states are irrelevant here
+			}
 			writer.WriteRune('\n')
 		}
 
@@ -1222,6 +1408,17 @@ FINALCHECK:
 	*/
 
 	if tokenend {
+
+		if buffi > 0 {
+			data := []byte(string(buffer[:buffi]))
+			if DEBUG {
+				fmt.Println("-> Flush buffer:", string(data))
+			}
+			writer.Write(data)
+			buffi = 0
+			buffo = 0
+			epsilonState = 0
+		}
 		writer.WriteRune('\n')
 	}
 

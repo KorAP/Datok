@@ -51,7 +51,6 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 	var tokens []string
-
 	dat.Transduce(r, w)
 	tokens = strings.Split(w.String(), "\n")
 	assert.Equal("wald", tokens[0])
@@ -140,15 +139,33 @@ func TestFullTokenizer(t *testing.T) {
 }
 
 func TestFullTokenizerTransduce(t *testing.T) {
+	assert := assert.New(t)
+
 	/*
-		assert := assert.New(t)
-		dat := LoadDatokFile("testdata/tokenizer.datok")
-		assert.NotNil(dat)
 
-		dat := LoadDatokFile("testdata/tokenizer.datok")
-		r := strings.NewReader("wald   gehen! Da kann\t man was \"erleben\"!")
-		assert.True(dat.Transduce(r, os.Stdout))
-
-		assert.Fail("!")
+		tok := LoadFomaFile("testdata/tokenizer.fst")
+		dat := tok.ToDoubleArray()
+		//dat.Save("testdata/tokenizer.datok")
 	*/
+	dat := LoadDatokFile("testdata/tokenizer.datok")
+
+	assert.NotNil(dat)
+
+	r := strings.NewReader("tra. und Du?")
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	assert.True(dat.Transduce(r, w))
+
+	tokens = strings.Split(w.String(), "\n")
+	assert.Equal("tra", tokens[0])
+	assert.Equal(".", tokens[1])
+	assert.Equal("und", tokens[2])
+	assert.Equal("Du", tokens[3])
+	assert.Equal("?", tokens[4])
+	assert.Equal("", tokens[5])
+	assert.Equal("", tokens[6])
+	assert.Equal(7, len(tokens))
 }
