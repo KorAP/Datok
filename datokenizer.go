@@ -6,7 +6,7 @@ package datokenizer
  * and written by Mans Hulden.
  */
 
-// The maximum number of states is 107.3741.823 (30bit),
+// The maximum number of states is 1.073.741.823 (30bit),
 // with a loadfactor of ~70, this means roughly 70 million
 // states in the FSA, which is sufficient for the current
 // job.
@@ -368,7 +368,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					checkmap[test] = true
 				}
 
-				if DEBUG || state+1 == 281 {
+				if DEBUG {
 					fmt.Println("Add",
 						state+1, "->", end+1,
 						"(",
@@ -1121,7 +1121,7 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 // for NONTOKEN and TOKENEND handling
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	var a int
-	var tu uint32
+	var t0 uint32
 	var ok, nontoken, tokenend bool
 
 	// Remember the last position of a possible tokenend,
@@ -1148,7 +1148,6 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	defer writer.Flush()
 
 	t := uint32(1) // Initial state
-	// skip := false
 
 	var char rune
 	var err error
@@ -1161,7 +1160,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	//   Create an epsilon stack
 	for {
 
-		// if !skip {
+		// Get from reader if buffer is empty
 		if buffo >= buffi {
 			char, _, err = reader.ReadRune()
 			if err != nil {
@@ -1172,25 +1171,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			buffi++
 		}
 
-		/*
-			if buffo < buffi {
-				char = buffer[buffo]
-				fmt.Println("Read from buffer", string(char), "=", buffo, ':', buffi)
-				buffo++
-			} else {
-				// Possible read from buffer
-				char, _, err = reader.ReadRune()
-				fmt.Println("Read from reader", string(char))
-
-				if err != nil {
-					eof = true
-					break
-				}
-			}
-		*/
-		// }
 		char = buffer[buffo]
-		// skip = false
 
 		if DEBUG {
 			fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
@@ -1204,16 +1185,15 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 				fmt.Println("IDENTITY symbol", string(char), "->", dat.identity)
 			}
 			a = dat.identity
-		} else if DEBUG {
-			fmt.Println("Sigma transition is okay for [", string(char), "]")
 		}
-		tu = t
 
-		if dat.getCheck(dat.getBase(tu)+uint32(dat.epsilon)) == tu {
+		t0 = t
+
+		if dat.getCheck(dat.getBase(t0)+uint32(dat.epsilon)) == t0 {
 			if DEBUG {
-				fmt.Println("Remember for epsilon tu:charcount", tu, buffo)
+				fmt.Println("Remember for epsilon tu:charcount", t0, buffo)
 			}
-			epsilonState = tu
+			epsilonState = t0
 			epsilonOffset = buffo
 		}
 
@@ -1221,21 +1201,22 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 		nontoken = false
 		tokenend = false
 
-		t = dat.getBase(tu) + uint32(a)
+		t = dat.getBase(t0) + uint32(a)
 
 		if DEBUG {
-			fmt.Println("Check", tu, "-", a, "(", string(char), ")", "->", t)
-			fmt.Println("Valid:", dat.outgoing(tu))
+			fmt.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
+			fmt.Println("Valid:", dat.outgoing(t0))
 		}
 
 		// Check if the transition is valid according to the double array
-		if t > dat.getCheck(1) || dat.getCheck(t) != tu {
+		if t > dat.getCheck(1) || dat.getCheck(t) != t0 {
 
 			if DEBUG {
-				fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", tu)
+				fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", t0)
 			}
 
 			if !ok && a == dat.identity {
+
 				// Try again with unknown symbol, in case identity failed
 				if DEBUG {
 					fmt.Println("UNKNOWN symbol", string(char), "->", dat.unknown)
@@ -1243,60 +1224,54 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 				a = dat.unknown
 
 			} else if a != dat.epsilon {
+
 				// Try again with epsilon symbol, in case everything else failed
 				if DEBUG {
 					fmt.Println("EPSILON symbol", string(char), "->", dat.epsilon)
 				}
-				tu = epsilonState
+				t0 = epsilonState
 				a = dat.epsilon
 				epsilonState = 0 // reset
 				buffo = epsilonOffset
 				if DEBUG {
 					fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
 				}
+
 			} else {
 				break
 			}
-			goto CHECK
-		} else if dat.isSeparate(t) {
-			// Move to representative state
-			nontoken = dat.isNonToken(t)
-			tokenend = dat.isTokenEnd(t)
 
+			goto CHECK
+
+		}
+
+		// Move to representative state
+		nontoken = dat.isNonToken(t)
+		tokenend = dat.isTokenEnd(t)
+
+		if dat.isSeparate(t) {
 			t = dat.getBase(t)
 
 			if DEBUG {
 				fmt.Println("Representative pointing to", t)
 			}
-
-		} else {
-			nontoken = dat.isNonToken(t)
-			tokenend = dat.isTokenEnd(t)
 		}
 
 		// Transition is fine
-		if a == dat.epsilon {
-			// skip = true
-			if DEBUG {
-				fmt.Println("Input ignored because of epsilon", showBuffer(buffer, buffo, buffi))
-			}
-		} else {
+		if a != dat.epsilon {
+
 			// Character consumed
 			buffo++
-			if !nontoken {
-				// buffer[buffo] = char
-				if DEBUG {
-					fmt.Println("Move forward in buffer", showBuffer(buffer, buffo, buffi))
-				}
-				// buffi++
-				// writer.WriteRune(char)
-			} else {
+			if nontoken {
+
 				if DEBUG {
 					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
 				}
+
 				// Maybe remove the first character, if buffo == 0?
 				if buffo == 1 {
-					// Better as a ring buffer
+
+					// TODO: Better as a ring buffer
 					for x, i := range buffer[buffo:buffi] {
 						buffer[x] = i
 					}
@@ -1312,33 +1287,24 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			fmt.Println("  --> ok!")
 		}
 
-		/*
-			if nontoken {
-				writer.WriteRune(("<|>")
-			}
-		*/
-
 		if tokenend {
 			data := []byte(string(buffer[:buffo]))
 			if DEBUG {
-				fmt.Println("-> Flush buffer:", string(data))
+				fmt.Println("-> Flush buffer:", string(data), showBuffer(buffer, buffo, buffi))
 			}
 			writer.Write(data)
 			writer.WriteRune('\n')
-			if DEBUG {
-				fmt.Println("Remaining (1):", showBuffer(buffer, buffo, buffi))
-			}
 
 			// Better as a ring buffer
 			for x, i := range buffer[buffo:buffi] {
 				buffer[x] = i
 			}
-			//	writer.WriteRune('\n')
+
 			buffi -= buffo
 			epsilonOffset -= buffo
 			buffo = 0
 			if DEBUG {
-				fmt.Println("Remaining (2):", showBuffer(buffer, buffo, buffi))
+				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
 			}
 		}
 
@@ -1348,8 +1314,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 
 	if !eof {
 		if DEBUG {
-			fmt.Println("Not at the end")
-			fmt.Println("Problem", tu, ":", dat.outgoing(tu))
+			fmt.Println("Not at the end - problem", t0, ":", dat.outgoing(t0))
 		}
 		return false
 	}
@@ -1358,20 +1323,17 @@ FINALCHECK:
 
 	// Automaton is in a final state
 	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
-		/*
-			if dat.isNonToken(t) {
-				fmt.Print("<|>")
+
+		if buffi > 0 {
+			data := []byte(string(buffer[:buffi]))
+			if DEBUG {
+				fmt.Println("-> Flush buffer:", string(data))
 			}
-		*/
+			writer.Write(data)
+			// states are irrelevant here
+		}
+
 		if dat.isTokenEnd(t) {
-			if buffi > 0 {
-				data := []byte(string(buffer[:buffi]))
-				if DEBUG {
-					fmt.Println("-> Flush buffer:", string(data))
-				}
-				writer.Write(data)
-				// states are irrelevant here
-			}
 			writer.WriteRune('\n')
 		}
 
@@ -1380,35 +1342,26 @@ FINALCHECK:
 	}
 
 	// Check epsilon transitions until a final state is reached
-	tu = t
-	t = dat.getBase(tu) + uint32(dat.epsilon)
+	t0 = t
+	t = dat.getBase(t0) + uint32(dat.epsilon)
 
 	// Epsilon transition failed
-	if t > dat.getCheck(1) || dat.getCheck(t) != tu {
+	if t > dat.getCheck(1) || dat.getCheck(t) != t0 {
 		if DEBUG {
-			fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", tu)
+			fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", t0)
 		}
 		return false
-
-	} else if dat.isSeparate(t) {
-		// nontoken = dat.isNonToken(t)
-		tokenend = dat.isTokenEnd(t)
-
-		// Move to representative state
-		t = dat.getBase(t)
-	} else {
-		tokenend = dat.isTokenEnd(t)
-		// nontoken = dat.isNonToken(t)
 	}
 
-	/*
-		if nontoken {
-			fmt.Print("<|>")
-		}
-	*/
+	// nontoken = dat.isNonToken(t)
+	tokenend = dat.isTokenEnd(t)
+
+	if dat.isSeparate(t) {
+		// Move to representative state
+		t = dat.getBase(t)
+	}
 
 	if tokenend {
-
 		if buffi > 0 {
 			data := []byte(string(buffer[:buffi]))
 			if DEBUG {

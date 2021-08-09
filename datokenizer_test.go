@@ -130,8 +130,8 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.identity, 3)
 	assert.Equal(dat.final, 135)
 	assert.Equal(len(dat.sigma), 131)
-	assert.Equal(len(dat.array), 3771904)
-	assert.Equal(dat.maxSize, 3771903)
+	assert.Equal(len(dat.array), 3771624)
+	assert.Equal(dat.maxSize, 3771623)
 
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
@@ -142,10 +142,9 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
 	/*
-
 		tok := LoadFomaFile("testdata/tokenizer.fst")
 		dat := tok.ToDoubleArray()
-		//dat.Save("testdata/tokenizer.datok")
+		dat.Save("testdata/tokenizer.datok")
 	*/
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 
@@ -162,10 +161,12 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	tokens = strings.Split(w.String(), "\n")
 	assert.Equal("tra", tokens[0])
 	assert.Equal(".", tokens[1])
-	assert.Equal("und", tokens[2])
-	assert.Equal("Du", tokens[3])
-	assert.Equal("?", tokens[4])
-	assert.Equal("", tokens[5])
+	assert.Equal("", tokens[2])
+	assert.Equal("und", tokens[3])
+	assert.Equal("Du", tokens[4])
+	assert.Equal("?", tokens[5])
 	assert.Equal("", tokens[6])
-	assert.Equal(7, len(tokens))
+	assert.Equal("", tokens[7])
+	assert.Equal("", tokens[8])
+	assert.Equal(9, len(tokens))
 }
