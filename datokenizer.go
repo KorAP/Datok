@@ -1327,10 +1327,9 @@ FINALCHECK:
 				fmt.Println("-> Flush buffer:", string(data))
 			}
 			writer.Write(data)
-		}
-
-		if dat.isTokenEnd(t) {
-			writer.WriteRune('\n')
+			if dat.isTokenEnd(t) {
+				writer.WriteRune('\n')
+			}
 		}
 
 		// There may be a new line at the end, from an epsilon, so we go on!

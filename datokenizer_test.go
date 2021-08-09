@@ -81,8 +81,7 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	assert.Equal("--", tokens[2])
 	assert.Equal("D", tokens[3])
 	assert.Equal("", tokens[4])
-	assert.Equal("", tokens[5])
-	assert.Equal(6, len(tokens))
+	assert.Equal(5, len(tokens))
 }
 
 func TestReadWriteTokenizer(t *testing.T) {
@@ -169,6 +168,5 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.Equal("?", tokens[5])
 	assert.Equal("", tokens[6])
 	assert.Equal("", tokens[7])
-	assert.Equal("", tokens[8])
-	assert.Equal(9, len(tokens))
+	assert.Equal(8, len(tokens))
 }
