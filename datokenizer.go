@@ -10,11 +10,18 @@ package datokenizer
 // with a loadfactor of ~70, this means roughly 70 million
 // states in the FSA, which is sufficient for the current
 // job.
+//
+// Serialization is little endian.
 
 // TODO:
 // - replace maxSize with the check value
 // - Strip first state and make everything start with 0!
 // - Add checksum to serialization.
+// - Mark epsilon transitions in bytes
+// - Introduce methods on BC array entries instead of
+//   jumping into the entries all the time!
+// - Instead of memoizing the loadFactor, better remember
+//   the number of set transitions
 
 import (
 	"bufio"
@@ -36,15 +43,15 @@ const (
 	SIGMA            = 2
 	STATES           = 3
 	NONE             = 4
-	NEWLINE          = '\u000a'
 	DEBUG            = false
 	MAGIC            = "DATOK"
 	VERSION          = uint16(1)
-	firstBit  uint32 = 1 << 31
-	secondBit uint32 = 1 << 30
-	restBit   uint32 = ^uint32(0) &^ (firstBit | secondBit)
+	FIRSTBIT  uint32 = 1 << 31
+	SECONDBIT uint32 = 1 << 30
+	RESTBIT   uint32 = ^uint32(0) &^ (FIRSTBIT | SECONDBIT)
 )
 
+// Serialization is always little endian
 var bo binary.ByteOrder = binary.LittleEndian
 
 type mapping struct {
@@ -60,8 +67,9 @@ type edge struct {
 	tokenend bool
 }
 
+// Tokenizer is the intermediate representation
+// of the tokenizer.
 type Tokenizer struct {
-	// sigma       map[rune]int
 	sigmaRev    map[int]rune
 	arcCount    int
 	stateCount  int
@@ -73,10 +81,12 @@ type Tokenizer struct {
 	unknown  int
 	identity int
 	final    int
+	tokenend int
 }
 
+// DaTokenizer represents a tokenizer implemented as a
+// Double Array FSA.
 type DaTokenizer struct {
-	// sigmaRev map[int]rune
 	sigma      map[rune]int
 	maxSize    int
 	loadFactor float64
@@ -88,8 +98,12 @@ type DaTokenizer struct {
 	unknown  int
 	identity int
 	final    int
+	tokenend int
 }
 
+// ParseFoma reads the FST from a foma file
+// and creates an internal representation,
+// in case it follows the tokenizer's convention.
 func LoadFomaFile(file string) *Tokenizer {
 	f, err := os.Open(file)
 	if err != nil {
@@ -108,6 +122,9 @@ func LoadFomaFile(file string) *Tokenizer {
 	return ParseFoma(gz)
 }
 
+// ParseFoma reads the FST from a foma file reader
+// and creates an internal representation,
+// in case it follows the tokenizer's convention.
 func ParseFoma(ior io.Reader) *Tokenizer {
 	r := bufio.NewReader(ior)
 
@@ -117,9 +134,8 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 		unknown:  -1,
 		identity: -1,
 		final:    -1,
+		tokenend: -1,
 	}
-
-	checkmap := make(map[string]bool)
 
 	var state, inSym, outSym, end, final int
 
@@ -127,6 +143,10 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 	var elem []string
 	var elemint [5]int
 
+	// Iterate over all lines of the file.
+	// This is mainly based on foma2js,
+	// licensed under the Apache License, version 2,
+	// and written by Mans Hulden.
 	for {
 		line, err := r.ReadString('\n')
 		if err != nil {
@@ -300,7 +320,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				if inSym != outSym {
 
-					if tok.sigmaRev[outSym] == NEWLINE {
+					if outSym == tok.tokenend {
 						tokenend = true
 					} else if outSym == tok.epsilon {
 						nontoken = true
@@ -326,16 +346,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					os.Exit(1)
 				}
 
-				// This collects all edges until arrstate changes
-
-				// TODO:
-				//   if arrin == EPSILON && arrout == TOKENEND, mark state as newline
-				//   if the next transition is the same, remove TOKENEND and add SENTENCEEND
-				//   This requires to remove the transition alltogether and marks the state instead.
-
-				// TODO:
-				//   if arrout == EPSILON, mark the transition as NOTOKEN
-
+				// Create an edge based on the collected information
 				targetObj := &edge{
 					inSym:    inSym,
 					outSym:   outSym,
@@ -356,16 +367,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				// Add final transition
 				if final == 1 {
-					// TODO: maybe this is irrelevant for tokenizers
+					// TODO:
+					//   Maybe this is less relevant for tokenizers
 					tok.transitions[state+1][tok.final] = &edge{}
-				}
-
-				test := fmt.Sprint(state+1) + ":" + fmt.Sprint(inSym)
-				if checkmap[test] {
-					fmt.Println("Path already defined!", test)
-					os.Exit(0)
-				} else {
-					checkmap[test] = true
 				}
 
 				if DEBUG {
@@ -430,6 +434,12 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 							tok.identity = number
 							continue
 						}
+
+					case "@_TOKEN_SYMBOL_@":
+						{
+							tok.tokenend = number
+							continue
+						}
 					default:
 						{
 							log.Error().Msg("MCS not supported: " + line)
@@ -447,7 +457,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						log.Error().Msg("MCS not supported:" + line)
 						os.Exit(0)
 					}
-					symbol = rune(NEWLINE)
+					symbol = rune('\n')
 				}
 
 				tok.sigmaRev[number] = symbol
@@ -479,6 +489,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		unknown:    tok.unknown,
 		identity:   tok.identity,
 		epsilon:    tok.epsilon,
+		tokenend:   tok.tokenend,
 		// lastFilledBase: 1,
 	}
 
@@ -612,43 +623,43 @@ func (dat *DaTokenizer) setBase(p uint32, v uint32) {
 
 // Returns true if a state is separate pointing to a representative
 func (dat *DaTokenizer) isSeparate(p uint32) bool {
-	return dat.array[p*2]&firstBit != 0
+	return dat.array[p*2]&FIRSTBIT != 0
 }
 
 // Mark a state as separate pointing to a representative
 func (dat *DaTokenizer) setSeparate(p uint32, sep bool) {
 	if sep {
-		dat.array[p*2] |= firstBit
+		dat.array[p*2] |= FIRSTBIT
 	} else {
-		dat.array[p*2] &= (restBit | secondBit)
+		dat.array[p*2] &= (RESTBIT | SECONDBIT)
 	}
 }
 
 // Returns true if a state is the target of a nontoken transition
 func (dat *DaTokenizer) isNonToken(p uint32) bool {
-	return dat.array[p*2+1]&firstBit != 0
+	return dat.array[p*2+1]&FIRSTBIT != 0
 }
 
 // Mark a state as being the target of a nontoken transition
 func (dat *DaTokenizer) setNonToken(p uint32, sep bool) {
 	if sep {
-		dat.array[p*2+1] |= firstBit
+		dat.array[p*2+1] |= FIRSTBIT
 	} else {
-		dat.array[p*2+1] &= (restBit | secondBit)
+		dat.array[p*2+1] &= (RESTBIT | SECONDBIT)
 	}
 }
 
 // Returns true if a state is the target of a tokenend transition
 func (dat *DaTokenizer) isTokenEnd(p uint32) bool {
-	return dat.array[p*2+1]&secondBit != 0
+	return dat.array[p*2+1]&SECONDBIT != 0
 }
 
 // Mark a state as being the target of a tokenend transition
 func (dat *DaTokenizer) setTokenEnd(p uint32, sep bool) {
 	if sep {
-		dat.array[p*2+1] |= secondBit
+		dat.array[p*2+1] |= SECONDBIT
 	} else {
-		dat.array[p*2+1] &= (restBit | firstBit)
+		dat.array[p*2+1] &= (RESTBIT | FIRSTBIT)
 	}
 }
 
@@ -657,7 +668,7 @@ func (dat *DaTokenizer) getBase(p uint32) uint32 {
 	if int(p*2) >= len(dat.array) {
 		return 0
 	}
-	return dat.array[p*2] & restBit
+	return dat.array[p*2] & RESTBIT
 }
 
 // Set check value in double array
@@ -675,7 +686,7 @@ func (dat *DaTokenizer) getCheck(p uint32) uint32 {
 	if int((p*2)+1) >= len(dat.array) {
 		return 0
 	}
-	return dat.array[(p*2)+1] & restBit
+	return dat.array[(p*2)+1] & RESTBIT
 }
 
 // Set size of double array
@@ -1190,9 +1201,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 		t0 = t
 
 		if dat.getCheck(dat.getBase(t0)+uint32(dat.epsilon)) == t0 {
-			if DEBUG {
-				fmt.Println("Remember for epsilon tu:charcount", t0, buffo)
-			}
+			// Remember state for backtracking to last tokenend state
 			epsilonState = t0
 			epsilonOffset = buffo
 		}

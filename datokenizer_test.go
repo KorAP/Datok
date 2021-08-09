@@ -99,7 +99,7 @@ func TestReadWriteTokenizer(t *testing.T) {
 	buf := bytes.NewBuffer(b)
 	n, err := dat.WriteTo(buf)
 	assert.Nil(err)
-	assert.Equal(int64(208), n)
+	assert.Equal(int64(224), n)
 
 	dat2 := ParseDatok(buf)
 	assert.NotNil(dat2)
@@ -128,10 +128,10 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
-	assert.Equal(dat.final, 135)
+	assert.Equal(dat.final, 136)
 	assert.Equal(len(dat.sigma), 131)
-	assert.Equal(len(dat.array), 3771624)
-	assert.Equal(dat.maxSize, 3771623)
+	assert.Equal(len(dat.array), 3806280)
+	assert.Equal(dat.maxSize, 3806279)
 
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
@@ -141,13 +141,15 @@ func TestFullTokenizer(t *testing.T) {
 func TestFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	/*
-		tok := LoadFomaFile("testdata/tokenizer.fst")
-		dat := tok.ToDoubleArray()
-		dat.Save("testdata/tokenizer.datok")
-	*/
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+	var dat *DaTokenizer
 
+	if false {
+		tok := LoadFomaFile("testdata/tokenizer.fst")
+		dat = tok.ToDoubleArray()
+		dat.Save("testdata/tokenizer.datok")
+	} else {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
 	assert.NotNil(dat)
 
 	r := strings.NewReader("tra. und Du?")
