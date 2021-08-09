@@ -146,7 +146,7 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	if false {
 		tok := LoadFomaFile("testdata/tokenizer.fst")
 		dat = tok.ToDoubleArray()
-		dat.Save("testdata/tokenizer.datok")
+		// dat.Save("testdata/tokenizer.datok")
 	} else {
 		dat = LoadDatokFile("testdata/tokenizer.datok")
 	}
