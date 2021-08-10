@@ -1170,6 +1170,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	eof := false
 	newchar := true
 
+PARSECHAR:
 	for {
 
 		if newchar {
@@ -1266,7 +1267,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			buffo++
 
 			// Transition does not produce a character
-			if dat.isNonToken(t) && buffo == 1 {
+			if buffo == 1 && dat.isNonToken(t) {
 				if DEBUG {
 					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
 				}
@@ -1274,19 +1275,22 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			}
 		}
 
-		// Transition marks the end of a token
+		// Transition marks the end of a token - so flush the buffer
 		if dat.isTokenEnd(t) {
 
-			data := []byte(string(buffer[:buffo]))
-			if DEBUG {
-				fmt.Println("-> Flush buffer:", string(data), showBuffer(buffer, buffo, buffi))
+			if buffi > 0 {
+				data := []byte(string(buffer[:buffo]))
+				if DEBUG {
+					fmt.Println("-> Flush buffer: [", string(data), "]", showBuffer(buffer, buffo, buffi))
+					fmt.Println("-> Newline")
+				}
+				writer.Write(data)
+				writer.WriteRune('\n')
+				rewindBuffer = true
 			}
-			writer.Write(data)
-			writer.WriteRune('\n')
-			rewindBuffer = true
 		}
 
-		// Rewind the buffer
+		// Rewind the buffer if necessary
 		if rewindBuffer {
 
 			// TODO: Better as a ring buffer
@@ -1311,9 +1315,14 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			}
 		}
 
+		if eof {
+			break
+		}
+
+		newchar = true
+
 		// TODO:
 		//   Prevent endless epsilon loops!
-		newchar = true
 	}
 
 	// Input reader is not yet finished
@@ -1324,23 +1333,24 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 		return false
 	}
 
-FINALCHECK:
-
 	if DEBUG {
 		fmt.Println("Entering final check")
 	}
 
-	// Automaton is in a final state
+	// Automaton is in a final state, so flush the buffer and return
 	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
 
 		if buffi > 0 {
 			data := []byte(string(buffer[:buffi]))
 			if DEBUG {
-				fmt.Println("-> Flush buffer:", string(data))
+				fmt.Println("-> Flush buffer: [", string(data), "]")
 			}
 			writer.Write(data)
 			if dat.isTokenEnd(t) {
 				writer.WriteRune('\n')
+				if DEBUG {
+					fmt.Println("-> Newline")
+				}
 			}
 		}
 
@@ -1348,45 +1358,24 @@ FINALCHECK:
 		return true
 	}
 
-	// Try again with epsilon symbol, in case everything else failed
-	/*
+	// Check epsilon transitions until a final state is reached
+	t0 = t
+	t = dat.getBase(t0) + uint32(dat.epsilon)
+	if dat.getCheck(t) == t0 {
+		// Remember state for backtracking to last tokenend state
+		a = dat.epsilon
+		newchar = false
+		goto PARSECHAR
+	} else if epsilonState != 0 {
 		t0 = epsilonState
 		epsilonState = 0 // reset
 		buffo = epsilonOffset
 		a = dat.epsilon
-		goto CHECK
-	*/
-
-	// Check epsilon transitions until a final state is reached
-	t0 = t
-	t = dat.getBase(t0) + uint32(dat.epsilon)
-
-	// Epsilon transition failed
-	if t > dat.getCheck(1) || dat.getCheck(t) != t0 {
 		if DEBUG {
-			fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", t0)
+			fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
 		}
-		return false
+		newchar = false
+		goto PARSECHAR
 	}
-
-	if dat.isSeparate(t) {
-		// Move to representative state
-		t = dat.getBase(t)
-	}
-
-	if dat.isTokenEnd(t) {
-		if buffi > 0 {
-			data := []byte(string(buffer[:buffi]))
-			if DEBUG {
-				fmt.Println("-> Flush buffer:", string(data))
-			}
-			writer.Write(data)
-			buffi = 0
-			buffo = 0
-			epsilonState = 0
-		}
-		writer.WriteRune('\n')
-	}
-
-	goto FINALCHECK
+	return false
 }

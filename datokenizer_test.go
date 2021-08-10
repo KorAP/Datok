@@ -151,7 +151,7 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	}
 	assert.NotNil(dat)
 
-	r := strings.NewReader("tra. und Du?")
+	r := strings.NewReader("tra. u Du?")
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -163,12 +163,12 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.Equal("tra", tokens[0])
 	assert.Equal(".", tokens[1])
 	assert.Equal("", tokens[2])
-	assert.Equal("und", tokens[3])
+	assert.Equal("u", tokens[3])
 	assert.Equal("Du", tokens[4])
 	assert.Equal("?", tokens[5])
 	assert.Equal("", tokens[6])
-	assert.Equal("", tokens[7])
-	assert.Equal(8, len(tokens))
+	// assert.Equal("", tokens[7])
+	assert.Equal(7, len(tokens))
 }
 
 func TestFullTokenizerSentenceSplitter(t *testing.T) {
