@@ -170,3 +170,19 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.Equal("", tokens[7])
 	assert.Equal(8, len(tokens))
 }
+
+func TestFullTokenizerSentenceSplitter(t *testing.T) {
+	assert := assert.New(t)
+	dat := LoadDatokFile("testdata/tokenizer.datok")
+	assert.NotNil(dat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var sentences []string
+
+	// testSentSplitterSimple
+	r := strings.NewReader("Mann.")
+	assert.True(dat.Transduce(r, w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 1)
+}

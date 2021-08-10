@@ -1135,7 +1135,8 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	var a int
 	var t0 uint32
-	var ok, nontoken, tokenend bool
+	t := uint32(1) // Initial state
+	var ok, rewindBuffer bool
 
 	// Remember the last position of a possible tokenend,
 	// in case the automaton fails.
@@ -1152,6 +1153,10 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	// epsilon transitions, to support tokenizations like:
 	// "this is an example|.| And it works." vs
 	// "this is an example.com| application."
+	//
+	// TODO:
+	//   Store a translation buffer as well, so characters don't
+	//   have to be translated multiple times!
 	buffer := make([]rune, 1024)
 	buffo := 0 // Buffer offset
 	buffi := 0 // Buffer length
@@ -1160,60 +1165,63 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	writer := bufio.NewWriter(w)
 	defer writer.Flush()
 
-	t := uint32(1) // Initial state
-
 	var char rune
 	var err error
 	eof := false
+	newchar := true
 
 	for {
 
-		// Get from reader if buffer is empty
-		if buffo >= buffi {
-			char, _, err = reader.ReadRune()
+		if newchar {
+			// Get from reader if buffer is empty
+			if buffo >= buffi {
+				char, _, err = reader.ReadRune()
 
-			// No more runes to read
-			if err != nil {
-				eof = true
-				break
+				// No more runes to read
+				if err != nil {
+					eof = true
+					break
+				}
+				buffer[buffi] = char
+				buffi++
 			}
-			buffer[buffi] = char
-			buffi++
+
+			char = buffer[buffo]
+
+			if DEBUG {
+				fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
+			}
+
+			// TODO: Better not repeatedly check for a!
+			a, ok = dat.sigma[char]
+
+			// Use identity symbol if character is not in sigma
+			if !ok && dat.identity != -1 {
+				a = dat.identity
+			}
+
+			t0 = t
+
+			// Check for epsilon transitions and remember
+			if dat.getCheck(dat.getBase(t0)+uint32(dat.epsilon)) == t0 {
+				// Remember state for backtracking to last tokenend state
+				epsilonState = t0
+				epsilonOffset = buffo
+			}
 		}
 
-		char = buffer[buffo]
-
-		if DEBUG {
-			fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
-		}
-
-		a, ok = dat.sigma[char]
-
-		// Use identity symbol if character is not in sigma
-		if !ok && dat.identity != -1 {
-			a = dat.identity
-		}
-
-		t0 = t
-
-		// Check for epsilon transitions and remember
-		if dat.getCheck(dat.getBase(t0)+uint32(dat.epsilon)) == t0 {
-			// Remember state for backtracking to last tokenend state
-			epsilonState = t0
-			epsilonOffset = buffo
-		}
-
-	CHECK:
-		nontoken = false
-		tokenend = false
-
+		// Checks a transition based on t0, a and buffo
 		t = dat.getBase(t0) + uint32(a)
 
 		if DEBUG {
-			fmt.Println("Check", t0, "-", a, "(", string(char), ")", "->", t, dat.outgoing(t0))
+			// Char is only relevant if set
+			fmt.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
+			if false {
+				fmt.Println(dat.outgoing(t0))
+			}
 		}
 
-		// Check if the transition is valid according to the double array
+		// Check if the transition is invalid according to the double array
 		if t > dat.getCheck(1) || dat.getCheck(t) != t0 {
 
 			if DEBUG {
@@ -1223,6 +1231,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			if !ok && a == dat.identity {
 
 				// Try again with unknown symbol, in case identity failed
+				// Char is only relevant when set
 				if DEBUG {
 					fmt.Println("UNKNOWN symbol", string(char), "->", dat.unknown)
 				}
@@ -1244,24 +1253,12 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 				break
 			}
 
-			goto CHECK
-
+			newchar = false
+			continue
 		}
 
-		// Move to representative state
-		nontoken = dat.isNonToken(t)
-		tokenend = dat.isTokenEnd(t)
-
-		// Check for representative states
-		if dat.isSeparate(t) {
-			t = dat.getBase(t)
-
-			if DEBUG {
-				fmt.Println("Representative pointing to", t)
-			}
-		}
-
-		rewindBuffer := false
+		// Transition was successful
+		rewindBuffer = false
 
 		// Transition consumes a character
 		if a != dat.epsilon {
@@ -1269,7 +1266,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			buffo++
 
 			// Transition does not produce a character
-			if nontoken && buffo == 1 {
+			if dat.isNonToken(t) && buffo == 1 {
 				if DEBUG {
 					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
 				}
@@ -1277,7 +1274,8 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			}
 		}
 
-		if tokenend { // Transition marks the end of a token
+		// Transition marks the end of a token
+		if dat.isTokenEnd(t) {
 
 			data := []byte(string(buffer[:buffo]))
 			if DEBUG {
@@ -1304,8 +1302,18 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 			}
 		}
 
+		// Move to representative state
+		if dat.isSeparate(t) {
+			t = dat.getBase(t)
+
+			if DEBUG {
+				fmt.Println("Representative pointing to", t)
+			}
+		}
+
 		// TODO:
 		//   Prevent endless epsilon loops!
+		newchar = true
 	}
 
 	// Input reader is not yet finished
@@ -1317,6 +1325,10 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	}
 
 FINALCHECK:
+
+	if DEBUG {
+		fmt.Println("Entering final check")
+	}
 
 	// Automaton is in a final state
 	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
@@ -1335,6 +1347,15 @@ FINALCHECK:
 		// There may be a new line at the end, from an epsilon, so we go on!
 		return true
 	}
+
+	// Try again with epsilon symbol, in case everything else failed
+	/*
+		t0 = epsilonState
+		epsilonState = 0 // reset
+		buffo = epsilonOffset
+		a = dat.epsilon
+		goto CHECK
+	*/
 
 	// Check epsilon transitions until a final state is reached
 	t0 = t
