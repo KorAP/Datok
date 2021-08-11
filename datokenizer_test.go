@@ -9,15 +9,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func tmatch(dat *DaTokenizer, s string) bool {
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	return dat.Transduce(strings.NewReader(s), w)
+}
+
+func ttokenize(dat *DaTokenizer, w *bytes.Buffer, str string) []string {
+	w.Reset()
+	ok := dat.Transduce(strings.NewReader(str), w)
+	if !ok {
+		return []string{}
+	}
+	obj := regexp.MustCompile("\n+")
+
+	tokens := obj.Split(w.String(), -1)
+	return tokens[:len(tokens)-1]
+}
+
 func TestSimpleString(t *testing.T) {
 	assert := assert.New(t)
 
 	// bau | bauamt
 	tok := LoadFomaFile("testdata/bauamt.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(dat.Match("bau"))
-	assert.True(dat.Match("bauamt"))
-	assert.False(dat.Match("baum"))
+	assert.True(tmatch(dat, "bau"))
+	assert.True(tmatch(dat, "bauamt"))
+	assert.False(tmatch(dat, "baum"))
 }
 
 func TestSimpleBranches(t *testing.T) {
@@ -26,21 +44,21 @@ func TestSimpleBranches(t *testing.T) {
 	// (bau | wahl) (amt | en)
 	tok := LoadFomaFile("testdata/wahlamt.fst")
 	dat := tok.ToDoubleArray()
-	assert.False(dat.Match("bau"))
-	assert.True(dat.Match("bauamt"))
-	assert.True(dat.Match("wahlamt"))
-	assert.True(dat.Match("bauen"))
-	assert.True(dat.Match("wahlen"))
-	assert.False(dat.Match("baum"))
+	assert.False(tmatch(dat, "bau"))
+	assert.True(tmatch(dat, "bauamt"))
+	assert.True(tmatch(dat, "wahlamt"))
+	assert.True(tmatch(dat, "bauen"))
+	assert.True(tmatch(dat, "wahlen"))
+	assert.False(tmatch(dat, "baum"))
 }
 
 func TestSimpleTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(dat.Match("bau"))
-	assert.True(dat.Match("bad"))
-	assert.True(dat.Match("wald gehen"))
+	assert.True(tmatch(dat, "bau"))
+	assert.True(tmatch(dat, "bad"))
+	assert.True(tmatch(dat, "wald gehen"))
 }
 
 func TestSimpleTokenizerTransduce(t *testing.T) {
@@ -90,9 +108,9 @@ func TestReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(dat.Match("bau"))
-	assert.True(dat.Match("bad"))
-	assert.True(dat.Match("wald gehen"))
+	assert.True(tmatch(dat, "bau"))
+	assert.True(tmatch(dat, "bad"))
+	assert.True(tmatch(dat, "wald gehen"))
 
 	assert.True(dat.LoadFactor() >= 70)
 
@@ -111,9 +129,9 @@ func TestReadWriteTokenizer(t *testing.T) {
 	assert.Equal(dat.identity, dat2.identity)
 	assert.Equal(dat.final, dat2.final)
 	assert.Equal(dat.LoadFactor(), dat2.LoadFactor())
-	assert.True(dat2.Match("bau"))
-	assert.True(dat2.Match("bad"))
-	assert.True(dat2.Match("wald gehen"))
+	assert.True(tmatch(dat2, "bau"))
+	assert.True(tmatch(dat2, "bad"))
+	assert.True(tmatch(dat2, "wald gehen"))
 }
 
 func TestFullTokenizer(t *testing.T) {
@@ -124,14 +142,14 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
-	assert.Equal(dat.final, 135)
-	assert.Equal(len(dat.sigma), 130)
+	assert.Equal(dat.final, 137)
+	assert.Equal(len(dat.sigma), 132)
 	assert.True(len(dat.array) > 3800000)
 	assert.True(dat.maxSize > 3800000)
 
-	assert.True(dat.Match("bau"))
-	assert.True(dat.Match("bad"))
-	assert.True(dat.Match("wald gehen"))
+	assert.True(tmatch(dat, "bau"))
+	assert.True(tmatch(dat, "bad"))
+	assert.True(tmatch(dat, "wald gehen"))
 }
 
 func XTestFullTokenizerBuild(t *testing.T) {
@@ -262,18 +280,6 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	*/
 }
 
-func tokenize(dat *DaTokenizer, w *bytes.Buffer, str string) []string {
-	w.Reset()
-	ok := dat.Transduce(strings.NewReader(str), w)
-	if !ok {
-		return []string{}
-	}
-	obj := regexp.MustCompile("\n+")
-
-	tokens := obj.Split(w.String(), -1)
-	return tokens[:len(tokens)-1]
-}
-
 func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 	dat := LoadDatokFile("testdata/tokenizer.datok")
@@ -284,13 +290,13 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	var tokens []string
 
 	// testTokenizerSimple
-	tokens = tokenize(dat, w, "Der alte Mann")
+	tokens = ttokenize(dat, w, "Der alte Mann")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "alte")
 	assert.Equal(tokens[2], "Mann")
 	assert.Equal(len(tokens), 3)
 
-	tokens = tokenize(dat, w, "Der alte Mann.")
+	tokens = ttokenize(dat, w, "Der alte Mann.")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "alte")
 	assert.Equal(tokens[2], "Mann")
@@ -298,7 +304,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerAbbr
-	tokens = tokenize(dat, w, "Der Vorsitzende der F.D.P. hat gewählt")
+	tokens = ttokenize(dat, w, "Der Vorsitzende der F.D.P. hat gewählt")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Vorsitzende")
 	assert.Equal(tokens[2], "der")
@@ -309,21 +315,21 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerHost1
-	tokens = tokenize(dat, w, "Gefunden auf wikipedia.org")
+	tokens = ttokenize(dat, w, "Gefunden auf wikipedia.org")
 	assert.Equal(tokens[0], "Gefunden")
 	assert.Equal(tokens[1], "auf")
 	assert.Equal(tokens[2], "wikipedia.org")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerWwwHost
-	tokens = tokenize(dat, w, "Gefunden auf www.wikipedia.org")
+	tokens = ttokenize(dat, w, "Gefunden auf www.wikipedia.org")
 	assert.Equal("Gefunden", tokens[0])
 	assert.Equal("auf", tokens[1])
 	assert.Equal("www.wikipedia.org", tokens[2])
 	assert.Equal(3, len(tokens))
 
 	// testTokenizerWwwUrl
-	tokens = tokenize(dat, w, "Weitere Infos unter www.info.biz/info")
+	tokens = ttokenize(dat, w, "Weitere Infos unter www.info.biz/info")
 	assert.Equal("www.info.biz/info", tokens[3])
 
 	// testTokenizerFtpHost
@@ -337,7 +343,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	*/
 
 	// testTokenizerDash
-	tokens = tokenize(dat, w, "Das war -- spitze")
+	tokens = ttokenize(dat, w, "Das war -- spitze")
 	assert.Equal(tokens[0], "Das")
 	assert.Equal(tokens[1], "war")
 	assert.Equal(tokens[2], "--")
@@ -345,7 +351,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerEmail1
-	tokens = tokenize(dat, w, "Ich bin unter korap@ids-mannheim.de erreichbar.")
+	tokens = ttokenize(dat, w, "Ich bin unter korap@ids-mannheim.de erreichbar.")
 	assert.Equal(tokens[0], "Ich")
 	assert.Equal(tokens[1], "bin")
 	assert.Equal(tokens[2], "unter")
@@ -355,7 +361,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 6)
 
 	// testTokenizerEmail2
-	tokens = tokenize(dat, w, "Oder unter korap[at]ids-mannheim[dot]de.")
+	tokens = ttokenize(dat, w, "Oder unter korap[at]ids-mannheim[dot]de.")
 	assert.Equal(tokens[0], "Oder")
 	assert.Equal(tokens[1], "unter")
 	assert.Equal(tokens[2], "korap[at]ids-mannheim[dot]de")
@@ -363,7 +369,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerEmail3
-	tokens = tokenize(dat, w, "Oder unter korap(at)ids-mannheim(dot)de.")
+	tokens = ttokenize(dat, w, "Oder unter korap(at)ids-mannheim(dot)de.")
 	assert.Equal(tokens[0], "Oder")
 	assert.Equal(tokens[1], "unter")
 	assert.Equal(tokens[2], "korap(at)ids-mannheim(dot)de")
@@ -372,7 +378,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerDoNotAcceptQuotedEmailNames
-	tokens = tokenize(dat, w, "\"John Doe\"@xx.com")
+	tokens = ttokenize(dat, w, "\"John Doe\"@xx.com")
 	assert.Equal("\"", tokens[0])
 	assert.Equal("John", tokens[1])
 	assert.Equal("Doe", tokens[2])
@@ -383,7 +389,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(7, len(tokens))
 
 	// testTokenizerTwitter
-	tokens = tokenize(dat, w, "Folgt @korap und #korap")
+	tokens = ttokenize(dat, w, "Folgt @korap und #korap")
 	assert.Equal(tokens[0], "Folgt")
 	assert.Equal(tokens[1], "@korap")
 	assert.Equal(tokens[2], "und")
@@ -391,7 +397,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerWeb1
-	tokens = tokenize(dat, w, "Unsere Website ist https://korap.ids-mannheim.de/?q=Baum")
+	tokens = ttokenize(dat, w, "Unsere Website ist https://korap.ids-mannheim.de/?q=Baum")
 	assert.Equal(tokens[0], "Unsere")
 	assert.Equal(tokens[1], "Website")
 	assert.Equal(tokens[2], "ist")
@@ -399,7 +405,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerWeb2
-	tokens = tokenize(dat, w, "Wir sind auch im Internet (https://korap.ids-mannheim.de/?q=Baum)")
+	tokens = ttokenize(dat, w, "Wir sind auch im Internet (https://korap.ids-mannheim.de/?q=Baum)")
 	assert.Equal(tokens[0], "Wir")
 	assert.Equal(tokens[1], "sind")
 	assert.Equal(tokens[2], "auch")
@@ -412,7 +418,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerWeb3
-	tokens = tokenize(dat, w, "Die Adresse ist https://korap.ids-mannheim.de/?q=Baum.")
+	tokens = ttokenize(dat, w, "Die Adresse ist https://korap.ids-mannheim.de/?q=Baum.")
 	assert.Equal(tokens[0], "Die")
 	assert.Equal(tokens[1], "Adresse")
 	assert.Equal(tokens[2], "ist")
@@ -422,7 +428,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerServer
-	tokens = tokenize(dat, w, "Unser Server ist 10.0.10.51.")
+	tokens = ttokenize(dat, w, "Unser Server ist 10.0.10.51.")
 	assert.Equal(tokens[0], "Unser")
 	assert.Equal(tokens[1], "Server")
 	assert.Equal(tokens[2], "ist")
@@ -431,7 +437,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 5)
 
 	// testTokenizerNum
-	tokens = tokenize(dat, w, "Zu 50,4% ist es sicher")
+	tokens = ttokenize(dat, w, "Zu 50,4% ist es sicher")
 	assert.Equal(tokens[0], "Zu")
 	assert.Equal(tokens[1], "50,4%")
 	assert.Equal(tokens[2], "ist")
@@ -441,7 +447,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Differs from KorAP-Tokenizer
 
 	// testTokenizerDate
-	tokens = tokenize(dat, w, "Der Termin ist am 5.9.2018")
+	tokens = ttokenize(dat, w, "Der Termin ist am 5.9.2018")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Termin")
 	assert.Equal(tokens[2], "ist")
@@ -449,7 +455,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[4], "5.9.2018")
 	assert.Equal(len(tokens), 5)
 
-	tokens = tokenize(dat, w, "Der Termin ist am 5/9/2018")
+	tokens = ttokenize(dat, w, "Der Termin ist am 5/9/2018")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Termin")
 	assert.Equal(tokens[2], "ist")
@@ -472,7 +478,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	*/
 
 	// testTokenizerEmoji1
-	tokens = tokenize(dat, w, "Das ist toll! ;)")
+	tokens = ttokenize(dat, w, "Das ist toll! ;)")
 	assert.Equal(tokens[0], "Das")
 	assert.Equal(tokens[1], "ist")
 	assert.Equal(tokens[2], "toll")
@@ -481,7 +487,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 5)
 
 	// testTokenizerRef1
-	tokens = tokenize(dat, w, "Kupietz und Schmidt (2018): Korpuslinguistik")
+	tokens = ttokenize(dat, w, "Kupietz und Schmidt (2018): Korpuslinguistik")
 	assert.Equal(tokens[0], "Kupietz")
 	assert.Equal(tokens[1], "und")
 	assert.Equal(tokens[2], "Schmidt")
@@ -492,7 +498,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Differs from KorAP-Tokenizer!
 
 	// testTokenizerRef2 () {
-	tokens = tokenize(dat, w, "Kupietz und Schmidt [2018]: Korpuslinguistik")
+	tokens = ttokenize(dat, w, "Kupietz und Schmidt [2018]: Korpuslinguistik")
 	assert.Equal(tokens[0], "Kupietz")
 	assert.Equal(tokens[1], "und")
 	assert.Equal(tokens[2], "Schmidt")
@@ -503,7 +509,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Differs from KorAP-Tokenizer!
 
 	// testTokenizerOmission1 () {
-	tokens = tokenize(dat, w, "Er ist ein A****loch!")
+	tokens = ttokenize(dat, w, "Er ist ein A****loch!")
 	assert.Equal(tokens[0], "Er")
 	assert.Equal(tokens[1], "ist")
 	assert.Equal(tokens[2], "ein")
@@ -512,13 +518,13 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 5)
 
 	// testTokenizerOmission2
-	tokens = tokenize(dat, w, "F*ck!")
+	tokens = ttokenize(dat, w, "F*ck!")
 	assert.Equal(tokens[0], "F*ck")
 	assert.Equal(tokens[1], "!")
 	assert.Equal(len(tokens), 2)
 
 	// testTokenizerOmission3 () {
-	tokens = tokenize(dat, w, "Dieses verf***** Kleid!")
+	tokens = ttokenize(dat, w, "Dieses verf***** Kleid!")
 	assert.Equal(tokens[0], "Dieses")
 	assert.Equal(tokens[1], "verf*****")
 	assert.Equal(tokens[2], "Kleid")
@@ -527,7 +533,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Probably interpreted as HOST
 	// testTokenizerFileExtension1
-	tokens = tokenize(dat, w, "Ich habe die readme.txt heruntergeladen")
+	tokens = ttokenize(dat, w, "Ich habe die readme.txt heruntergeladen")
 	assert.Equal(tokens[0], "Ich")
 	assert.Equal(tokens[1], "habe")
 	assert.Equal(tokens[2], "die")
@@ -537,7 +543,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Probably interpreted as HOST
 	// testTokenizerFileExtension2
-	tokens = tokenize(dat, w, "Nimm die README.TXT!")
+	tokens = ttokenize(dat, w, "Nimm die README.TXT!")
 	assert.Equal(tokens[0], "Nimm")
 	assert.Equal(tokens[1], "die")
 	assert.Equal(tokens[2], "README.TXT")
@@ -546,7 +552,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Probably interpreted as HOST
 	// testTokenizerFileExtension3
-	tokens = tokenize(dat, w, "Zeig mir profile.jpeg")
+	tokens = ttokenize(dat, w, "Zeig mir profile.jpeg")
 	assert.Equal(tokens[0], "Zeig")
 	assert.Equal(tokens[1], "mir")
 	assert.Equal(tokens[2], "profile.jpeg")
@@ -554,21 +560,21 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 
 	// testTokenizerFile1
 
-	tokens = tokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.docx")
+	tokens = ttokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.docx")
 	assert.Equal(tokens[0], "Zeig")
 	assert.Equal(tokens[1], "mir")
 	assert.Equal(tokens[2], "c:\\Dokumente\\profile.docx")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerFile2
-	tokens = tokenize(dat, w, "Gehe zu /Dokumente/profile.docx")
+	tokens = ttokenize(dat, w, "Gehe zu /Dokumente/profile.docx")
 	assert.Equal(tokens[0], "Gehe")
 	assert.Equal(tokens[1], "zu")
 	assert.Equal(tokens[2], "/Dokumente/profile.docx")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerFile3
-	tokens = tokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.jpeg")
+	tokens = ttokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.jpeg")
 	assert.Equal(tokens[0], "Zeig")
 	assert.Equal(tokens[1], "mir")
 	assert.Equal(tokens[2], "c:\\Dokumente\\profile.jpeg")
@@ -576,7 +582,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerPunct
-	tokens = tokenize(dat, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")
+	tokens = ttokenize(dat, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")
 	assert.Equal(tokens[0], "Er")
 	assert.Equal(tokens[1], "sagte")
 	assert.Equal(tokens[2], ":")
@@ -595,33 +601,31 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 15)
 
 	// testTokenizerPlusAmpersand
-	/*
-		tokens = tokenize(dat, w, "&quot;Das ist von C&A!&quot;")
-		assert.Equal(tokens[0], "&quot;")
-		assert.Equal(tokens[1], "Das")
-		assert.Equal(tokens[2], "ist")
-		assert.Equal(tokens[3], "von")
-		assert.Equal(tokens[4], "C&A")
-		assert.Equal(tokens[5], "!")
-		assert.Equal(tokens[6], "&quot;")
-		assert.Equal(len(tokens), 7)
-	*/
+	tokens = ttokenize(dat, w, "&quot;Das ist von C&A!&quot;")
+	assert.Equal(tokens[0], "&quot;")
+	assert.Equal(tokens[1], "Das")
+	assert.Equal(tokens[2], "ist")
+	assert.Equal(tokens[3], "von")
+	assert.Equal(tokens[4], "C&A")
+	assert.Equal(tokens[5], "!")
+	assert.Equal(tokens[6], "&quot;")
+	assert.Equal(len(tokens), 7)
 
 	// testTokenizerLongEnd
-	tokens = tokenize(dat, w, "Siehst Du?!!?")
+	tokens = ttokenize(dat, w, "Siehst Du?!!?")
 	assert.Equal(tokens[0], "Siehst")
 	assert.Equal(tokens[1], "Du")
 	assert.Equal(tokens[2], "?!!?")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerIrishO
-	tokens = tokenize(dat, w, "Peter O'Toole")
+	tokens = ttokenize(dat, w, "Peter O'Toole")
 	assert.Equal(tokens[0], "Peter")
 	assert.Equal(tokens[1], "O'Toole")
 	assert.Equal(len(tokens), 2)
 
 	// testTokenizerAbr
-	tokens = tokenize(dat, w, "Früher bzw. später ...")
+	tokens = ttokenize(dat, w, "Früher bzw. später ...")
 	assert.Equal(tokens[0], "Früher")
 	assert.Equal(tokens[1], "bzw.")
 	assert.Equal(tokens[2], "später")
@@ -629,7 +633,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerUppercaseRule
-	tokens = tokenize(dat, w, "Es war spät.Morgen ist es früh.")
+	tokens = ttokenize(dat, w, "Es war spät.Morgen ist es früh.")
 	assert.Equal(tokens[0], "Es")
 	assert.Equal(tokens[1], "war")
 	assert.Equal(tokens[2], "spät")
@@ -643,7 +647,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerOrd
-	tokens = tokenize(dat, w, "Sie erreichte den 1. Platz!")
+	tokens = ttokenize(dat, w, "Sie erreichte den 1. Platz!")
 	assert.Equal(tokens[0], "Sie")
 	assert.Equal(tokens[1], "erreichte")
 	assert.Equal(tokens[2], "den")
@@ -653,7 +657,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 6)
 
 	// testNoZipOuputArchive
-	tokens = tokenize(dat, w, "Archive:  Ich bin kein zip\n")
+	tokens = ttokenize(dat, w, "Archive:  Ich bin kein zip\n")
 	assert.Equal(tokens[0], "Archive")
 	assert.Equal(tokens[1], ":")
 	assert.Equal(tokens[2], "Ich")
@@ -663,12 +667,12 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(6, len(tokens))
 
 	// testTokenizerStrasse
-	tokens = tokenize(dat, w, "Ich wohne in der Weststr. und Du?")
+	tokens = ttokenize(dat, w, "Ich wohne in der Weststr. und Du?")
 	assert.Equal(tokens[4], "Weststr.")
 	assert.Equal(8, len(tokens))
 
 	// germanTokenizerKnowsGermanOmissionWords
-	tokens = tokenize(dat, w, "D'dorf Ku'damm Lu'hafen M'gladbach W'schaft")
+	tokens = ttokenize(dat, w, "D'dorf Ku'damm Lu'hafen M'gladbach W'schaft")
 	assert.Equal("D'dorf", tokens[0])
 	assert.Equal("Ku'damm", tokens[1])
 	assert.Equal("Lu'hafen", tokens[2])
@@ -677,7 +681,7 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(5, len(tokens))
 
 	// germanTokenizerDoesNOTSeparateGermanContractions
-	tokens = tokenize(dat, w, "mach's macht's was'n ist's haste willste kannste biste kriegste")
+	tokens = ttokenize(dat, w, "mach's macht's was'n ist's haste willste kannste biste kriegste")
 	assert.Equal("mach's", tokens[0])
 	assert.Equal("macht's", tokens[1])
 	assert.Equal("was'n", tokens[2])
