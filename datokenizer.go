@@ -1176,6 +1176,9 @@ PARSECHAR:
 		if newchar {
 			// Get from reader if buffer is empty
 			if buffo >= buffi {
+				if eof {
+					break
+				}
 				char, _, err = reader.ReadRune()
 
 				// No more runes to read
@@ -1282,12 +1285,14 @@ PARSECHAR:
 				data := []byte(string(buffer[:buffo]))
 				if DEBUG {
 					fmt.Println("-> Flush buffer: [", string(data), "]", showBuffer(buffer, buffo, buffi))
-					fmt.Println("-> Newline")
 				}
 				writer.Write(data)
-				writer.WriteRune('\n')
 				rewindBuffer = true
 			}
+			if DEBUG {
+				fmt.Println("-> Newline")
+			}
+			writer.WriteRune('\n')
 		}
 
 		// Rewind the buffer if necessary
@@ -1313,10 +1318,6 @@ PARSECHAR:
 			if DEBUG {
 				fmt.Println("Representative pointing to", t)
 			}
-		}
-
-		if eof {
-			break
 		}
 
 		newchar = true

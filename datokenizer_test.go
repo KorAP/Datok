@@ -160,6 +160,7 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.True(dat.Transduce(r, w))
 
 	tokens = strings.Split(w.String(), "\n")
+	assert.Equal("tra\n.\n\nu\nDu\n?\n\n", w.String())
 	assert.Equal("tra", tokens[0])
 	assert.Equal(".", tokens[1])
 	assert.Equal("", tokens[2])
@@ -167,8 +168,8 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.Equal("Du", tokens[4])
 	assert.Equal("?", tokens[5])
 	assert.Equal("", tokens[6])
-	// assert.Equal("", tokens[7])
-	assert.Equal(7, len(tokens))
+	assert.Equal("", tokens[7])
+	assert.Equal(8, len(tokens))
 }
 
 func TestFullTokenizerSentenceSplitter(t *testing.T) {
@@ -181,8 +182,82 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	var sentences []string
 
 	// testSentSplitterSimple
-	r := strings.NewReader("Mann.")
-	assert.True(dat.Transduce(r, w))
+	assert.True(dat.Transduce(strings.NewReader("Der alte Mann."), w))
+	sentences = strings.Split(w.String(), "\n\n")
+
+	assert.Equal("Der\nalte\nMann\n.\n\n", w.String())
+	assert.Equal("Der\nalte\nMann\n.", sentences[0])
+	assert.Equal("", sentences[1])
+	assert.Equal(len(sentences), 2)
+
+	w.Reset()
+	assert.True(dat.Transduce(strings.NewReader("Der Vorsitzende der Abk. hat gewählt."), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 2)
+	assert.Equal("Der\nVorsitzende\nder\nAbk.\nhat\ngewählt\n.", sentences[0])
+	assert.Equal("", sentences[1])
+
+	w.Reset()
+	assert.True(dat.Transduce(strings.NewReader(""), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 1)
+	assert.Equal("", sentences[0])
+
+	w.Reset()
+	assert.True(dat.Transduce(strings.NewReader("Gefunden auf wikipedia.org."), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 2)
+
+	w.Reset()
+	assert.True(dat.Transduce(strings.NewReader("Ich bin unter korap@ids-mannheim.de erreichbar."), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 2)
+
+	/*
+		w.Reset()
+		assert.True(dat.Transduce(strings.NewReader("Unsere Website ist https://korap.ids-mannheim.de/?q=Baum"), w))
+		sentences = strings.Split(w.String(), "\n\n")
+		assert.Equal("Unsere\nWebsite\nist\nhttps://korap.ids-mannheim.de/?q=Baum\n", sentences[0])
+		assert.Equal(len(sentences), 1)
+
+			w.Reset()
+			assert.True(dat.Transduce(strings.NewReader("Unser Server ist 10.0.10.51."), w))
+			sentences = strings.Split(w.String(), "\n\n")
+			assert.Equal(len(sentences), 1)
+
+			w.Reset()
+			assert.True(dat.Transduce(strings.NewReader("Zu 50.4% ist es sicher"), w))
+			sentences = strings.Split(w.String(), "\n\n")
+			assert.Equal(len(sentences), 1)
+
+			w.Reset()
+			assert.True(dat.Transduce(strings.NewReader("Der Termin ist am 5.9.2018"), w))
+			sentences = strings.Split(w.String(), "\n\n")
+			assert.Equal(len(sentences), 1)
+
+			w.Reset()
+			assert.True(dat.Transduce(strings.NewReader("Ich habe die readme.txt heruntergeladen"), w))
+			sentences = strings.Split(w.String(), "\n\n")
+			assert.Equal(len(sentences), 1)
+			assert.Equal("Ich\nhabe\ndie\nreadme.txt\nheruntergeladen\n", sentences[0])
+
+			w.Reset()
+			assert.True(dat.Transduce(strings.NewReader("Ausschalten!!! Hast Du nicht gehört???"), w))
+			sentences = strings.Split(w.String(), "\n\n")
+			assert.Equal(len(sentences), 2)
+			assert.Equal("Ausschalten\n!!!", sentences[0])
+			assert.Equal("Hast\nDu\nnicht\ngehört\n???\n", sentences[1])
+	*/
+
+	/*
+		w.Reset()
+		assert.True(dat.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
+		sentences = strings.Split(w.String(), "\n\n")
+		assert.Equal(len(sentences), 1)
+	*/
+
+	/*
+		Test:
+		"\"Ausschalten!!!\", sagte er. \"Hast Du nicht gehört???\""), w))
+	*/
 }
