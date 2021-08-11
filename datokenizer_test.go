@@ -553,29 +553,27 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerFile1
-	/*
-				tokens = tokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.docx")
-				assert.Equal(tokens[0], "Zeig")
-				assert.Equal(tokens[1], "mir")
-				assert.Equal(tokens[2], "c:\\Dokumente\\profile.docx")
-				assert.Equal(len(tokens), 3)
 
+	tokens = tokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.docx")
+	assert.Equal(tokens[0], "Zeig")
+	assert.Equal(tokens[1], "mir")
+	assert.Equal(tokens[2], "c:\\Dokumente\\profile.docx")
+	assert.Equal(len(tokens), 3)
 
-			// testTokenizerFile2
-			tokens = tokenize(dat, w, "Gehe zu /Dokumente/profile.docx")
-			assert.Equal(tokens[0], "Gehe")
-			assert.Equal(tokens[1], "zu")
-			assert.Equal(tokens[2], "/Dokumente/profile.docx")
-			assert.Equal(len(tokens), 3)
+	// testTokenizerFile2
+	tokens = tokenize(dat, w, "Gehe zu /Dokumente/profile.docx")
+	assert.Equal(tokens[0], "Gehe")
+	assert.Equal(tokens[1], "zu")
+	assert.Equal(tokens[2], "/Dokumente/profile.docx")
+	assert.Equal(len(tokens), 3)
 
-		// testTokenizerFile3
-		tokens = tokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.jpeg")
-		assert.Equal(tokens[0], "Zeig")
-		assert.Equal(tokens[1], "mir")
-		assert.Equal(tokens[2], "c:\\Dokumente\\profile.jpeg")
-		assert.Equal(len(tokens), 3)
-		// Ignored in KorAP-Tokenizer
-	*/
+	// testTokenizerFile3
+	tokens = tokenize(dat, w, "Zeig mir c:\\Dokumente\\profile.jpeg")
+	assert.Equal(tokens[0], "Zeig")
+	assert.Equal(tokens[1], "mir")
+	assert.Equal(tokens[2], "c:\\Dokumente\\profile.jpeg")
+	assert.Equal(len(tokens), 3)
+	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerPunct
 	tokens = tokenize(dat, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")

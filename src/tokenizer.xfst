@@ -16,6 +16,7 @@ define NLout "@_TOKEN_SYMBOL_@";
 define NLin ("\u000d") "\u000a";
 
 define Digit [%0|1|2|3|4|5|6|7|8|9];
+define AsciiLetter [a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z];
 
 !!!!!!!!!!!!!!!!!
 ! <from tmorph> !
@@ -152,9 +153,11 @@ define FileEnd [
                 {xls}|
                 {xml}|
                 {aac}|
-                {gif}
+                {gif}|
+                {exe}
                 ] .o. Caseinsensitive;
-define File [Char|"-"]+ "." FileEnd;
+
+define File (( AsciiLetter ":" %\ | "/" ) [ Char | "_" | "-" | Char [ %\ | "/" ] ]*) [Char | "-" | "_" ]+ "." FileEnd;
 
 define Streetname Word {str} %.;
 
@@ -175,10 +178,6 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 
 ! TODO: Name words with ' and `
-
-! TODO:
-!   FNAME = (({LETTER}:[\\/])?|\/)?({LETTER}+|[\\_/-])+\.{EXTENSION}
-
 
 ! Support ASCII elements, like
 ! +---------------+
