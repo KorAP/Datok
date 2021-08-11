@@ -124,8 +124,8 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
-	assert.Equal(dat.final, 136)
-	assert.Equal(len(dat.sigma), 131)
+	assert.Equal(dat.final, 135)
+	assert.Equal(len(dat.sigma), 130)
 	assert.True(len(dat.array) > 3800000)
 	assert.True(dat.maxSize > 3800000)
 
@@ -577,26 +577,24 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 		// Ignored in KorAP-Tokenizer
 	*/
 
-	/*
-		// testTokenizerPunct
-		tokens = tokenize(dat, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")
-		assert.Equal(tokens[0], "Er")
-		assert.Equal(tokens[1], "sagte")
-		assert.Equal(tokens[2], ":")
-		assert.Equal(tokens[3], "\"")
-		assert.Equal(tokens[4], "Es")
-		assert.Equal(tokens[5], "geht")
-		assert.Equal(tokens[6], "mir")
-		assert.Equal(tokens[7], "gut")
-		assert.Equal(tokens[8], "!")
-		assert.Equal(tokens[9], "\"")
-		assert.Equal(tokens[10], ",")
-		assert.Equal(tokens[11], "daraufhin")
-		assert.Equal(tokens[12], "ging")
-		assert.Equal(tokens[13], "er")
-		assert.Equal(tokens[14], ".")
-		assert.Equal(len(tokens), 15)
-	*/
+	// testTokenizerPunct
+	tokens = tokenize(dat, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")
+	assert.Equal(tokens[0], "Er")
+	assert.Equal(tokens[1], "sagte")
+	assert.Equal(tokens[2], ":")
+	assert.Equal(tokens[3], "\"")
+	assert.Equal(tokens[4], "Es")
+	assert.Equal(tokens[5], "geht")
+	assert.Equal(tokens[6], "mir")
+	assert.Equal(tokens[7], "gut")
+	assert.Equal(tokens[8], "!")
+	assert.Equal(tokens[9], "\"")
+	assert.Equal(tokens[10], ",")
+	assert.Equal(tokens[11], "daraufhin")
+	assert.Equal(tokens[12], "ging")
+	assert.Equal(tokens[13], "er")
+	assert.Equal(tokens[14], ".")
+	assert.Equal(len(tokens), 15)
 
 	// testTokenizerPlusAmpersand
 	/*

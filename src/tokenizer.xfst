@@ -104,7 +104,7 @@ z (->) Z,
 ß (->) {SS}
 ];
 
-define Abbr @txt"txt/abbrv.txt" .o. Caseinsensitive;
+define Abbr @txt"txt/abbrv.txt";
 
 ! A solution to the "(author): problem" may be to add ) at the end of any
 ! string as a possible ending
