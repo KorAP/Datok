@@ -107,6 +107,8 @@ z (->) Z,
 
 define Abbr @txt"txt/abbrv.txt";
 
+define Plusampersand @txt"txt/plusampersand.txt";
+
 ! A solution to the "(author): problem" may be to add ) at the end of any
 ! string as a possible ending
 
@@ -189,7 +191,7 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 
 
-define RealToken [XML|Email|URL|SNS|[Abbr %.]|Streetname|Omission|Domain|AcronymDep|File|Emdash|Punct|Ord|Num|Years|Emoji|Word];
+define RealToken [XML|Email|URL|SNS|[Abbr %.]|Plusampersand|Streetname|Omission|Domain|AcronymDep|File|Emdash|Punct|Ord|Num|Years|Emoji|Word];
 
 echo - Introduce Token splitter
 define Token [RealToken @-> ... NLout]
