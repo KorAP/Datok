@@ -1347,11 +1347,22 @@ PARSECHAR:
 				fmt.Println("-> Flush buffer: [", string(data), "]")
 			}
 			writer.Write(data)
+
 			if dat.isTokenEnd(t) {
 				writer.WriteRune('\n')
 				if DEBUG {
 					fmt.Println("-> Newline")
 				}
+			}
+		}
+
+		// Add an additional sentence ending, if the file is over but no explicit
+		// sentence split was reached. This may be controversial and therefore
+		// optional via parameter.
+		if !dat.isTokenEnd(t0) {
+			writer.WriteRune('\n')
+			if DEBUG {
+				fmt.Println("-> Newline")
 			}
 		}
 
