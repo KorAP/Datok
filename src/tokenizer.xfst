@@ -1,0 +1,202 @@
+! This tokenizer is based on work by
+!  - StandardTokenizerImpl by the Lucene project
+!    under the Apache License
+!  - https://github.com/dlwh/epic by David Hall (2014)
+!    under the Apacahe License
+!  - KorAPTokenizerImpl.jflex by Marc Kupietz (2016)
+!    under the Apache License
+!  - https://github.com/coltekin/TRmorph/tokenize.xfst by Çağrı Çöltekin (2011-2015)
+!    under the MIT License
+!
+! The abbreviation list is part of the sentence splitter tool
+! of the IDS.
+
+define NLout "@_TOKEN_SYMBOL_@"; !"\u000a";
+define NLin ("\u000d") "\u000a";
+
+define Digit [%0|1|2|3|4|5|6|7|8|9];
+
+!!!!!!!!!!!!!!!!!
+! <from tmorph> !
+!!!!!!!!!!!!!!!!!
+define WS [" "|"\u0009"|"\u000a"|"\u000d"|
+           "\u00a0"|"\u1680"|
+           "\u2000"|"\u2001"|"\u2002"|"\u2003"|"\u2004"|"\u2005"| 
+           "\u2006"|"\u2007"|"\u2008"|"\u2009"|"\u200a"|
+           "\u2028"|"\u2029"|"\u202f"|"\u205f"|"\u3000"| NLin];
+
+! Punctuation that ends sentences
+! Differs!
+define SP [["."|"?"|"!"]+|"…"]; ! Warning! This results in '...' being a MCS!
+! Left punctuation
+define LP ["("|"["|"{"|
+           "“"|"‘"|"‹"|"«"|
+           "'"|%"|
+           ! differs
+           ["'" "'"] |
+           "*"|"/"|"_"| ! Can be Markdown
+           ! from book
+           [%, %,]];
+! Right punctuation - excluding the characters that can be used as apostrophe
+define RP [SP|","|";"|":"|
+              ")"|"]"|"}"|
+              "”"|"›"|"»"|
+              %"|
+              ! differs
+              ["'" "'"]|
+              "*"|"/"|"_"| ! Can be Markdown
+              ! from book
+              [%‘ %‘]|[%’ %’]];
+
+define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@];
+define Apos %'|%’|%`;
+define Punct LP|RP|Sym;
+!define nonSym \[WS|LP|RP|Sym];
+!!!!!!!!!!!!!!!!!!
+! </from tmorph> !
+!!!!!!!!!!!!!!!!!!
+
+define Emdash [%- %- (%-)+ | ["\u2014"|"\u2015"|"\u2e3a"|"\u2e3b"|"\ufe58"]+];
+define Dash ["-"|"\u2011"|"\u2012"|"\u2013"|"\u2e1a"|"\ufe63"|"\uff0d"];
+define Slash ["⁄"|"∕"|"／"|"/"];
+define Asterisk ["*"];
+
+define Char \[WS|Punct|Apos]; ! |¨;
+
+! source lexicon.xfst
+! define Word;
+define Word Char+ ([Dash|Apos|Asterisk] Char+)*;
+
+define URLChar [Char|[Sym - ["<"|">"|%"]]];
+!define Alpha ["a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"|"_"];
+
+define Caseinsensitive [
+a (->) A,
+b (->) B,
+c (->) C,
+d (->) D,
+e (->) E,
+f (->) F,
+g (->) G,
+h (->) H,
+i (->) I,
+j (->) J,
+k (->) K,
+l (->) L,
+m (->) M,
+n (->) N,
+o (->) O,
+p (->) P,
+q (->) Q,
+r (->) R,
+s (->) S,
+t (->) T,
+u (->) U,
+v (->) V,
+w (->) W,
+x (->) X,
+y (->) Y,
+z (->) Z,
+ö (->) Ö,
+ü (->) Ü,
+ä (->) Ä,
+ß (->) {SS}
+];
+
+define Abbr @txt"txt/abbrv.txt" .o. Caseinsensitive;
+
+! A solution to the "(author): problem" may be to add ) at the end of any
+! string as a possible ending
+
+define Years ["(" Digit+ (".") ")"] | ["[" Digit+ (".") "]"];
+
+source emoji.xfst
+define Emoji;
+
+! acronyms: U.S.A., I.B.M., etc.
+! use a post-filter to remove dots
+define AcronymDep Char %. [Char %.]+;
+
+define Dot "."|[["["|"("] "d" "o" "t" [")"|"]"]] .o. Caseinsensitive;
+define At "@"|[["["|"("] "a" "t" [")"|"]"]] .o. Caseinsensitive;
+
+define TldEnd [{org}|{de}|{com}] .o. Caseinsensitive;
+
+! Very relaxed URL scheme, not based on the strict Lucene implementation
+define URL [ [ [{http} (s) | {ftp} | {file}] ":" "/" "/"] | [{www} Dot] ]
+URLChar [URLChar|SP]* URLChar
+.o. Caseinsensitive;
+
+define Domain Char+ [Dash Char+]* Dot TldEnd;
+
+!define XML "<" Alpha URLChar* (">");
+define XML "<" URLChar+ (">");
+
+!define Email [Alpha [URLChar-At]* At Alpha URLChar* [Dot [[Alpha URLChar+]-Dot-At]]+];
+define Email URLChar+ At URLChar+ [Dot URLChar+]+;
+
+! Twitter user, hashtag, Google+
+define SNS ["@"|"#"|"+"] Char+;
+
+define FileEnd [
+                [{htm} ("l")]|
+                [{doc} ("x")]|
+                {pdf}|
+                ["j" "p" ("e") "g"]|
+                ["m" "p" ["3"|"4"]]|
+                {ogg}|
+                {png}|
+                {avi}|
+                {txt}|
+                {xls}|
+                {xml}|
+                {aac}|
+                {gif}
+                ] .o. Caseinsensitive;
+define File [Char|"-"]+ "." FileEnd;
+
+! Also supports
+!   19.4.2015, 19/4/2015 etc.
+define DigitPunct ["_"|"-"|"."|","|Slash];
+define Num Digit+ [DigitPunct Digit+]* (Char+);
+
+! TODO:
+!   floating point, serial, model numbers, ip addresses, etc.
+!   every other segment must have at least one digit
+
+! Omission words like "fu**ing!"
+define Omission Char+ Asterisk Asterisk+ Char*;
+
+
+! TODO: Name words with ' and `
+
+! TODO:
+!   FNAME = (({LETTER}:[\\/])?|\/)?({LETTER}+|[\\_/-])+\.{EXTENSION}
+
+
+! Support ASCII elements, like
+! +---------------+
+! <---->, -->, <--
+!       +---------------+
+! <---> | Worker Node N |
+!       +---------------+
+! |============= Core =============|
+
+
+
+define RealToken [XML|Email|URL|SNS|[Abbr %.]|Omission|Domain|AcronymDep|File|Emdash|Punct|Num|Years|Emoji|Word];
+
+echo - Introduce Token splitter
+define Token [RealToken @-> ... NLout]
+.o. [WS+ @-> 0]
+;
+
+echo - Introduce Sentence splitter
+read regex Token .o. [[["."|"!"|"?"]+] @-> ... NLout \/ NLout _];
+
+! foma -e "source tokenizer.xfst" -q -s && cat text.txt | flookup tokenizer.fst -x -b
+
+! In a second pass, XML tags need to be combined. This requires tagging "<..." with ~xmls before \n
+! and anything with > with ~xmle.
+! In case this is part of an emoticon ( >:-P ), this needs to be split again .
+! The same is true for ( and )
