@@ -15,13 +15,13 @@ package datokenizer
 
 // TODO:
 // - replace maxSize with the check value
-// - Strip first state and make everything start with 0!
 // - Add checksum to serialization.
 // - Mark epsilon transitions in bytes
 // - Introduce methods on BC array entries instead of
 //   jumping into the entries all the time!
 // - Instead of memoizing the loadFactor, better remember
 //   the number of set transitions
+// - Replace table with a map
 
 import (
 	"bufio"
@@ -107,14 +107,14 @@ func LoadFomaFile(file string) *Tokenizer {
 	f, err := os.Open(file)
 	if err != nil {
 		log.Error().Err(err)
-		os.Exit(0)
+		return nil
 	}
 	defer f.Close()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		log.Error().Err(err)
-		os.Exit(0)
+		return nil
 	}
 	defer gz.Close()
 
@@ -153,7 +153,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				break
 			}
 			log.Error().Err(err)
-			os.Exit(0)
+			return nil
 		}
 
 		// Read parser mode for the following lines
@@ -206,25 +206,25 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				*/
 				if elem[6] != "1" {
 					log.Error().Msg("The FST needs to be deterministic")
-					os.Exit(1)
+					return nil
 				}
 
 				if elem[9] != "1" {
 					log.Error().Msg("The FST needs to be epsilon free")
-					os.Exit(1)
+					return nil
 				}
 
 				elemint[0], err = strconv.Atoi(elem[1])
 				if err != nil {
 					log.Error().Msg("Can't read arccount")
-					os.Exit(1)
+					return nil
 				}
 				tok.arcCount = elemint[0]
 
 				elemint[0], err = strconv.Atoi(elem[2])
 				if err != nil {
 					log.Error().Msg("Can't read statecount")
-					os.Exit(1)
+					return nil
 				}
 
 				// States start at 1 in Mizobuchi et al (2000),
@@ -342,12 +342,12 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 								":" +
 								string(tok.sigmaRev[outSym]) +
 								")")
-						os.Exit(1)
+						return nil
 					}
 
 				} else if inSym == tok.epsilon {
 					log.Error().Msg("General epsilon transitions are not supported")
-					os.Exit(1)
+					return nil
 				}
 
 				// Create an edge based on the collected information
@@ -408,7 +408,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				if err != nil {
 					log.Error().Err(err)
-					os.Exit(0)
+					return nil
 				}
 
 				tok.sigmaCount = number
@@ -444,7 +444,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					default:
 						{
 							log.Error().Msg("MCS not supported: " + line)
-							os.Exit(1)
+							return nil
 						}
 					}
 					continue
@@ -453,11 +453,11 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					line, err = r.ReadString('\n')
 					if err != nil {
 						log.Error().Err(err)
-						os.Exit(0)
+						return nil
 					}
 					if len(line) != 1 {
 						log.Error().Msg("MCS not supported:" + line)
-						os.Exit(0)
+						return nil
 					}
 					symbol = rune('\n')
 				}
@@ -888,14 +888,14 @@ func LoadDatokFile(file string) *DaTokenizer {
 	f, err := os.Open(file)
 	if err != nil {
 		log.Error().Err(err)
-		os.Exit(0)
+		return nil
 	}
 	defer f.Close()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		log.Error().Err(err)
-		os.Exit(0)
+		return nil
 	}
 	defer gz.Close()
 
@@ -1027,8 +1027,9 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 // FSA. The rules are always greedy. If the automaton fails,
 // it takes the last possible token ending branch.
 //
-// Based on Match with additional support
-// for NONTOKEN and TOKENEND handling
+// Based on Mizobuchi et al (2000), p. 129,
+// with additional support for IDENTITY, UNKNOWN
+// and EPSILON transitions and NONTOKEN and TOKENEND handling.
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	var a int
 	var t0 uint32
