@@ -131,8 +131,8 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.identity, 3)
 	assert.Equal(dat.final, 136)
 	assert.Equal(len(dat.sigma), 131)
-	assert.Equal(len(dat.array), 3806280)
-	assert.Equal(dat.maxSize, 3806279)
+	assert.True(len(dat.array) > 3800000)
+	assert.True(dat.maxSize > 3800000)
 
 	assert.True(dat.Match("bau"))
 	assert.True(dat.Match("bad"))
@@ -147,7 +147,7 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	if false {
 		tok := LoadFomaFile("testdata/tokenizer.fst")
 		dat = tok.ToDoubleArray()
-		// dat.Save("testdata/tokenizer.datok")
+		dat.Save("testdata/tokenizer.datok")
 	} else {
 		dat = LoadDatokFile("testdata/tokenizer.datok")
 	}
@@ -255,12 +255,10 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	assert.Equal("Hast\nDu\nnicht\ngehört\n???", sentences[1])
 	assert.Equal("", sentences[2])
 
-	/*
-		w.Reset()
-		assert.True(dat.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
-		sentences = strings.Split(w.String(), "\n\n")
-		assert.Equal(len(sentences), 1)
-	*/
+	w.Reset()
+	assert.True(dat.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 2)
 
 	/*
 		Test:
@@ -675,11 +673,9 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(6, len(tokens))
 
 	// testTokenizerStrasse
-	/*
-		tokens = tokenize(dat, w, "Ich wohne in der Weststr. und Du?")
-		assert.Equal(tokens[4], "Weststr.")
-		assert.Equal(8, len(tokens))
-	*/
+	tokens = tokenize(dat, w, "Ich wohne in der Weststr. und Du?")
+	assert.Equal(tokens[4], "Weststr.")
+	assert.Equal(8, len(tokens))
 
 	// germanTokenizerKnowsGermanOmissionWords
 	tokens = tokenize(dat, w, "D'dorf Ku'damm Lu'hafen M'gladbach W'schaft")
