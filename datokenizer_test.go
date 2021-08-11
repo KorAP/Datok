@@ -118,11 +118,6 @@ func TestReadWriteTokenizer(t *testing.T) {
 
 func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
-	/*
-		tok := LoadFomaFile("testdata/tokenizer.fst")
-		dat := tok.ToDoubleArray()
-		dat.Save("testdata/tokenizer.datok")
-	*/
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 	assert.NotNil(dat)
 	assert.True(dat.LoadFactor() >= 70)
@@ -139,18 +134,19 @@ func TestFullTokenizer(t *testing.T) {
 	assert.True(dat.Match("wald gehen"))
 }
 
+func XTestFullTokenizerBuild(t *testing.T) {
+	assert := assert.New(t)
+	tok := LoadFomaFile("testdata/tokenizer.fst")
+	dat := tok.ToDoubleArray()
+	n, err := dat.Save("testdata/tokenizer.datok")
+	assert.Nil(err)
+	assert.True(n > 500)
+}
+
 func TestFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	var dat *DaTokenizer
-
-	if false {
-		tok := LoadFomaFile("testdata/tokenizer.fst")
-		dat = tok.ToDoubleArray()
-		dat.Save("testdata/tokenizer.datok")
-	} else {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
-	}
+	dat := LoadDatokFile("testdata/tokenizer.datok")
 	assert.NotNil(dat)
 
 	b := make([]byte, 0, 2048)
@@ -651,16 +647,14 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerOrd
-	/*
-		tokens = tokenize(dat, w, "Sie erreichte den 1. Platz!")
-		assert.Equal(tokens[0], "Sie")
-		assert.Equal(tokens[1], "erreichte")
-		assert.Equal(tokens[2], "den")
-		assert.Equal(tokens[3], "1.")
-		assert.Equal(tokens[4], "Platz")
-		assert.Equal(tokens[5], "!")
-		assert.Equal(len(tokens), 6)
-	*/
+	tokens = tokenize(dat, w, "Sie erreichte den 1. Platz!")
+	assert.Equal(tokens[0], "Sie")
+	assert.Equal(tokens[1], "erreichte")
+	assert.Equal(tokens[2], "den")
+	assert.Equal(tokens[3], "1.")
+	assert.Equal(tokens[4], "Platz")
+	assert.Equal(tokens[5], "!")
+	assert.Equal(len(tokens), 6)
 
 	// testNoZipOuputArchive
 	tokens = tokenize(dat, w, "Archive:  Ich bin kein zip\n")

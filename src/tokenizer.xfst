@@ -156,12 +156,15 @@ define FileEnd [
                 ] .o. Caseinsensitive;
 define File [Char|"-"]+ "." FileEnd;
 
-define Streetname Word {str};
+define Streetname Word {str} %.;
 
 ! Also supports
 !   19.4.2015, 19/4/2015 etc.
 define DigitPunct ["_"|"-"|"."|","|Slash];
 define Num Digit+ [DigitPunct Digit+]* (Char+);
+
+! ordinals
+define Ord Digit ( Digit (Digit) ) %.;
 
 ! TODO:
 !   floating point, serial, model numbers, ip addresses, etc.
@@ -187,7 +190,7 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 
 
-define RealToken [XML|Email|URL|SNS|[Abbr %.]|[Streetname %.]|Omission|Domain|AcronymDep|File|Emdash|Punct|Num|Years|Emoji|Word];
+define RealToken [XML|Email|URL|SNS|[Abbr %.]|Streetname|Omission|Domain|AcronymDep|File|Emdash|Punct|Ord|Num|Years|Emoji|Word];
 
 echo - Introduce Token splitter
 define Token [RealToken @-> ... NLout]
