@@ -2,6 +2,8 @@ package datokenizer
 
 import (
 	"bytes"
+	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -816,4 +818,38 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 				assert.Equal(len(tokens), 9 );
 		}
 	*/
+}
+
+func BenchmarkTransduce(b *testing.B) {
+	bu := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(bu)
+
+	s := `Der Vorsitzende der Abk. hat gewählt. Gefunden auf wikipedia.org. Ich bin unter korap@ids-mannheim.de erreichbar.
+	Unsere Website ist https://korap.ids-mannheim.de/?q=Baum. Unser Server ist 10.0.10.51. Zu 50.4% ist es sicher.
+	Der Termin ist am 5.9.2018.
+	Ich habe die readme.txt heruntergeladen.
+	Ausschalten!!! Hast Du nicht gehört???
+	Ich wohne in der Weststr. und Du? Kupietz und Schmidt [2018]: Korpuslinguistik. Dieses verf***** Kleid! Ich habe die readme.txt heruntergeladen.
+	Er sagte: \"Es geht mir gut!\", daraufhin ging er. &quot;Das ist von C&A!&quot; Früher bzw. später ... Sie erreichte den 1. Platz!
+	Archive:  Ich bin kein zip. D'dorf Ku'damm Lu'hafen M'gladbach W'schaft.
+	Mach's macht's was'n ist's haste willste kannste biste kriegste.`
+	r := strings.NewReader(s)
+
+	dat := LoadDatokFile("testdata/tokenizer.datok")
+
+	for i := 0; i < b.N; i++ {
+		w.Reset()
+		r.Reset(s)
+		ok := dat.Transduce(r, w)
+		if !ok {
+			fmt.Println("Fail!")
+			fmt.Println(w.String())
+			os.Exit(1)
+		}
+	}
+	// 2021-08-11
+	//   BenchmarkTransduce-4       18669             68511 ns/op
+	//   BenchmarkTransduce-4       18656             63068 ns/op
+	//   BenchmarkTransduce-4       15210             67403 ns/op
+	//   BenchmarkTransduce-4       18358             62233 ns/op
 }
