@@ -1,14 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	datok "github.com/KorAP/datokenizer"
 	"github.com/alecthomas/kong"
+	"github.com/rs/zerolog/log"
 )
 
 var cli struct {
-	Tokenizer string `kong:"required,short='t',help='The Double Array Tokenizer file'"`
+	Convert struct {
+		Foma      string `kong:"required,short='i',help='The Foma file'"`
+		Tokenizer string `kong:"required,short='o',help='The Double Array Tokenizer file'"`
+	} `kong:"cmd, help='Convert a foma file to a double array tokenizer'"`
+	Tokenize struct {
+		Tokenizer string `kong:"required,short='t',help='The Double Array Tokenizer file'"`
+	} `kong:"cmd, help='Tokenize a text'"`
 }
 
 // Main method for command line handling
@@ -22,12 +30,28 @@ func main() {
 		kong.UsageOnError(),
 	)
 
-	_, err := parser.Parse(os.Args[1:])
+	ctx, err := parser.Parse(os.Args[1:])
 
 	parser.FatalIfErrorf(err)
 
+	if ctx.Command() == "convert" {
+		tok := datok.LoadFomaFile(cli.Convert.Foma)
+		if tok == nil {
+			log.Error().Msg("Unable to load foma file")
+			os.Exit(1)
+		}
+		dat := tok.ToDoubleArray()
+		_, err := dat.Save(cli.Convert.Tokenizer)
+		if err != nil {
+			log.Error().Err(err)
+			os.Exit(1)
+		}
+		fmt.Println("File successfully converted.")
+		os.Exit(0)
+	}
+
 	// Load the Datok file
-	dat := datok.LoadDatokFile(cli.Tokenizer)
+	dat := datok.LoadDatokFile(cli.Tokenize.Tokenizer)
 
 	// Unable to load the datok file
 	if dat == nil {
