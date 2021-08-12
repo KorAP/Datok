@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"log"
+
 	datok "github.com/KorAP/datokenizer"
 	"github.com/alecthomas/kong"
-	"github.com/rs/zerolog/log"
 )
 
 var cli struct {
@@ -37,14 +38,12 @@ func main() {
 	if ctx.Command() == "convert" {
 		tok := datok.LoadFomaFile(cli.Convert.Foma)
 		if tok == nil {
-			log.Error().Msg("Unable to load foma file")
-			os.Exit(1)
+			log.Fatalln("Unable to load foma file")
 		}
 		dat := tok.ToDoubleArray()
 		_, err := dat.Save(cli.Convert.Tokenizer)
 		if err != nil {
-			log.Error().Err(err)
-			os.Exit(1)
+			log.Fatalln(err)
 		}
 		fmt.Println("File successfully converted.")
 		os.Exit(0)

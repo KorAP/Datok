@@ -14,7 +14,6 @@ package datokenizer
 // Serialization is little endian.
 
 // TODO:
-// - Write simple main function.
 // - Turn sigma into an array instead of using a map.
 // - replace maxSize with the check value
 // - Add checksum to serialization.
@@ -37,7 +36,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/rs/zerolog/log"
+	"log"
 )
 
 const (
@@ -108,14 +107,14 @@ type DaTokenizer struct {
 func LoadFomaFile(file string) *Tokenizer {
 	f, err := os.Open(file)
 	if err != nil {
-		log.Error().Err(err)
+		log.Print(err)
 		return nil
 	}
 	defer f.Close()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
-		log.Error().Err(err)
+		log.Print(err)
 		return nil
 	}
 	defer gz.Close()
@@ -154,7 +153,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 			if err == io.EOF {
 				break
 			}
-			log.Error().Err(err)
+			log.Print(err)
 			return nil
 		}
 
@@ -180,7 +179,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				mode = NONE
 
 			} else if !strings.HasPrefix(line, "##foma-net") {
-				log.Error().Msg("Unknown input line")
+				log.Print("Unknown input line")
 				break
 			}
 			continue
@@ -207,25 +206,25 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					fmt.Println("name:             " + elem[12])
 				*/
 				if elem[6] != "1" {
-					log.Error().Msg("The FST needs to be deterministic")
+					log.Print("The FST needs to be deterministic")
 					return nil
 				}
 
 				if elem[9] != "1" {
-					log.Error().Msg("The FST needs to be epsilon free")
+					log.Print("The FST needs to be epsilon free")
 					return nil
 				}
 
 				elemint[0], err = strconv.Atoi(elem[1])
 				if err != nil {
-					log.Error().Msg("Can't read arccount")
+					log.Print("Can't read arccount")
 					return nil
 				}
 				tok.arcCount = elemint[0]
 
 				elemint[0], err = strconv.Atoi(elem[2])
 				if err != nil {
-					log.Error().Msg("Can't read statecount")
+					log.Print("Can't read statecount")
 					return nil
 				}
 
@@ -331,7 +330,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					} else if outSym == tok.epsilon {
 						nontoken = true
 					} else {
-						log.Error().Msg(
+						log.Println(
 							"Unsupported transition: " +
 								strconv.Itoa(state) +
 								" -> " + strconv.Itoa(end) +
@@ -348,7 +347,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					}
 
 				} else if inSym == tok.epsilon {
-					log.Error().Msg("General epsilon transitions are not supported")
+					log.Println("General epsilon transitions are not supported")
 					return nil
 				}
 
@@ -409,7 +408,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				number++
 
 				if err != nil {
-					log.Error().Err(err)
+					log.Println(err)
 					return nil
 				}
 
@@ -445,7 +444,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						}
 					default:
 						{
-							log.Error().Msg("MCS not supported: " + line)
+							log.Println("MCS not supported: " + line)
 							return nil
 						}
 					}
@@ -454,11 +453,11 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				} else { // Probably a new line symbol
 					line, err = r.ReadString('\n')
 					if err != nil {
-						log.Error().Err(err)
+						log.Println(err)
 						return nil
 					}
 					if len(line) != 1 {
-						log.Error().Msg("MCS not supported:" + line)
+						log.Println("MCS not supported:" + line)
 						return nil
 					}
 					symbol = rune('\n')
@@ -786,7 +785,7 @@ func (dat *DaTokenizer) LoadFactor() float64 {
 func (dat *DaTokenizer) Save(file string) (n int64, err error) {
 	f, err := os.Create(file)
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return 0, err
 	}
 	defer f.Close()
@@ -794,7 +793,7 @@ func (dat *DaTokenizer) Save(file string) (n int64, err error) {
 	defer gz.Close()
 	n, err = dat.WriteTo(gz)
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return n, err
 	}
 	gz.Flush()
@@ -810,7 +809,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	// Store magical header
 	all, err := wb.Write([]byte(MAGIC))
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return int64(all), err
 	}
 
@@ -836,7 +835,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	bo.PutUint32(buf[12:16], uint32(len(dat.array)))
 	more, err := wb.Write(buf[0:16])
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return int64(all), err
 	}
 
@@ -847,21 +846,21 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 
 		more, err = wb.WriteRune(sym)
 		if err != nil {
-			log.Error().Err(err)
+			log.Println(err)
 			return int64(all), err
 		}
 		all += more
 	}
 
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return int64(all), err
 	}
 
 	// Test marker - could be checksum
 	more, err = wb.Write([]byte("T"))
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return int64(all), err
 	}
 	all += more
@@ -871,12 +870,12 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 		bo.PutUint32(buf[0:4], dat.array[x])
 		more, err := wb.Write(buf[0:4])
 		if err != nil {
-			log.Error().Err(err)
+			log.Println(err)
 			return int64(all), err
 		}
 		all += more
 		if more != 4 {
-			log.Error().Msg("Can not write uint32")
+			log.Println("Can not write uint32")
 			return int64(all), err
 		}
 	}
@@ -889,14 +888,14 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 func LoadDatokFile(file string) *DaTokenizer {
 	f, err := os.Open(file)
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return nil
 	}
 	defer f.Close()
 
 	gz, err := gzip.NewReader(f)
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return nil
 	}
 	defer gz.Close()
@@ -927,30 +926,30 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	_, err := r.Read(buf)
 
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return nil
 	}
 
 	if string(MAGIC) != string(buf) {
-		log.Error().Msg("Not a datok file")
+		log.Println("Not a datok file")
 		return nil
 	}
 
 	more, err := io.ReadFull(r, buf[0:16])
 	if err != nil {
-		log.Error().Err(err)
+		log.Println(err)
 		return nil
 	}
 
 	if more != 16 {
-		log.Error().Msg("Read bytes do not fit")
+		log.Println("Read bytes do not fit")
 		return nil
 	}
 
 	version := bo.Uint16(buf[0:2])
 
 	if version != VERSION {
-		log.Error().Msg("Version not compatible")
+		log.Println("Version not compatible")
 		return nil
 	}
 
@@ -975,12 +974,12 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	_, err = io.ReadFull(r, buf[0:1])
 
 	if err != nil {
-		log.Error().Err(err)
+		log.Print(err)
 		return nil
 	}
 
 	if string("T") != string(buf[0:1]) {
-		log.Error().Msg("Not a datok file")
+		log.Println("Not a datok file")
 		return nil
 	}
 
@@ -990,12 +989,12 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	dataArray, err := io.ReadAll(r)
 
 	if err == io.EOF {
-		log.Error().Err(err)
+		log.Println(err)
 		return nil
 	}
 
 	if len(dataArray) < arraySize*4 {
-		log.Error().Msg("Not enough bytes read")
+		log.Println("Not enough bytes read")
 		return nil
 	}
 
