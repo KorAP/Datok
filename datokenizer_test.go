@@ -847,9 +847,9 @@ func BenchmarkTransduce(b *testing.B) {
 			os.Exit(1)
 		}
 	}
-	// 2021-08-11
-	//   BenchmarkTransduce-4       18669             68511 ns/op
-	//   BenchmarkTransduce-4       18656             63068 ns/op
-	//   BenchmarkTransduce-4       15210             67403 ns/op
-	//   BenchmarkTransduce-4       18358             62233 ns/op
+	// 2021-08-11 (go 1.16)
+	// go test -bench=. -test.benchmem
+	//   BenchmarkTransduce-4       19069             60609 ns/op           11048 B/op        137 allocs/op
+	// 2021-08-112 (go 1.16)
+	//   BenchmarkTransduce-4       20833             55241 ns/op            9676 B/op          3 allocs/op
 }

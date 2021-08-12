@@ -324,7 +324,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				// Only a limited list of transitions are allowed
 				if inSym != outSym {
-					if outSym == tok.tokenend {
+					if outSym == tok.tokenend && inSym == tok.epsilon {
 						tokenend = true
 					} else if outSym == tok.epsilon {
 						nontoken = true
@@ -1180,11 +1180,10 @@ PARSECHAR:
 		if dat.isTokenEnd(t) {
 
 			if buffi > 0 {
-				data := []byte(string(buffer[:buffo]))
 				if DEBUG {
-					fmt.Println("-> Flush buffer: [", string(data), "]", showBuffer(buffer, buffo, buffi))
+					fmt.Println("-> Flush buffer: [", string(buffer[:buffo]), "]", showBuffer(buffer, buffo, buffi))
 				}
-				writer.Write(data)
+				writer.WriteString(string(buffer[:buffo]))
 				rewindBuffer = true
 			}
 			if DEBUG {
@@ -1240,11 +1239,10 @@ PARSECHAR:
 	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
 
 		if buffi > 0 {
-			data := []byte(string(buffer[:buffi]))
 			if DEBUG {
-				fmt.Println("-> Flush buffer: [", string(data), "]")
+				fmt.Println("-> Flush buffer: [", string(buffer[:buffi]), "]")
 			}
-			writer.Write(data)
+			writer.WriteString(string(buffer[:buffi]))
 
 			if dat.isTokenEnd(t) {
 				writer.WriteRune('\n')
@@ -1271,20 +1269,18 @@ PARSECHAR:
 	// Check epsilon transitions until a final state is reached
 	t0 = t
 	t = dat.getBase(t0) + uint32(dat.epsilon)
+	a = dat.epsilon
+	newchar = false
 	if dat.getCheck(t) == t0 {
 		// Remember state for backtracking to last tokenend state
-		a = dat.epsilon
-		newchar = false
 		goto PARSECHAR
 	} else if epsilonState != 0 {
 		t0 = epsilonState
 		epsilonState = 0 // reset
 		buffo = epsilonOffset
-		a = dat.epsilon
 		if DEBUG {
 			fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
 		}
-		newchar = false
 		goto PARSECHAR
 	}
 	return false
