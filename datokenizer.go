@@ -14,14 +14,16 @@ package datokenizer
 // Serialization is little endian.
 
 // TODO:
+// - Write simple main function.
+// - Turn sigma into an array instead of using a map.
 // - replace maxSize with the check value
 // - Add checksum to serialization.
-// - Mark epsilon transitions in bytes
 // - Introduce methods on BC array entries instead of
 //   jumping into the entries all the time!
 // - Instead of memoizing the loadFactor, better remember
 //   the number of set transitions
 // - Replace table with a map
+// - Mark epsilon transitions in bytes
 
 import (
 	"bufio"
