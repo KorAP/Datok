@@ -987,22 +987,20 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	// Read based on length
 	dat.array = make([]uint32, arraySize)
 
-	for x := 0; x < arraySize; x++ {
-		more, err = io.ReadFull(r, buf[0:4])
-		if err != nil {
-			if err == io.EOF {
-				fmt.Println(arraySize, x)
-				break
-			}
-			log.Error().Err(err)
-			return nil
-		}
-		if more != 4 {
-			log.Error().Msg("Not enough bytes read")
-			return nil
-		}
+	dataArray, err := io.ReadAll(r)
 
-		dat.array[x] = bo.Uint32(buf[0:4])
+	if err == io.EOF {
+		log.Error().Err(err)
+		return nil
+	}
+
+	if len(dataArray) < arraySize*4 {
+		log.Error().Msg("Not enough bytes read")
+		return nil
+	}
+
+	for x := 0; x < arraySize; x++ {
+		dat.array[x] = bo.Uint32(dataArray[x*4 : (x*4)+4])
 	}
 
 	return dat

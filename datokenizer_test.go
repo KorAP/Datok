@@ -847,9 +847,23 @@ func BenchmarkTransduce(b *testing.B) {
 			os.Exit(1)
 		}
 	}
-	// 2021-08-11 (go 1.16)
-	// go test -bench=. -test.benchmem
-	//   BenchmarkTransduce-4       19069             60609 ns/op           11048 B/op        137 allocs/op
-	// 2021-08-112 (go 1.16)
-	//   BenchmarkTransduce-4       20833             55241 ns/op            9676 B/op          3 allocs/op
 }
+
+func BenchmarkLoadDatokFile(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		dat := LoadDatokFile("testdata/tokenizer.datok")
+		if dat == nil {
+			fmt.Println("Fail!")
+			os.Exit(1)
+		}
+	}
+}
+
+// 2021-08-11 (go 1.16)
+// go test -bench=. -test.benchmem
+//   BenchmarkTransduce-4         19069             60609 ns/op           11048 B/op        137 allocs/op
+// 2021-08-112 (go 1.16)
+//   BenchmarkTransduce-4         20833             55241 ns/op            9676 B/op          3 allocs/op
+//   BenchmarkLoadDatokFile-4         4         258418169 ns/op        29916470 B/op       5697 allocs/op
+//   BenchmarkTransduce-4         19430             58133 ns/op           18696 B/op          3 allocs/op
+//   BenchmarkLoadDatokFile-4         8         139071939 ns/op       203158377 B/op       5742 allocs/op
