@@ -14,14 +14,18 @@ package datokenizer
 // Serialization is little endian.
 
 // TODO:
-// - Turn sigma into an array instead of using a map.
+// - Turn sigma into an array instead of using a map
+//   and improve the mapping beforehand so that ASCII
+//   is mapped directly and only non-ASCII needs to be
+//   looked up in a map or similar.
 // - replace maxSize with the check value
 // - Add checksum to serialization.
 // - Introduce methods on BC array entries instead of
 //   jumping into the entries all the time!
 // - Instead of memoizing the loadFactor, better remember
 //   the number of set transitions
-// - Replace table with a map
+// - Replace/Enhance table with a map
+// - Provide a bufio.Scanner compatible interface.
 // - Mark epsilon transitions in bytes
 
 import (
@@ -87,7 +91,8 @@ type Tokenizer struct {
 // DaTokenizer represents a tokenizer implemented as a
 // Double Array FSA.
 type DaTokenizer struct {
-	sigma      map[rune]int
+	sigma map[rune]int
+	// sigmaList  []rune
 	maxSize    int
 	loadFactor float64
 	array      []uint32
@@ -499,8 +504,11 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		// lastFilledBase: 1,
 	}
 
+	// dat.sigmaList = make([]rune, tok.sigmaCount)
+
 	for num, sym := range tok.sigmaRev {
 		dat.sigma[sym] = num
+		// dat.sigmaList[num] = sym
 	}
 
 	mark := 0
@@ -964,11 +972,18 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	// Shouldn't be relevant though
 	dat.maxSize = arraySize - 1
 
+	// dat.sigmaList = make([]rune, sigmaCount)
+
 	for x := 0; x < sigmaCount; x++ {
 		sym, _, err := r.ReadRune()
 		if err == nil && sym != 0 {
 			dat.sigma[sym] = x
 		}
+		/*
+			if err == nil {
+				dat.sigmaList[x] = sym
+			}
+		*/
 	}
 
 	_, err = io.ReadFull(r, buf[0:1])
@@ -1021,6 +1036,19 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 	}
 	return string(out)
 }
+
+/*
+func (dat *DaTokenizer) LookupSigma(r rune) (int, bool) {
+	for i, l := range dat.sigmaList {
+		if l == r {
+			return i, true
+		} else if l > r {
+			return 0, false
+		}
+	}
+	return 0, false
+}
+*/
 
 // Transduce an input string against the double array
 // FSA. The rules are always greedy. If the automaton fails,
@@ -1095,6 +1123,7 @@ PARSECHAR:
 
 			// TODO: Better not repeatedly check for a!
 			a, ok = dat.sigma[char]
+			// a, ok = dat.LookupSigma(char)
 
 			// Use identity symbol if character is not in sigma
 			if !ok && dat.identity != -1 {
@@ -1261,7 +1290,9 @@ PARSECHAR:
 			}
 		}
 
-		// There may be a new line at the end, from an epsilon, so we go on!
+		// TODO:
+		//   There may be a new line at the end, from an epsilon,
+		//   so we may need to go on!
 		return true
 	}
 
@@ -1273,6 +1304,7 @@ PARSECHAR:
 	if dat.getCheck(t) == t0 {
 		// Remember state for backtracking to last tokenend state
 		goto PARSECHAR
+
 	} else if epsilonState != 0 {
 		t0 = epsilonState
 		epsilonState = 0 // reset
