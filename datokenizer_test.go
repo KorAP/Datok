@@ -871,3 +871,5 @@ func BenchmarkLoadDatokFile(b *testing.B) {
 //   BenchmarkLoadDatokFile-4               8         138937532 ns/op        203158327 B/op      5742 allocs/op
 //   BenchmarkTransduce-4               22005             48665 ns/op           17472 B/op          3 allocs/op
 //   BenchmarkLoadDatokFile-4               7         143143934 ns/op        203158450 B/op      5743 allocs/op
+//   BenchmarkTransduce-4               34939             34363 ns/op           14056 B/op          3 allocs/op
+//   BenchmarkLoadDatokFile-4               7         149511609 ns/op        203217193 B/op      5915 allocs/op

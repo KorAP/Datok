@@ -94,8 +94,8 @@ type bc struct {
 // DaTokenizer represents a tokenizer implemented as a
 // Double Array FSA.
 type DaTokenizer struct {
-	sigma map[rune]int
-	// sigmaList  []rune
+	sigma      map[rune]int
+	sigmaASCII [256]int
 	maxSize    int
 	loadFactor float64
 	array      []bc
@@ -509,11 +509,11 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	dat.resize(dat.final)
 
-	// dat.sigmaList = make([]rune, tok.sigmaCount)
-
 	for num, sym := range tok.sigmaRev {
+		if int(sym) < 256 {
+			dat.sigmaASCII[int(sym)] = num
+		}
 		dat.sigma[sym] = num
-		// dat.sigmaList[num] = sym
 	}
 
 	mark := 0
@@ -982,18 +982,14 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	// Shouldn't be relevant though
 	dat.maxSize = arraySize - 1
 
-	// dat.sigmaList = make([]rune, sigmaCount)
-
 	for x := 0; x < sigmaCount; x++ {
 		sym, _, err := r.ReadRune()
 		if err == nil && sym != 0 {
+			if int(sym) < 256 {
+				dat.sigmaASCII[int(sym)] = x
+			}
 			dat.sigma[sym] = x
 		}
-		/*
-			if err == nil {
-				dat.sigmaList[x] = sym
-			}
-		*/
 	}
 
 	_, err = io.ReadFull(r, buf[0:1])
@@ -1047,19 +1043,6 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 	}
 	return string(out)
 }
-
-/*
-func (dat *DaTokenizer) LookupSigma(r rune) (int, bool) {
-	for i, l := range dat.sigmaList {
-		if l == r {
-			return i, true
-		} else if l > r {
-			return 0, false
-		}
-	}
-	return 0, false
-}
-*/
 
 // Transduce an input string against the double array
 // FSA. The rules are always greedy. If the automaton fails,
@@ -1133,11 +1116,17 @@ PARSECHAR:
 			}
 
 			// TODO: Better not repeatedly check for a!
-			a, ok = dat.sigma[char]
-			// a, ok = dat.LookupSigma(char)
+			if int(char) < 256 {
+				a = dat.sigmaASCII[int(char)]
+			} else {
+				a, ok = dat.sigma[char]
+				if !ok {
+					a = 0
+				}
+			}
 
 			// Use identity symbol if character is not in sigma
-			if !ok && dat.identity != -1 {
+			if a == 0 && dat.identity != -1 {
 				a = dat.identity
 			}
 
