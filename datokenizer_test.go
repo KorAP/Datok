@@ -146,9 +146,8 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.identity, 3)
 	assert.Equal(dat.final, 137)
 	assert.Equal(len(dat.sigma), 132)
-	assert.True(len(dat.array) > 3800000)
-	assert.True(dat.maxSize > 3800000)
-
+	assert.True(len(dat.array) > 3600000)
+	assert.True(dat.maxSize > 3600000)
 	assert.True(tmatch(dat, "bau"))
 	assert.True(tmatch(dat, "bad"))
 	assert.True(tmatch(dat, "wald gehen"))
@@ -862,8 +861,13 @@ func BenchmarkLoadDatokFile(b *testing.B) {
 // 2021-08-11 (go 1.16)
 // go test -bench=. -test.benchmem
 //   BenchmarkTransduce-4         19069             60609 ns/op           11048 B/op        137 allocs/op
-// 2021-08-112 (go 1.16)
+// 2021-08-12 (go 1.16)
 //   BenchmarkTransduce-4         20833             55241 ns/op            9676 B/op          3 allocs/op
 //   BenchmarkLoadDatokFile-4         4         258418169 ns/op        29916470 B/op       5697 allocs/op
 //   BenchmarkTransduce-4         19430             58133 ns/op           18696 B/op          3 allocs/op
 //   BenchmarkLoadDatokFile-4         8         139071939 ns/op       203158377 B/op       5742 allocs/op
+// 2021-08-16
+//   BenchmarkTransduce-4               22251             49989 ns/op           17370 B/op          3 allocs/op
+//   BenchmarkLoadDatokFile-4               8         138937532 ns/op        203158327 B/op      5742 allocs/op
+//   BenchmarkTransduce-4               22005             48665 ns/op           17472 B/op          3 allocs/op
+//   BenchmarkLoadDatokFile-4               7         143143934 ns/op        203158450 B/op      5743 allocs/op

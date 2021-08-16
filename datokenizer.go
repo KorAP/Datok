@@ -20,8 +20,6 @@ package datokenizer
 //   looked up in a map or similar.
 // - replace maxSize with the check value
 // - Add checksum to serialization.
-// - Introduce methods on BC array entries instead of
-//   jumping into the entries all the time!
 // - Instead of memoizing the loadFactor, better remember
 //   the number of set transitions
 // - Replace/Enhance table with a map
@@ -88,6 +86,11 @@ type Tokenizer struct {
 	tokenend int
 }
 
+type bc struct {
+	base  uint32
+	check uint32
+}
+
 // DaTokenizer represents a tokenizer implemented as a
 // Double Array FSA.
 type DaTokenizer struct {
@@ -95,7 +98,7 @@ type DaTokenizer struct {
 	// sigmaList  []rune
 	maxSize    int
 	loadFactor float64
-	array      []uint32
+	array      []bc
 	// lastFilledBase uint32
 
 	// Special symbols in sigma
@@ -504,6 +507,8 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		// lastFilledBase: 1,
 	}
 
+	dat.resize(dat.final)
+
 	// dat.sigmaList = make([]rune, tok.sigmaCount)
 
 	for num, sym := range tok.sigmaRev {
@@ -536,7 +541,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		tok.getSet(s, &A)
 
 		// Set base to the first free slot in the double array
-		dat.setBase(t, dat.xCheck(A))
+		dat.array[t].setBase(dat.xCheck(A))
 
 		// TODO:
 		//   Sort the outgoing transitions based on the
@@ -551,8 +556,13 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				s1 := tok.transitions[s][a].end
 
 				// Store the transition
-				t1 := dat.getBase(t) + uint32(a)
-				dat.setCheck(t1, t)
+				t1 := dat.array[t].getBase() + uint32(a)
+				dat.array[t1].setCheck(t)
+
+				// Set maxSize
+				if dat.maxSize < int(t1) {
+					dat.maxSize = int(t1)
+				}
 
 				if DEBUG {
 					fmt.Println("Translate transition",
@@ -561,7 +571,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 				// Mark the state as being the target of a nontoken transition
 				if tok.transitions[s][a].nontoken {
-					dat.setNonToken(t1, true)
+					dat.array[t1].setNonToken(true)
 					if DEBUG {
 						fmt.Println("Set", t1, "to nontoken")
 					}
@@ -569,7 +579,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 				// Mark the state as being the target of a tokenend transition
 				if tok.transitions[s][a].tokenend {
-					dat.setTokenEnd(t1, true)
+					dat.array[t1].setTokenEnd(true)
 					if DEBUG {
 						fmt.Println("Set", t1, "to tokenend")
 					}
@@ -585,18 +595,23 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 					size++
 				} else {
 					// Overwrite with the representative state
-					dat.setBase(t1, r)
-					dat.setSeparate(t1, true)
+					dat.array[t1].setBase(r)
+					dat.array[t1].setSeparate(true)
 				}
 			} else {
 				// Store a final transition
-				dat.setCheck(dat.getBase(t)+uint32(dat.final), t)
+				dat.array[dat.array[t].getBase()+uint32(dat.final)].setCheck(t)
+
+				if dat.maxSize < int(dat.array[t].getBase()+uint32(dat.final)) {
+					dat.maxSize = int(dat.array[t].getBase() + uint32(dat.final))
+				}
 			}
 		}
 	}
 
 	// Following Mizobuchi et al (2000) the size of the
 	// FSA should be stored in check(1).
+	// We make the size a bit smaller so we never have to check for boundaries.
 	dat.setSize(dat.maxSize + 1)
 	dat.array = dat.array[:dat.maxSize+1]
 	return dat
@@ -620,96 +635,80 @@ func (dat *DaTokenizer) resize(l int) {
 	// TODO:
 	//   This is a bit too aggressive atm and should be calmed down.
 	if len(dat.array) <= l {
-		dat.array = append(dat.array, make([]uint32, l)...)
+		dat.array = append(dat.array, make([]bc, l)...)
 	}
 }
 
 // Set base value in double array
-func (dat *DaTokenizer) setBase(p uint32, v uint32) {
-	l := int(p*2 + 1)
-	if dat.maxSize < l {
-		dat.resize(l)
-		dat.maxSize = l
-	}
-	dat.array[l-1] = v
+func (bc *bc) setBase(v uint32) {
+	bc.base = v
 }
 
 // Get base value in double array
-func (dat *DaTokenizer) getBase(p uint32) uint32 {
-	if int(p*2) > dat.maxSize {
-		return 0
-	}
-	return dat.array[p*2] & RESTBIT
+func (bc *bc) getBase() uint32 {
+	return bc.base & RESTBIT
 }
 
 // Set check value in double array
-func (dat *DaTokenizer) setCheck(p uint32, v uint32) {
-	l := int(p*2 + 1)
-	if dat.maxSize < l {
-		dat.resize(l)
-		dat.maxSize = l
-	}
-	dat.array[l] = v
+func (bc *bc) setCheck(v uint32) {
+	bc.check = v
 }
 
 // Get check value in double array
-func (dat *DaTokenizer) getCheck(p uint32) uint32 {
-	if int((p*2)+1) > dat.maxSize {
-		return 0
-	}
-	return dat.array[(p*2)+1] & RESTBIT
+func (bc *bc) getCheck() uint32 {
+	return bc.check & RESTBIT
 }
 
 // Returns true if a state is separate pointing to a representative
-func (dat *DaTokenizer) isSeparate(p uint32) bool {
-	return dat.array[p*2]&FIRSTBIT != 0
+func (bc *bc) isSeparate() bool {
+	return bc.base&FIRSTBIT != 0
 }
 
 // Mark a state as separate pointing to a representative
-func (dat *DaTokenizer) setSeparate(p uint32, sep bool) {
+func (bc *bc) setSeparate(sep bool) {
 	if sep {
-		dat.array[p*2] |= FIRSTBIT
+		bc.base |= FIRSTBIT
 	} else {
-		dat.array[p*2] &= (RESTBIT | SECONDBIT)
+		bc.base &= (RESTBIT | SECONDBIT)
 	}
 }
 
 // Returns true if a state is the target of a nontoken transition
-func (dat *DaTokenizer) isNonToken(p uint32) bool {
-	return dat.array[p*2+1]&FIRSTBIT != 0
+func (bc *bc) isNonToken() bool {
+	return bc.check&FIRSTBIT != 0
 }
 
 // Mark a state as being the target of a nontoken transition
-func (dat *DaTokenizer) setNonToken(p uint32, sep bool) {
+func (bc *bc) setNonToken(sep bool) {
 	if sep {
-		dat.array[p*2+1] |= FIRSTBIT
+		bc.check |= FIRSTBIT
 	} else {
-		dat.array[p*2+1] &= (RESTBIT | SECONDBIT)
+		bc.check &= (RESTBIT | SECONDBIT)
 	}
 }
 
 // Returns true if a state is the target of a tokenend transition
-func (dat *DaTokenizer) isTokenEnd(p uint32) bool {
-	return dat.array[p*2+1]&SECONDBIT != 0
+func (bc *bc) isTokenEnd() bool {
+	return bc.check&SECONDBIT != 0
 }
 
 // Mark a state as being the target of a tokenend transition
-func (dat *DaTokenizer) setTokenEnd(p uint32, sep bool) {
+func (bc *bc) setTokenEnd(sep bool) {
 	if sep {
-		dat.array[p*2+1] |= SECONDBIT
+		bc.check |= SECONDBIT
 	} else {
-		dat.array[p*2+1] &= (RESTBIT | FIRSTBIT)
+		bc.check &= (RESTBIT | FIRSTBIT)
 	}
 }
 
 // Set size of double array
 func (dat *DaTokenizer) setSize(v int) {
-	dat.setCheck(1, uint32(v))
+	dat.array[1].setCheck(uint32(v))
 }
 
 // Get size of double array
 func (dat *DaTokenizer) GetSize() int {
-	return int(dat.getCheck(1))
+	return int(dat.array[1].getCheck())
 }
 
 // Based on Mizobuchi et al (2000), p. 124
@@ -735,9 +734,9 @@ OVERLAP:
 	*/
 
 	// Resize the array if necessary
-	dat.resize((int(base) + dat.final) * 2)
+	dat.resize(int(base) + dat.final)
 	for _, a := range symbols {
-		if dat.getCheck(base+uint32(a)) != 0 {
+		if dat.array[int(base)+a].getCheck() != 0 {
 			base++
 			goto OVERLAP
 		}
@@ -752,15 +751,15 @@ func (dat *DaTokenizer) outgoing(t uint32) []int {
 	valid := make([]int, 0, len(dat.sigma))
 
 	for _, a := range dat.sigma {
-		t1 := dat.getBase(t) + uint32(a)
-		if t1 <= dat.getCheck(1) && dat.getCheck(t1) == t {
+		t1 := dat.array[t].getBase() + uint32(a)
+		if t1 <= dat.array[1].getCheck() && dat.array[t1].getCheck() == t {
 			valid = append(valid, a)
 		}
 	}
 
 	for _, a := range []int{dat.epsilon, dat.unknown, dat.identity, dat.final} {
-		t1 := dat.getBase(t) + uint32(a)
-		if t1 <= dat.getCheck(1) && dat.getCheck(t1) == t {
+		t1 := dat.array[t].getBase() + uint32(a)
+		if t1 <= dat.array[1].getCheck() && dat.array[t1].getCheck() == t {
 			valid = append(valid, -1*a)
 		}
 	}
@@ -780,8 +779,8 @@ func (dat *DaTokenizer) LoadFactor() float64 {
 	}
 	nonEmpty := 0
 	all := len(dat.array) / 2
-	for x := 1; x <= len(dat.array); x = x + 2 {
-		if dat.array[x] != 0 {
+	for x := 1; x < len(dat.array); x++ {
+		if dat.array[x].getBase() != 0 {
 			nonEmpty++
 		}
 	}
@@ -840,7 +839,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	bo.PutUint16(buf[6:8], uint16(dat.identity))
 	bo.PutUint16(buf[8:10], uint16(dat.final))
 	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
-	bo.PutUint32(buf[12:16], uint32(len(dat.array)))
+	bo.PutUint32(buf[12:16], uint32(len(dat.array)*2)) // Legacy support
 	more, err := wb.Write(buf[0:16])
 	if err != nil {
 		log.Println(err)
@@ -873,17 +872,28 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	}
 	all += more
 
-	for x := 0; x < len(dat.array); x++ {
-		//	for _, d := range dat.array {
-		bo.PutUint32(buf[0:4], dat.array[x])
-		more, err := wb.Write(buf[0:4])
+	// for x := 0; x < len(dat.array); x++ {
+	for _, bc := range dat.array {
+		bo.PutUint32(buf[0:4], bc.base)
+		more, err = wb.Write(buf[0:4])
 		if err != nil {
 			log.Println(err)
 			return int64(all), err
 		}
 		all += more
 		if more != 4 {
-			log.Println("Can not write uint32")
+			log.Println("Can not write base uint32")
+			return int64(all), err
+		}
+		bo.PutUint32(buf[0:4], bc.check)
+		more, err = wb.Write(buf[0:4])
+		if err != nil {
+			log.Println(err)
+			return int64(all), err
+		}
+		all += more
+		if more != 4 {
+			log.Println("Can not write check uint32")
 			return int64(all), err
 		}
 	}
@@ -967,7 +977,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	dat.final = int(bo.Uint16(buf[8:10]))
 
 	sigmaCount := int(bo.Uint16(buf[10:12]))
-	arraySize := int(bo.Uint32(buf[12:16]))
+	arraySize := int(bo.Uint32(buf[12:16])) / 2 // Legacy support
 
 	// Shouldn't be relevant though
 	dat.maxSize = arraySize - 1
@@ -999,7 +1009,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	}
 
 	// Read based on length
-	dat.array = make([]uint32, arraySize)
+	dat.array = make([]bc, arraySize)
 
 	dataArray, err := io.ReadAll(r)
 
@@ -1008,13 +1018,14 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 		return nil
 	}
 
-	if len(dataArray) < arraySize*4 {
+	if len(dataArray) < arraySize*8 {
 		log.Println("Not enough bytes read")
 		return nil
 	}
 
 	for x := 0; x < arraySize; x++ {
-		dat.array[x] = bo.Uint32(dataArray[x*4 : (x*4)+4])
+		dat.array[x].base = bo.Uint32(dataArray[x*8 : (x*8)+4])
+		dat.array[x].check = bo.Uint32(dataArray[(x*8)+4 : (x*8)+8])
 	}
 
 	return dat
@@ -1133,7 +1144,7 @@ PARSECHAR:
 			t0 = t
 
 			// Check for epsilon transitions and remember
-			if dat.getCheck(dat.getBase(t0)+uint32(dat.epsilon)) == t0 {
+			if dat.array[dat.array[t0].getBase()+uint32(dat.epsilon)].getCheck() == t0 {
 				// Remember state for backtracking to last tokenend state
 				epsilonState = t0
 				epsilonOffset = buffo
@@ -1141,7 +1152,8 @@ PARSECHAR:
 		}
 
 		// Checks a transition based on t0, a and buffo
-		t = dat.getBase(t0) + uint32(a)
+		t = dat.array[t0].getBase() + uint32(a)
+		ta := dat.array[t]
 
 		if DEBUG {
 			// Char is only relevant if set
@@ -1152,10 +1164,10 @@ PARSECHAR:
 		}
 
 		// Check if the transition is invalid according to the double array
-		if t > dat.getCheck(1) || dat.getCheck(t) != t0 {
+		if t > dat.array[1].getCheck() || ta.getCheck() != t0 {
 
 			if DEBUG {
-				fmt.Println("Match is not fine!", t, "and", dat.getCheck(t), "vs", t0)
+				fmt.Println("Match is not fine!", t, "and", ta.getCheck(), "vs", t0)
 			}
 
 			if !ok && a == dat.identity {
@@ -1196,7 +1208,7 @@ PARSECHAR:
 			buffo++
 
 			// Transition does not produce a character
-			if buffo == 1 && dat.isNonToken(t) {
+			if buffo == 1 && ta.isNonToken() {
 				if DEBUG {
 					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
 				}
@@ -1205,7 +1217,7 @@ PARSECHAR:
 		}
 
 		// Transition marks the end of a token - so flush the buffer
-		if dat.isTokenEnd(t) {
+		if ta.isTokenEnd() {
 
 			if buffi > 0 {
 				if DEBUG {
@@ -1237,8 +1249,9 @@ PARSECHAR:
 		}
 
 		// Move to representative state
-		if dat.isSeparate(t) {
-			t = dat.getBase(t)
+		if ta.isSeparate() {
+			t = ta.getBase()
+			ta = dat.array[t]
 
 			if DEBUG {
 				fmt.Println("Representative pointing to", t)
@@ -1264,7 +1277,9 @@ PARSECHAR:
 	}
 
 	// Automaton is in a final state, so flush the buffer and return
-	if dat.getCheck(dat.getBase(t)+uint32(dat.final)) == t {
+	x := dat.array[t].getBase() + uint32(dat.final)
+
+	if x < dat.array[1].getCheck() && dat.array[x].getCheck() == t {
 
 		if buffi > 0 {
 			if DEBUG {
@@ -1272,7 +1287,7 @@ PARSECHAR:
 			}
 			writer.WriteString(string(buffer[:buffi]))
 
-			if dat.isTokenEnd(t) {
+			if dat.array[t].isTokenEnd() {
 				writer.WriteRune('\n')
 				if DEBUG {
 					fmt.Println("-> Newline")
@@ -1283,7 +1298,7 @@ PARSECHAR:
 		// Add an additional sentence ending, if the file is over but no explicit
 		// sentence split was reached. This may be controversial and therefore
 		// optional via parameter.
-		if !dat.isTokenEnd(t0) {
+		if !dat.array[t0].isTokenEnd() {
 			writer.WriteRune('\n')
 			if DEBUG {
 				fmt.Println("-> Newline")
@@ -1298,10 +1313,10 @@ PARSECHAR:
 
 	// Check epsilon transitions until a final state is reached
 	t0 = t
-	t = dat.getBase(t0) + uint32(dat.epsilon)
+	t = dat.array[t0].getBase() + uint32(dat.epsilon)
 	a = dat.epsilon
 	newchar = false
-	if dat.getCheck(t) == t0 {
+	if dat.array[t].getCheck() == t0 {
 		// Remember state for backtracking to last tokenend state
 		goto PARSECHAR
 
