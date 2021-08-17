@@ -99,7 +99,6 @@ type DaTokenizer struct {
 	maxSize    int
 	loadFactor float64
 	array      []bc
-	// lastFilledBase uint32
 
 	// Special symbols in sigma
 	epsilon  int
@@ -504,7 +503,6 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		identity:   tok.identity,
 		epsilon:    tok.epsilon,
 		tokenend:   tok.tokenend,
-		// lastFilledBase: 1,
 	}
 
 	dat.resize(dat.final)
@@ -518,6 +516,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	mark := 0
 	size := 0
+	var base uint32
 
 	// Create a mapping from s (in Ms aka Intermediate FSA)
 	// to t (in Mt aka Double Array FSA)
@@ -541,7 +540,8 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		tok.getSet(s, &A)
 
 		// Set base to the first free slot in the double array
-		dat.array[t].setBase(dat.xCheck(A))
+		base = dat.xCheck(A)
+		dat.array[t].setBase(base)
 
 		// TODO:
 		//   Sort the outgoing transitions based on the
@@ -556,7 +556,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				s1 := tok.transitions[s][a].end
 
 				// Store the transition
-				t1 := dat.array[t].getBase() + uint32(a)
+				t1 := base + uint32(a)
 				dat.array[t1].setCheck(t)
 
 				// Set maxSize
@@ -600,10 +600,10 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				}
 			} else {
 				// Store a final transition
-				dat.array[dat.array[t].getBase()+uint32(dat.final)].setCheck(t)
+				dat.array[base+uint32(dat.final)].setCheck(t)
 
-				if dat.maxSize < int(dat.array[t].getBase()+uint32(dat.final)) {
-					dat.maxSize = int(dat.array[t].getBase() + uint32(dat.final))
+				if dat.maxSize < int(base+uint32(dat.final)) {
+					dat.maxSize = int(base + uint32(dat.final))
 				}
 			}
 		}
@@ -719,20 +719,9 @@ func (dat *DaTokenizer) GetSize() int {
 func (dat *DaTokenizer) xCheck(symbols []int) uint32 {
 
 	// Start at the first entry of the double array list
-	base := uint32(1) // dat.lastFilledBase
-	// skip := false
+	base := uint32(1)
+
 OVERLAP:
-
-	/*
-		if !skip {
-			if dat.getCheck(base) != 0 {
-				dat.lastFilledBase = base
-			} else {
-				skip = true
-			}
-		}
-	*/
-
 	// Resize the array if necessary
 	dat.resize(int(base) + dat.final)
 	for _, a := range symbols {
@@ -1115,7 +1104,9 @@ PARSECHAR:
 				fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
 			}
 
-			// TODO: Better not repeatedly check for a!
+			// TODO:
+			//   Better not repeatedly check for a!
+			//   Possibly keep a buffer with a.
 			if int(char) < 256 {
 				a = dat.sigmaASCII[int(char)]
 			} else {

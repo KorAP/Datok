@@ -848,9 +848,21 @@ func BenchmarkTransduce(b *testing.B) {
 	}
 }
 
-func BenchmarkLoadDatokFile(b *testing.B) {
+// This test is deprecated as the datok file changes over time
+func XBenchmarkLoadDatokFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		dat := LoadDatokFile("testdata/tokenizer.datok")
+		if dat == nil {
+			fmt.Println("Fail!")
+			os.Exit(1)
+		}
+	}
+}
+
+func BenchmarkToDoubleArray(b *testing.B) {
+	tok := LoadFomaFile("testdata/simple_bench.fst")
+	for i := 0; i < b.N; i++ {
+		dat := tok.ToDoubleArray()
 		if dat == nil {
 			fmt.Println("Fail!")
 			os.Exit(1)
@@ -873,3 +885,6 @@ func BenchmarkLoadDatokFile(b *testing.B) {
 //   BenchmarkLoadDatokFile-4               7         143143934 ns/op        203158450 B/op      5743 allocs/op
 //   BenchmarkTransduce-4               34939             34363 ns/op           14056 B/op          3 allocs/op
 //   BenchmarkLoadDatokFile-4               7         149511609 ns/op        203217193 B/op      5915 allocs/op
+// 2021-08-17
+//   BenchmarkTransduce-4               31204             32678 ns/op           14752 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4           44138             26850 ns/op           10704 B/op         29 allocs/op
