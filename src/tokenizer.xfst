@@ -13,7 +13,7 @@
 
 ! define NLout "\u000a";
 define NLout "@_TOKEN_SYMBOL_@";
-define NLin ("\u000d") "\u000a";
+! define NLout "\u000a";
 
 define Digit [%0|1|2|3|4|5|6|7|8|9];
 define AsciiLetter [a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z];
@@ -21,15 +21,17 @@ define AsciiLetter [a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z];
 !!!!!!!!!!!!!!!!!
 ! <from tmorph> !
 !!!!!!!!!!!!!!!!!
-define WS [" "|"\u0009"|"\u000a"|"\u000d"|
-           "\u00a0"|"\u1680"|
+define WS [" "|"\u0009"|"\u00a0"|"\u1680"|
            "\u2000"|"\u2001"|"\u2002"|"\u2003"|"\u2004"|"\u2005"| 
            "\u2006"|"\u2007"|"\u2008"|"\u2009"|"\u200a"|
-           "\u2028"|"\u2029"|"\u202f"|"\u205f"|"\u3000"| NLin];
+           "\u202f"|"\u205f"|"\u3000"];
+
+define NL ["\u000a"|"\u000b"|"\u000c"|"\u000d"|"\u0085"|"\u2028"|"\u2029"];
 
 ! Punctuation that ends sentences
 ! Differs!
-define SP [["."|"?"|"!"]+|"…"]; ! Warning! This results in '...' being a MCS!
+define SP [["."|"?"|"!"]+|"…"];
+
 ! Left punctuation
 define LP ["("|"["|"{"|
            "“"|"‘"|"‹"|"«"|
@@ -39,6 +41,7 @@ define LP ["("|"["|"{"|
            "*"|"/"|"_"| ! Can be Markdown
            ! from book
            [%, %,]];
+
 ! Right punctuation - excluding the characters that can be used as apostrophe
 define RP [SP|","|";"|":"|
               ")"|"]"|"}"|
@@ -63,7 +66,7 @@ define Dash ["-"|"\u2011"|"\u2012"|"\u2013"|"\u2e1a"|"\ufe63"|"\uff0d"];
 define Slash ["⁄"|"∕"|"／"|"/"];
 define Asterisk ["*"];
 
-define Char \[WS|Punct|Apos]; ! |¨;
+define Char \[WS|NL|Punct|Apos]; ! |¨;
 
 ! source lexicon.xfst
 ! define Word;
@@ -105,7 +108,7 @@ z (->) Z,
 ß (->) {SS}
 ];
 
-define Abbr @txt"txt/abbrv.txt";
+define Abbr @txt"txt/abbrv.txt" %.;
 
 define Plusampersand @txt"txt/plusampersand.txt";
 
@@ -191,15 +194,16 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 
 
-define RealToken [XML|Email|URL|SNS|[Abbr %.]|Plusampersand|Streetname|Omission|Domain|AcronymDep|File|Emdash|Punct|Ord|Num|Years|Emoji|Word];
+define RealToken [XML|Email|URL|SNS|Abbr|Plusampersand|Streetname|Omission|Domain|AcronymDep|File|Emdash|Punct|Ord|Num|Years|Emoji|Word];
 
 echo - Introduce Token splitter
 define Token [RealToken @-> ... NLout]
+! .o. [NL -> 0]
 .o. [WS+ @-> 0]
 ;
 
 echo - Introduce Sentence splitter
-read regex Token .o. [[["."|"!"|"?"]+] @-> ... NLout \/ NLout _];
+read regex Token .o. [[["."|"!"|"?"]+|"…"] @-> ... NLout \/ NLout _];
 
 ! foma -e "source tokenizer.xfst" -q -s && cat text.txt | flookup tokenizer.fst -x -b
 
