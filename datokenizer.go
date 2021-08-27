@@ -74,6 +74,7 @@ type edge struct {
 // of the tokenizer.
 type Tokenizer struct {
 	sigmaRev    map[int]rune
+	sigmaMCS    map[int]string
 	arcCount    int
 	sigmaCount  int
 	transitions []map[int]*edge
@@ -137,6 +138,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 	tok := &Tokenizer{
 		sigmaRev: make(map[int]rune),
+		sigmaMCS: make(map[int]string),
 		epsilon:  -1,
 		unknown:  -1,
 		identity: -1,
@@ -352,10 +354,13 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 								")")
 						return nil
 					}
-
 				} else if inSym == tok.epsilon {
 					log.Println("General epsilon transitions are not supported")
 					return nil
+				} else if tok.sigmaMCS[inSym] != "" {
+					log.Fatalln("Non supported character", tok.sigmaMCS[inSym])
+				} else if tok.sigmaMCS[outSym] != "" {
+					log.Fatalln("Non supported character", tok.sigmaMCS[outSym])
 				}
 
 				// Create an edge based on the collected information
@@ -451,8 +456,8 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						}
 					default:
 						{
-							log.Println("MCS not supported: " + line)
-							return nil
+							// MCS not supported
+							tok.sigmaMCS[number] = line
 						}
 					}
 					continue
@@ -464,8 +469,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						return nil
 					}
 					if len(line) != 1 {
-						log.Println("MCS not supported:" + line)
-						return nil
+						// MCS not supported
+						tok.sigmaMCS[number] = line
+						continue
 					}
 					symbol = rune('\n')
 				}
@@ -474,7 +480,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 			}
 		}
 	}
-
+	tok.sigmaMCS = nil
 	return tok
 }
 

@@ -136,6 +136,28 @@ func TestReadWriteTokenizer(t *testing.T) {
 	assert.True(tmatch(dat2, "wald gehen"))
 }
 
+func TestIgnorableMCS(t *testing.T) {
+	assert := assert.New(t)
+	// File has MCS in sigma but not in net
+	tok := LoadFomaFile("testdata/ignorable_mcs.fst")
+	assert.NotNil(tok)
+	dat := tok.ToDoubleArray()
+	assert.NotNil(dat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	// Is only unambigous when transducing strictly greedy!
+	assert.True(dat.Transduce(strings.NewReader("ab<ab>"), w))
+	tokens = strings.Split(w.String(), "\n")
+	assert.Equal("a\nb\n<ab>\n", w.String())
+	assert.Equal("a", tokens[0])
+	assert.Equal("b", tokens[1])
+	assert.Equal("<ab>", tokens[2])
+	assert.Equal(4, len(tokens))
+}
+
 func TestFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	dat := LoadDatokFile("testdata/tokenizer.datok")
