@@ -14,14 +14,8 @@ package datokenizer
 // Serialization is little endian.
 
 // TODO:
-// - Turn sigma into an array instead of using a map
-//   and improve the mapping beforehand so that ASCII
-//   is mapped directly and only non-ASCII needs to be
-//   looked up in a map or similar.
 // - replace maxSize with the check value
 // - Add checksum to serialization.
-// - Instead of memoizing the loadFactor, better remember
-//   the number of set transitions
 // - Replace/Enhance table with a map
 // - Provide a bufio.Scanner compatible interface.
 // - Mark epsilon transitions in bytes
@@ -98,7 +92,7 @@ type DaTokenizer struct {
 	sigma      map[rune]int
 	sigmaASCII [256]int
 	maxSize    int
-	loadFactor float64
+	transCount int
 	array      []bc
 
 	// Special symbols in sigma
@@ -503,7 +497,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	dat := &DaTokenizer{
 		sigma:      make(map[rune]int),
-		loadFactor: -1,
+		transCount: -1,
 		final:      tok.final,
 		unknown:    tok.unknown,
 		identity:   tok.identity,
@@ -779,23 +773,28 @@ func (dat *DaTokenizer) outgoing(t uint32) []int {
 	return valid
 }
 
+// TransCount as the number of transitions aka arcs in the
+// finite state automaton
+func (dat *DaTokenizer) TransCount() int {
+	// Cache the transCount
+	if dat.transCount > 0 {
+		return dat.transCount
+	}
+
+	dat.transCount = 0
+	for x := 1; x < len(dat.array); x++ {
+		if dat.array[x].getBase() != 0 {
+			dat.transCount++
+		}
+	}
+
+	return dat.transCount
+}
+
 // LoadFactor as defined in Kanda et al (2018),
 // i.e. the proportion of non-empty elements to all elements.
 func (dat *DaTokenizer) LoadFactor() float64 {
-
-	// Cache the loadfactor
-	if dat.loadFactor > 0 {
-		return dat.loadFactor
-	}
-	nonEmpty := 0
-	all := len(dat.array) / 2
-	for x := 1; x < len(dat.array); x++ {
-		if dat.array[x].getBase() != 0 {
-			nonEmpty++
-		}
-	}
-	dat.loadFactor = float64(nonEmpty) / float64(all) * 100
-	return dat.loadFactor
+	return float64(dat.TransCount()) / float64(len(dat.array)) * 100
 }
 
 // Save stores the double array data in a file
@@ -943,7 +942,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 		unknown:    0,
 		identity:   0,
 		final:      0,
-		loadFactor: 0,
+		transCount: 0,
 	}
 
 	r := bufio.NewReader(ior)
