@@ -348,6 +348,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 								")")
 						return nil
 					}
+				} else if inSym == tok.tokenend {
+					// Ignore tokenend accepting arcs
+					continue
 				} else if inSym == tok.epsilon {
 					log.Println("General epsilon transitions are not supported")
 					return nil

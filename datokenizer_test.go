@@ -120,7 +120,7 @@ func TestReadWriteTokenizer(t *testing.T) {
 	buf := bytes.NewBuffer(b)
 	n, err := dat.WriteTo(buf)
 	assert.Nil(err)
-	assert.Equal(int64(224), n)
+	assert.Equal(int64(208), n)
 
 	dat2 := ParseDatok(buf)
 	assert.NotNil(dat2)
@@ -135,8 +135,8 @@ func TestReadWriteTokenizer(t *testing.T) {
 	assert.True(tmatch(dat2, "bad"))
 	assert.True(tmatch(dat2, "wald gehen"))
 
-	assert.Equal(dat.TransCount(), 19)
-	assert.Equal(dat2.TransCount(), 19)
+	assert.Equal(dat.TransCount(), 17)
+	assert.Equal(dat2.TransCount(), 17)
 }
 
 func TestIgnorableMCS(t *testing.T) {
@@ -159,7 +159,7 @@ func TestIgnorableMCS(t *testing.T) {
 	assert.Equal("b", tokens[1])
 	assert.Equal("<ab>", tokens[2])
 	assert.Equal(4, len(tokens))
-	assert.Equal(dat.TransCount(), 17)
+	assert.Equal(dat.TransCount(), 15)
 }
 
 func TestFullTokenizer(t *testing.T) {
