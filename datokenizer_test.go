@@ -157,9 +157,10 @@ func XTestFullTokenizerBuild(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/tokenizer.fst")
 	dat := tok.ToDoubleArray()
-	n, err := dat.Save("testdata/tokenizer.datok")
-	assert.Nil(err)
-	assert.True(n > 500)
+	assert.NotNil(dat)
+	// n, err := dat.Save("testdata/tokenizer.datok")
+	// assert.Nil(err)
+	// assert.True(n > 500)
 }
 
 func TestFullTokenizerTransduce(t *testing.T) {
@@ -888,3 +889,5 @@ func BenchmarkToDoubleArray(b *testing.B) {
 // 2021-08-17
 //   BenchmarkTransduce-4               31204             32678 ns/op           14752 B/op          3 allocs/op
 //   BenchmarkToDoubleArray-4           44138             26850 ns/op           10704 B/op         29 allocs/op
+//   BenchmarkTransduce-4               29376             34562 ns/op           15157 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4           54441             21355 ns/op           10704 B/op         29 allocs/op

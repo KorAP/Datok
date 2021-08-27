@@ -517,6 +517,9 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 	mark := 0
 	size := 0
 	var base uint32
+	var atrans *edge
+	var s, s1 int
+	var t, t1 uint32
 
 	// Create a mapping from s (in Ms aka Intermediate FSA)
 	// to t (in Mt aka Double Array FSA)
@@ -529,9 +532,17 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 	// Allocate space for the outgoing symbol range
 	A := make([]int, 0, tok.sigmaCount)
 
+	// TODO:
+	//   Table lookup for the moment
+	//   only gives a minor performance benefit.
+	//   should be rewritten and should preplace the
+	//   table all together.
+	//   tableLookup := make(map[int]uint32)
+	//   tableLookup[1] = 1
+
 	for mark < size {
-		s := table[mark].source // This is a state in Ms
-		t := table[mark].target // This is a state in Mt
+		s = table[mark].source // This is a state in Ms
+		t = table[mark].target // This is a state in Mt
 		mark++
 
 		// Following the paper, here the state t can be remembered
@@ -552,11 +563,13 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 			if a != tok.final {
 
+				atrans = tok.transitions[s][a]
+
 				// Aka g(s, a)
-				s1 := tok.transitions[s][a].end
+				s1 = atrans.end
 
 				// Store the transition
-				t1 := base + uint32(a)
+				t1 = base + uint32(a)
 				dat.array[t1].setCheck(t)
 
 				// Set maxSize
@@ -570,7 +583,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				}
 
 				// Mark the state as being the target of a nontoken transition
-				if tok.transitions[s][a].nontoken {
+				if atrans.nontoken {
 					dat.array[t1].setNonToken(true)
 					if DEBUG {
 						fmt.Println("Set", t1, "to nontoken")
@@ -578,7 +591,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				}
 
 				// Mark the state as being the target of a tokenend transition
-				if tok.transitions[s][a].tokenend {
+				if atrans.tokenend {
 					dat.array[t1].setTokenEnd(true)
 					if DEBUG {
 						fmt.Println("Set", t1, "to tokenend")
@@ -587,11 +600,13 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 				// Check for representative states
 				r := stateAlreadyInTable(s1, table, size)
+				// r := tableLookup[s1]
 
 				// No representative found
 				if r == 0 {
 					// Remember the mapping
 					table[size] = &mapping{source: s1, target: t1}
+					// tableLookup[s1] = t1
 					size++
 				} else {
 					// Overwrite with the representative state
@@ -602,8 +617,8 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				// Store a final transition
 				dat.array[base+uint32(dat.final)].setCheck(t)
 
-				if dat.maxSize < int(base+uint32(dat.final)) {
-					dat.maxSize = int(base + uint32(dat.final))
+				if dat.maxSize < int(base)+dat.final {
+					dat.maxSize = int(base) + dat.final
 				}
 			}
 		}
