@@ -38,6 +38,7 @@ func TestSimpleString(t *testing.T) {
 	assert.True(tmatch(dat, "bau"))
 	assert.True(tmatch(dat, "bauamt"))
 	assert.False(tmatch(dat, "baum"))
+	assert.False(tmatch(dat, "baua"))
 }
 
 func TestSimpleBranches(t *testing.T) {

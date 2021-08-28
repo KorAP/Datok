@@ -295,6 +295,20 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						if elemint[1] == -1 {
 							state = elemint[0]
 							final = elemint[3]
+
+							// Final state that has no outgoing edges
+							if final == 1 {
+
+								// Initialize outgoing states
+								if tok.transitions[state+1] == nil {
+									tok.transitions[state+1] = make(map[int]*edge)
+								}
+
+								// TODO:
+								//   Maybe this is less relevant for tokenizers
+								tok.transitions[state+1][tok.final] = &edge{}
+							}
+							continue
 						} else {
 							state = elemint[0]
 							inSym = elemint[1]
