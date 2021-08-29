@@ -369,9 +369,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					log.Println("General epsilon transitions are not supported")
 					return nil
 				} else if tok.sigmaMCS[inSym] != "" {
-					log.Fatalln("Non supported character", tok.sigmaMCS[inSym])
-				} else if tok.sigmaMCS[outSym] != "" {
-					log.Fatalln("Non supported character", tok.sigmaMCS[outSym])
+					// log.Fatalln("Non supported character", tok.sigmaMCS[inSym])
+					// Ignore MCS transitions
+					continue
 				}
 
 				// Create an edge based on the collected information
