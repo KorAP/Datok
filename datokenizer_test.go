@@ -171,8 +171,8 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
-	assert.Equal(dat.final, 137)
-	assert.Equal(len(dat.sigma), 132)
+	assert.Equal(dat.final, 145)
+	assert.Equal(len(dat.sigma), 140)
 	assert.True(len(dat.array) > 3600000)
 	assert.True(dat.maxSize > 3600000)
 	assert.True(tmatch(dat, "bau"))
@@ -845,6 +845,46 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 				assert.Equal(len(tokens), 9 );
 		}
 	*/
+}
+
+func TestFullTokenizerXML(t *testing.T) {
+	assert := assert.New(t)
+
+	dat := LoadDatokFile("testdata/tokenizer.datok")
+	assert.NotNil(dat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	tokens = ttokenize(dat, w, "Das <b>beste</b> Fußballspiel")
+	assert.Equal("Das", tokens[0])
+	assert.Equal("<b>", tokens[1])
+	assert.Equal("beste", tokens[2])
+	assert.Equal("</b>", tokens[3])
+	assert.Equal("Fußballspiel", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	tokens = ttokenize(dat, w, "Das <b class=\"c\">beste</b> Fußballspiel")
+	assert.Equal("Das", tokens[0])
+	assert.Equal("<b class=\"c\">", tokens[1])
+	assert.Equal("beste", tokens[2])
+	assert.Equal("</b>", tokens[3])
+	assert.Equal("Fußballspiel", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	tokens = ttokenize(dat, w, "der<x  y=\"alte \"> <x x> alte</x> etc. et. Mann.")
+	assert.Equal("der", tokens[0])
+	assert.Equal("<x  y=\"alte \">", tokens[1])
+	assert.Equal("<x x>", tokens[2])
+	assert.Equal("alte", tokens[3])
+	assert.Equal("</x>", tokens[4])
+	assert.Equal("etc.", tokens[5])
+	assert.Equal("et", tokens[6])
+	assert.Equal(".", tokens[7])
+	assert.Equal("Mann", tokens[8])
+	assert.Equal(".", tokens[9])
+	assert.Equal(10, len(tokens))
 }
 
 func BenchmarkTransduce(b *testing.B) {

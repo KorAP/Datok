@@ -11,7 +11,6 @@
 ! The abbreviation list is part of the sentence splitter tool
 ! of the IDS.
 
-! define NLout "\u000a";
 define NLout "@_TOKEN_SYMBOL_@";
 ! define NLout "\u000a";
 
@@ -55,7 +54,7 @@ define RP [SP|","|";"|":"|
 
 define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@];
 define Apos %'|%’|%`;
-define Punct LP|RP|Sym;
+define Punct [LP|RP|Sym];
 !define nonSym \[WS|LP|RP|Sym];
 !!!!!!!!!!!!!!!!!!
 ! </from tmorph> !
@@ -136,8 +135,24 @@ URLChar [URLChar|SP]* URLChar
 
 define Domain Char+ [Dash Char+]* Dot TldEnd;
 
-!define XML "<" Alpha URLChar* (">");
-define XML "<" URLChar+ (">");
+! XML rule
+define XMLns [AsciiLetter [AsciiLetter|Digit|%-]* (%: AsciiLetter [AsciiLetter|Digit|%-]*)] .o. Caseinsensitive;
+define XML [
+  "<" [
+      [
+        XMLns
+        [WS+ XMLns WS*
+          (%= WS*
+            [[%" [? - %" - %>]+ %"] | [%' [? - %' - %>]+ %']]
+          )
+        ]*
+      ]
+      |
+      [
+        "/" XMLns
+      ]
+    ] WS* ">"
+].u;
 
 !define Email [Alpha [URLChar-At]* At Alpha URLChar* [Dot [[Alpha URLChar+]-Dot-At]]+];
 define Email URLChar+ At URLChar+ [Dot URLChar+]+;
@@ -193,17 +208,24 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 ! |============= Core =============|
 
 
+echo - Compile Real Token
 
-define RealToken [XML|Email|URL|SNS|Abbr|Plusampersand|Streetname|Omission|Domain|AcronymDep|File|Emdash|Punct|Ord|Num|Years|Emoji|Word];
+define RealToken [Punct|Word|XML|Email|URL|SNS|Domain|AcronymDep|File|Ord|Num|Years];
 
 echo - Introduce Token splitter
-define Token [RealToken @-> ... NLout]
-! .o. [NL -> 0]
-.o. [WS+ @-> 0]
+
+define Token [
+  RealToken @-> ... NLout,
+  Abbr @-> ... NLout,
+  Plusampersand @-> ... NLout,
+  Emoji @-> ... NLout,
+  [Streetname|Omission|Emdash] @-> ... NLout
+  ]
+.o. [WS+ @-> 0 || NLout _ ]
 ;
 
 echo - Introduce Sentence splitter
-read regex Token .o. [[["."|"!"|"?"]+|"…"] @-> ... NLout \/ NLout _];
+read regex Token .o. [[["."|"!"|"?"]+|"…"] @-> ... NLout \/ NLout _ ];
 
 ! foma -e "source tokenizer.xfst" -q -s && cat text.txt | flookup tokenizer.fst -x -b
 
