@@ -904,6 +904,8 @@ func BenchmarkTransduce(b *testing.B) {
 
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 
+	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		w.Reset()
 		r.Reset(s)
@@ -929,6 +931,7 @@ func XBenchmarkLoadDatokFile(b *testing.B) {
 
 func BenchmarkToDoubleArray(b *testing.B) {
 	tok := LoadFomaFile("testdata/simple_bench.fst")
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		dat := tok.ToDoubleArray()
 		if dat == nil {
@@ -958,3 +961,6 @@ func BenchmarkToDoubleArray(b *testing.B) {
 //   BenchmarkToDoubleArray-4           44138             26850 ns/op           10704 B/op         29 allocs/op
 //   BenchmarkTransduce-4               29376             34562 ns/op           15157 B/op          3 allocs/op
 //   BenchmarkToDoubleArray-4           54441             21355 ns/op           10704 B/op         29 allocs/op
+// 2021-09-02 - New tokenizer - fixed loading
+//   BenchmarkTransduce-4               44354             27466 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4           40719             25515 ns/op           10705 B/op         29 allocs/op
