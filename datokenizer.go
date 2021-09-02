@@ -30,6 +30,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -573,6 +574,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 		// Set base to the first free slot in the double array
 		base = dat.xCheck(A)
+		// base = dat.xCheckSkip(A)
 		// base = dat.xCheckNiu(A, &block_begin_pos)
 		dat.array[t].setBase(base)
 
@@ -758,6 +760,25 @@ func (dat *DaTokenizer) xCheck(symbols []int) uint32 {
 
 	// Start at the first entry of the double array list
 	base := uint32(1)
+
+OVERLAP:
+	// Resize the array if necessary
+	dat.resize(int(base) + dat.final)
+	for _, a := range symbols {
+		if dat.array[int(base)+a].getCheck() != 0 {
+			base++
+			goto OVERLAP
+		}
+	}
+	return base
+}
+
+// This is an implementation of xCheck with the skip-improvement
+// proposed by Morita et al. (2001)
+func (dat *DaTokenizer) xCheckSkip(symbols []int) uint32 {
+
+	// Start at the first entry of the double array list
+	base := uint32(math.Abs(float64(dat.maxSize-1) * .9))
 
 OVERLAP:
 	// Resize the array if necessary
