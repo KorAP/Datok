@@ -15,6 +15,10 @@ package datokenizer
 
 // TODO:
 // - replace maxSize with the check value
+// - Check if final states can be optional.
+// - Introduce ELM (Morita et al. 2001) to speed
+//   up construction. Can be ignored on serialization
+//   to improve compression.
 // - Add checksum to serialization.
 // - Replace/Enhance table with a map
 // - Provide a bufio.Scanner compatible interface.
@@ -541,25 +545,25 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 	// Create a mapping from s (in Ms aka Intermediate FSA)
 	// to t (in Mt aka Double Array FSA)
 	table := make([]*mapping, tok.arcCount+1)
+	// tableQueue := make([]int, tok.arcCount+1)
 
 	// Initialize with the start state
 	table[size] = &mapping{source: 1, target: 1}
+	// tableQueue[size] = 1
 	size++
 
 	// Allocate space for the outgoing symbol range
 	A := make([]int, 0, tok.sigmaCount)
+	// tableLookup := make([]uint32, tok.arcCount+2) // make(map[int]uint32)
+	// tableLookup[1] = 1
 
-	// TODO:
-	//   Table lookup for the moment
-	//   only gives a minor performance benefit.
-	//   should be rewritten and should preplace the
-	//   table all together.
-	//   tableLookup := make(map[int]uint32)
-	//   tableLookup[1] = 1
+	// block_begin_pos := uint32(1)
 
 	for mark < size {
 		s = table[mark].source // This is a state in Ms
 		t = table[mark].target // This is a state in Mt
+		// s = tableQueue[mark]
+		// t = tableLookup[s]
 		mark++
 
 		// Following the paper, here the state t can be remembered
@@ -569,6 +573,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 		// Set base to the first free slot in the double array
 		base = dat.xCheck(A)
+		// base = dat.xCheckNiu(A, &block_begin_pos)
 		dat.array[t].setBase(base)
 
 		// TODO:
@@ -623,6 +628,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 				if r == 0 {
 					// Remember the mapping
 					table[size] = &mapping{source: s1, target: t1}
+					// tableQueue[size] = s1
 					// tableLookup[s1] = t1
 					size++
 				} else {
@@ -752,6 +758,34 @@ func (dat *DaTokenizer) xCheck(symbols []int) uint32 {
 
 	// Start at the first entry of the double array list
 	base := uint32(1)
+
+OVERLAP:
+	// Resize the array if necessary
+	dat.resize(int(base) + dat.final)
+	for _, a := range symbols {
+		if dat.array[int(base)+a].getCheck() != 0 {
+			base++
+			goto OVERLAP
+		}
+	}
+	return base
+}
+
+// This is an implementation of xCheck wit an improvement
+// proposed by Niu et al. (2013)
+func (dat *DaTokenizer) xCheckNiu(symbols []int, block_begin_pos *uint32) uint32 {
+
+	// Start at the first entry of the double array list
+	base := uint32(1)
+
+	if len(symbols) > 3 {
+		sort.Ints(symbols)
+		if *block_begin_pos > uint32(symbols[0]) {
+			dat.resize(int(*block_begin_pos) + dat.final)
+			*block_begin_pos += uint32(symbols[len(symbols)-1] + 1)
+			return *block_begin_pos - uint32(symbols[0])
+		}
+	}
 
 OVERLAP:
 	// Resize the array if necessary

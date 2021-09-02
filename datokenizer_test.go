@@ -941,6 +941,18 @@ func BenchmarkToDoubleArray(b *testing.B) {
 	}
 }
 
+func BenchmarkToDoubleArrayLarger(b *testing.B) {
+	tok := LoadFomaFile("testdata/abbr_bench.fst")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		dat := tok.ToDoubleArray()
+		if dat == nil {
+			fmt.Println("Fail!")
+			os.Exit(1)
+		}
+	}
+}
+
 // 2021-08-11 (go 1.16)
 // go test -bench=. -test.benchmem
 //   BenchmarkTransduce-4         19069             60609 ns/op           11048 B/op        137 allocs/op
@@ -962,5 +974,12 @@ func BenchmarkToDoubleArray(b *testing.B) {
 //   BenchmarkTransduce-4               29376             34562 ns/op           15157 B/op          3 allocs/op
 //   BenchmarkToDoubleArray-4           54441             21355 ns/op           10704 B/op         29 allocs/op
 // 2021-09-02 - New tokenizer - fixed loading
-//   BenchmarkTransduce-4               44354             27466 ns/op            8240 B/op          3 allocs/op
-//   BenchmarkToDoubleArray-4           40719             25515 ns/op           10705 B/op         29 allocs/op
+//   BenchmarkTransduce-4                       40149             31515 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4                   51043             22586 ns/op           10702 B/op         29 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                 3         396009639 ns/op         6352293 B/op       2575 allocs/op
+//   BenchmarkTransduce-4                       38698             31900 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4                   50644             21569 ns/op           11151 B/op         14 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                 3         441260766 ns/op         6942336 B/op         30 allocs/op
+//   BenchmarkTransduce-4                       39966             30835 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4                   50720             24863 ns/op           11091 B/op         46 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                 3         432523828 ns/op         6413381 B/op       5122 allocs/op
