@@ -115,13 +115,11 @@ func TestReadWriteTokenizer(t *testing.T) {
 	assert.True(tmatch(dat, "bad"))
 	assert.True(tmatch(dat, "wald gehen"))
 
-	assert.True(dat.LoadFactor() >= 75)
-
 	b := make([]byte, 0, 1024)
 	buf := bytes.NewBuffer(b)
 	n, err := dat.WriteTo(buf)
 	assert.Nil(err)
-	assert.Equal(int64(208), n)
+	assert.Equal(int64(296), n)
 
 	dat2 := ParseDatok(buf)
 	assert.NotNil(dat2)
@@ -847,6 +845,13 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	*/
 }
 
+func TestLoadFactor1(t *testing.T) {
+	assert := assert.New(t)
+	tok := LoadFomaFile("testdata/abbr_bench.fst")
+	dat := tok.ToDoubleArray()
+	assert.True(dat.LoadFactor() > 88)
+}
+
 func TestFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
@@ -987,3 +992,7 @@ func BenchmarkToDoubleArrayLarger(b *testing.B) {
 //   BenchmarkTransduce-4                       36325             38501 ns/op            8240 B/op          3 allocs/op
 //   BenchmarkToDoubleArray-4                   66858             19286 ns/op           10607 B/op         29 allocs/op
 //   BenchmarkToDoubleArrayLarger-4                18          67428011 ns/op         6360604 B/op       2578 allocs/op
+// 2021-09-02 - xCheckSkipNiu() with .9 and >= 3
+//   BenchmarkTransduce-4                       37105             27714 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4                   76600             15973 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                21          55161934 ns/op         6357889 B/op       2578 allocs/op

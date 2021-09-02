@@ -573,9 +573,10 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		tok.getSet(s, &A)
 
 		// Set base to the first free slot in the double array
-		base = dat.xCheck(A)
+		// base = dat.xCheck(A)
 		// base = dat.xCheckSkip(A)
 		// base = dat.xCheckNiu(A, &block_begin_pos)
+		base = dat.xCheckSkipNiu(A)
 		dat.array[t].setBase(base)
 
 		// TODO:
@@ -651,9 +652,12 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	// Following Mizobuchi et al (2000) the size of the
 	// FSA should be stored in check(1).
-	// We make the size a bit smaller so we never have to check for boundaries.
-	dat.setSize(dat.maxSize + 1)
-	dat.array = dat.array[:dat.maxSize+1]
+	// We make the size a bit larger so we never have to check for boundaries.
+	dat.setSize(dat.maxSize + dat.final)
+	if len(dat.array) < dat.maxSize+dat.final {
+		dat.array = append(dat.array, make([]bc, dat.final)...)
+	}
+	dat.array = dat.array[:dat.maxSize+dat.final]
 	return dat
 }
 
@@ -783,6 +787,31 @@ func (dat *DaTokenizer) xCheckSkip(symbols []int) uint32 {
 OVERLAP:
 	// Resize the array if necessary
 	dat.resize(int(base) + dat.final)
+	for _, a := range symbols {
+		if dat.array[int(base)+a].getCheck() != 0 {
+			base++
+			goto OVERLAP
+		}
+	}
+	return base
+}
+
+// This is an implementation of xCheck with the skip-improvement
+// proposed by Morita et al. (2001) for higher outdegrees as
+// proposed by Niu et al. (2013)
+func (dat *DaTokenizer) xCheckSkipNiu(symbols []int) uint32 {
+
+	// Start at the first entry of the double array list
+	base := uint32(1)
+
+	// Or skip the first few entries
+	if len(symbols) >= 3 {
+		base = uint32(math.Abs(float64(dat.maxSize-1)*.9)) + 1
+	}
+
+OVERLAP:
+	// Resize the array if necessary
+	dat.resize(int(base) + dat.final + 1)
 	for _, a := range symbols {
 		if dat.array[int(base)+a].getCheck() != 0 {
 			base++
