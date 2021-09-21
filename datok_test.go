@@ -1,4 +1,4 @@
-package datokenizer
+package datok
 
 import (
 	"bytes"

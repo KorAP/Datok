@@ -6,7 +6,7 @@ import (
 
 	"log"
 
-	datok "github.com/KorAP/datokenizer"
+	datok "github.com/KorAP/datok"
 	"github.com/alecthomas/kong"
 )
 

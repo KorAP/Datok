@@ -1,4 +1,4 @@
-module github.com/KorAP/datokenizer
+module github.com/KorAP/datok
 
 go 1.16
 

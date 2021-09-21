@@ -1,4 +1,4 @@
-package datokenizer
+package datok
 
 /**
  * The file reader is basically a port of foma2js,
