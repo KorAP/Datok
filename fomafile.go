@@ -27,13 +27,18 @@ type edge struct {
 	tokenend bool
 }
 
-// Tokenizer is the intermediate representation
+type Tokenizer interface {
+	Transduce(r io.Reader, w io.Writer) bool
+}
+
+// Automaton is the intermediate representation
 // of the tokenizer.
-type Tokenizer struct {
+type Automaton struct {
 	sigmaRev    map[int]rune
 	sigmaMCS    map[int]string
 	arcCount    int
 	sigmaCount  int
+	stateCount  int
 	transitions []map[int]*edge
 
 	// Special symbols in sigma
@@ -47,7 +52,7 @@ type Tokenizer struct {
 // ParseFoma reads the FST from a foma file
 // and creates an internal representation,
 // in case it follows the tokenizer's convention.
-func LoadFomaFile(file string) *Tokenizer {
+func LoadFomaFile(file string) *Automaton {
 	f, err := os.Open(file)
 	if err != nil {
 		log.Print(err)
@@ -68,10 +73,10 @@ func LoadFomaFile(file string) *Tokenizer {
 // ParseFoma reads the FST from a foma file reader
 // and creates an internal representation,
 // in case it follows the tokenizer's convention.
-func ParseFoma(ior io.Reader) *Tokenizer {
+func ParseFoma(ior io.Reader) *Automaton {
 	r := bufio.NewReader(ior)
 
-	tok := &Tokenizer{
+	auto := &Automaton{
 		sigmaRev: make(map[int]rune),
 		sigmaMCS: make(map[int]string),
 		epsilon:  -1,
@@ -111,8 +116,8 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				// Adds a final transition symbol to sigma
 				// written as '#' in Mizobuchi et al (2000)
-				tok.sigmaCount++
-				tok.final = tok.sigmaCount
+				auto.sigmaCount++
+				auto.final = auto.sigmaCount
 
 			} else if strings.HasPrefix(line, "##sigma##") {
 
@@ -164,7 +169,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					log.Print("Can't read arccount")
 					return nil
 				}
-				tok.arcCount = elemint[0]
+				auto.arcCount = elemint[0]
 
 				elemint[0], err = strconv.Atoi(elem[2])
 				if err != nil {
@@ -175,7 +180,8 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				// States start at 1 in Mizobuchi et al (2000),
 				// as the state 0 is associated with a fail.
 				// Initialize states and transitions
-				tok.transitions = make([]map[int]*edge, elemint[0]+1)
+				auto.stateCount = elemint[0]
+				auto.transitions = make([]map[int]*edge, elemint[0]+1)
 				continue
 			}
 		case STATES:
@@ -241,13 +247,13 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 							if final == 1 {
 
 								// Initialize outgoing states
-								if tok.transitions[state+1] == nil {
-									tok.transitions[state+1] = make(map[int]*edge)
+								if auto.transitions[state+1] == nil {
+									auto.transitions[state+1] = make(map[int]*edge)
 								}
 
 								// TODO:
 								//   Maybe this is less relevant for tokenizers
-								tok.transitions[state+1][tok.final] = &edge{}
+								auto.transitions[state+1][auto.final] = &edge{}
 							}
 							continue
 						} else {
@@ -283,9 +289,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 
 				// Only a limited list of transitions are allowed
 				if inSym != outSym {
-					if outSym == tok.tokenend && inSym == tok.epsilon {
+					if outSym == auto.tokenend && inSym == auto.epsilon {
 						tokenend = true
-					} else if outSym == tok.epsilon {
+					} else if outSym == auto.epsilon {
 						nontoken = true
 					} else {
 						log.Println(
@@ -297,19 +303,19 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 								":" +
 								strconv.Itoa(outSym) +
 								") (" +
-								string(tok.sigmaRev[inSym]) +
+								string(auto.sigmaRev[inSym]) +
 								":" +
-								string(tok.sigmaRev[outSym]) +
+								string(auto.sigmaRev[outSym]) +
 								")")
 						return nil
 					}
-				} else if inSym == tok.tokenend {
+				} else if inSym == auto.tokenend {
 					// Ignore tokenend accepting arcs
 					continue
-				} else if inSym == tok.epsilon {
+				} else if inSym == auto.epsilon {
 					log.Println("General epsilon transitions are not supported")
 					return nil
-				} else if tok.sigmaMCS[inSym] != "" {
+				} else if auto.sigmaMCS[inSym] != "" {
 					// log.Fatalln("Non supported character", tok.sigmaMCS[inSym])
 					// Ignore MCS transitions
 					continue
@@ -325,20 +331,20 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 				}
 
 				// Initialize outgoing states
-				if tok.transitions[state+1] == nil {
-					tok.transitions[state+1] = make(map[int]*edge)
+				if auto.transitions[state+1] == nil {
+					auto.transitions[state+1] = make(map[int]*edge)
 				}
 
 				// Ignore transitions with invalid symbols
 				if inSym >= 0 {
-					tok.transitions[state+1][inSym] = targetObj
+					auto.transitions[state+1][inSym] = targetObj
 				}
 
 				// Add final transition
 				if final == 1 {
 					// TODO:
 					//   Maybe this is less relevant for tokenizers
-					tok.transitions[state+1][tok.final] = &edge{}
+					auto.transitions[state+1][auto.final] = &edge{}
 				}
 
 				if DEBUG {
@@ -349,9 +355,9 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 						":",
 						outSym,
 						") (",
-						string(tok.sigmaRev[inSym]),
+						string(auto.sigmaRev[inSym]),
 						":",
-						string(tok.sigmaRev[outSym]),
+						string(auto.sigmaRev[outSym]),
 						")",
 						";",
 						"TE:", tokenend,
@@ -376,7 +382,7 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					return nil
 				}
 
-				tok.sigmaCount = number
+				auto.sigmaCount = number
 
 				var symbol rune
 
@@ -390,26 +396,26 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					switch elem[1] {
 					case "@_EPSILON_SYMBOL_@":
 						{
-							tok.epsilon = number
+							auto.epsilon = number
 						}
 					case "@_UNKNOWN_SYMBOL_@":
 						{
-							tok.unknown = number
+							auto.unknown = number
 						}
 
 					case "@_IDENTITY_SYMBOL_@":
 						{
-							tok.identity = number
+							auto.identity = number
 						}
 
 					case "@_TOKEN_SYMBOL_@":
 						{
-							tok.tokenend = number
+							auto.tokenend = number
 						}
 					default:
 						{
 							// MCS not supported
-							tok.sigmaMCS[number] = line
+							auto.sigmaMCS[number] = line
 						}
 					}
 					continue
@@ -422,24 +428,24 @@ func ParseFoma(ior io.Reader) *Tokenizer {
 					}
 					if len(line) != 1 {
 						// MCS not supported
-						tok.sigmaMCS[number] = line
+						auto.sigmaMCS[number] = line
 						continue
 					}
 					symbol = rune('\n')
 				}
 
-				tok.sigmaRev[number] = symbol
+				auto.sigmaRev[number] = symbol
 			}
 		}
 	}
-	tok.sigmaMCS = nil
-	return tok
+	auto.sigmaMCS = nil
+	return auto
 }
 
 // Set alphabet A to the list of all symbols
 // outgoing from s
-func (tok *Tokenizer) getSet(s int, A *[]int) {
-	for a := range tok.transitions[s] {
+func (auto *Automaton) getSet(s int, A *[]int) {
+	for a := range auto.transitions[s] {
 		*A = append(*A, a)
 	}
 

@@ -80,21 +80,21 @@ type DaTokenizer struct {
 // into a double array representation.
 //
 // This is based on Mizobuchi et al (2000), p.128
-func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
+func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 
 	dat := &DaTokenizer{
 		sigma:      make(map[rune]int),
 		transCount: -1,
-		final:      tok.final,
-		unknown:    tok.unknown,
-		identity:   tok.identity,
-		epsilon:    tok.epsilon,
-		tokenend:   tok.tokenend,
+		final:      auto.final,
+		unknown:    auto.unknown,
+		identity:   auto.identity,
+		epsilon:    auto.epsilon,
+		tokenend:   auto.tokenend,
 	}
 
 	dat.resize(dat.final)
 
-	for num, sym := range tok.sigmaRev {
+	for num, sym := range auto.sigmaRev {
 		if int(sym) < 256 {
 			dat.sigmaASCII[int(sym)] = num
 		}
@@ -110,7 +110,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 
 	// Create a mapping from s (in Ms aka Intermediate FSA)
 	// to t (in Mt aka Double Array FSA)
-	table := make([]*mapping, tok.arcCount+1)
+	table := make([]*mapping, auto.arcCount+1)
 	// tableQueue := make([]int, tok.arcCount+1)
 
 	// Initialize with the start state
@@ -119,7 +119,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 	size++
 
 	// Allocate space for the outgoing symbol range
-	A := make([]int, 0, tok.sigmaCount)
+	A := make([]int, 0, auto.sigmaCount)
 	// tableLookup := make([]uint32, tok.arcCount+2) // make(map[int]uint32)
 	// tableLookup[1] = 1
 
@@ -135,7 +135,7 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		// Following the paper, here the state t can be remembered
 		// in the set of states St
 		A = A[:0]
-		tok.getSet(s, &A)
+		auto.getSet(s, &A)
 
 		// Set base to the first free slot in the double array
 		// base = dat.xCheck(A)
@@ -151,9 +151,9 @@ func (tok *Tokenizer) ToDoubleArray() *DaTokenizer {
 		// Iterate over all outgoing symbols
 		for _, a := range A {
 
-			if a != tok.final {
+			if a != auto.final {
 
-				atrans = tok.transitions[s][a]
+				atrans = auto.transitions[s][a]
 
 				// Aka g(s, a)
 				s1 = atrans.end

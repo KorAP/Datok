@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func tmatch(dat *DaTokenizer, s string) bool {
+func tmatch(tok Tokenizer, s string) bool {
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
-	return dat.Transduce(strings.NewReader(s), w)
+	return tok.Transduce(strings.NewReader(s), w)
 }
 
-func ttokenize(dat *DaTokenizer, w *bytes.Buffer, str string) []string {
+func ttokenize(tok Tokenizer, w *bytes.Buffer, str string) []string {
 	w.Reset()
-	ok := dat.Transduce(strings.NewReader(str), w)
+	ok := tok.Transduce(strings.NewReader(str), w)
 	if !ok {
 		return []string{}
 	}
