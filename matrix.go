@@ -86,6 +86,9 @@ func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	epsilonState := int(0)
 	epsilonOffset := 0
 
+	// Remember if the last transition was epsilon
+	sentenceEnd := false
+
 	buffer := make([]rune, 1024)
 	buffo := 0 // Buffer offset
 	buffi := 0 // Buffer length
@@ -232,6 +235,9 @@ PARSECHARM:
 				}
 				writer.WriteString(string(buffer[:buffo]))
 				rewindBuffer = true
+				sentenceEnd = false
+			} else {
+				sentenceEnd = true
 			}
 			if DEBUG {
 				fmt.Println("-> Newline")
@@ -347,6 +353,16 @@ PARSECHARM:
 		}
 		goto PARSECHARM
 	}
-	return false
 
+	// Add an additional sentence ending, if the file is over but no explicit
+	// sentence split was reached. This may be controversial and therefore
+	// optional via parameter.
+	if !sentenceEnd {
+		writer.WriteRune('\n')
+		if DEBUG {
+			fmt.Println("-> Newline")
+		}
+	}
+
+	return true
 }

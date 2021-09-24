@@ -75,6 +75,7 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	var tokens []string
 	dat.Transduce(r, w)
 	tokens = strings.Split(w.String(), "\n")
+	assert.Equal(len(tokens), 10)
 	assert.Equal("wald", tokens[0])
 	assert.Equal("gehen", tokens[1])
 	assert.Equal("Da", tokens[2])
