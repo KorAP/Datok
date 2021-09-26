@@ -2,22 +2,29 @@ package datok
 
 import (
 	"bufio"
+	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
+	"os"
+)
+
+const (
+	MAMAGIC = "MATOK"
 )
 
 type MatrixTokenizer struct {
 	sigma      map[rune]int
 	sigmaASCII [256]int
-	array      []int
+	array      []uint32
 	stateCount int
 
 	// Special symbols in sigma
 	epsilon  int
 	unknown  int
 	identity int
-	final    int
-	tokenend int
+	// final    int
+	// tokenend int
 }
 
 // ToMatrix turns the intermediate tokenizer into a
@@ -25,16 +32,16 @@ type MatrixTokenizer struct {
 func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 
 	mat := &MatrixTokenizer{
-		sigma:      make(map[rune]int),
-		final:      auto.final,
-		unknown:    auto.unknown,
-		identity:   auto.identity,
-		epsilon:    auto.epsilon,
-		tokenend:   auto.tokenend,
+		sigma: make(map[rune]int),
+		// final:      auto.final,
+		unknown:  auto.unknown,
+		identity: auto.identity,
+		epsilon:  auto.epsilon,
+		// tokenend:   auto.tokenend,
 		stateCount: auto.stateCount,
 	}
 
-	mat.array = make([]int, (auto.stateCount+1)*(auto.sigmaCount+1))
+	mat.array = make([]uint32, (auto.stateCount+1)*(auto.sigmaCount))
 
 	for num, sym := range auto.sigmaRev {
 		if int(sym) < 256 {
@@ -48,9 +55,9 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 	remember := make([]bool, auto.stateCount+2)
 
 	// Store all transitions in matrix
-	var toMatrix func([]int, int)
+	var toMatrix func([]uint32, int)
 
-	toMatrix = func(matrix []int, start int) {
+	toMatrix = func(matrix []uint32, start int) {
 		if start > auto.stateCount {
 			panic("stateCount is smaller")
 		}
@@ -59,11 +66,11 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 		}
 		remember[start] = true
 		for alpha, t := range auto.transitions[start] {
-			matrix[(alpha-1)*auto.stateCount+start] = t.end
+			matrix[(alpha-1)*auto.stateCount+start] = uint32(t.end)
 
 			// Mark nontoken transitions
 			if t.nontoken {
-				matrix[(alpha-1)*auto.stateCount+start] *= -1
+				matrix[(alpha-1)*auto.stateCount+start] |= FIRSTBIT
 			}
 
 			toMatrix(matrix, t.end)
@@ -75,15 +82,258 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 	return mat
 }
 
+// Save stores the matrix data in a file
+func (mat *MatrixTokenizer) Save(file string) (n int64, err error) {
+	f, err := os.Create(file)
+	if err != nil {
+		log.Println(err)
+		return 0, err
+	}
+	defer f.Close()
+	gz := gzip.NewWriter(f)
+	defer gz.Close()
+	n, err = mat.WriteTo(gz)
+	if err != nil {
+		log.Println(err)
+		return n, err
+	}
+	gz.Flush()
+	return n, nil
+}
+
+// WriteTo stores the matrix data in an io.Writer.
+func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
+
+	wb := bufio.NewWriter(w)
+	defer wb.Flush()
+
+	// Store magical header
+	all, err := wb.Write([]byte(MAMAGIC))
+	if err != nil {
+		log.Println(err)
+		return int64(all), err
+	}
+
+	// Get sigma as a list
+	sigmalist := make([]rune, len(mat.sigma)+12)
+	max := 0
+	for sym, num := range mat.sigma {
+		sigmalist[num] = sym
+		if num > max {
+			max = num
+		}
+	}
+
+	sigmalist = sigmalist[:max+1]
+
+	buf := make([]byte, 0, 12)
+	bo.PutUint16(buf[0:2], VERSION)
+	bo.PutUint16(buf[2:4], uint16(mat.epsilon))
+	bo.PutUint16(buf[4:6], uint16(mat.unknown))
+	bo.PutUint16(buf[6:8], uint16(mat.identity))
+	bo.PutUint16(buf[8:10], uint16(mat.stateCount))
+	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
+	// bo.PutUint32(buf[12:16], uint32(len(mat.array)*2)) // Legacy support
+	more, err := wb.Write(buf[0:12])
+	if err != nil {
+		log.Println(err)
+		return int64(all), err
+	}
+
+	all += more
+
+	// Write sigma
+	for _, sym := range sigmalist {
+
+		more, err = wb.WriteRune(sym)
+		if err != nil {
+			log.Println(err)
+			return int64(all), err
+		}
+		all += more
+	}
+
+	if err != nil {
+		log.Println(err)
+		return int64(all), err
+	}
+
+	// Test marker - could be checksum
+	more, err = wb.Write([]byte("M"))
+	if err != nil {
+		log.Println(err)
+		return int64(all), err
+	}
+	all += more
+
+	// for x := 0; x < len(dat.array); x++ {
+	for _, x := range mat.array {
+		bo.PutUint32(buf[0:4], uint32(x))
+		more, err = wb.Write(buf[0:4])
+		if err != nil {
+			log.Println(err)
+			return int64(all), err
+		}
+		all += more
+		if more != 4 {
+			log.Println("Can not write base uint32")
+			return int64(all), err
+		}
+		/*
+			bo.PutUint32(buf[0:4], bc.check)
+			more, err = wb.Write(buf[0:4])
+			if err != nil {
+				log.Println(err)
+				return int64(all), err
+			}
+			all += more
+			if more != 4 {
+				log.Println("Can not write check uint32")
+				return int64(all), err
+			}
+		*/
+	}
+
+	return int64(all), err
+}
+
+// LoadDatokFile reads a double array represented tokenizer
+// from a file.
+func LoadMatrixFile(file string) *MatrixTokenizer {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	defer gz.Close()
+
+	// Todo: Read the whole file!
+	return ParseMatrix(gz)
+}
+
+// LoadMatrixFile reads a matrix represented tokenizer
+// from an io.Reader
+func ParseMatrix(ior io.Reader) *MatrixTokenizer {
+
+	// Initialize tokenizer with default values
+	mat := &MatrixTokenizer{
+		sigma:    make(map[rune]int),
+		epsilon:  0,
+		unknown:  0,
+		identity: 0,
+		// final:      0,
+		stateCount: 0,
+		// transCount: 0,
+	}
+
+	r := bufio.NewReader(ior)
+
+	buf := make([]byte, 1024)
+	buf = buf[0:len(MAMAGIC)]
+
+	_, err := r.Read(buf)
+
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if string(MAMAGIC) != string(buf) {
+		log.Println("Not a matok file")
+		return nil
+	}
+
+	more, err := io.ReadFull(r, buf[0:12])
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if more != 12 {
+		log.Println("Read bytes do not fit")
+		return nil
+	}
+
+	version := bo.Uint16(buf[0:2])
+
+	if version != VERSION {
+		log.Println("Version not compatible")
+		return nil
+	}
+
+	mat.epsilon = int(bo.Uint16(buf[2:4]))
+	mat.unknown = int(bo.Uint16(buf[4:6]))
+	mat.identity = int(bo.Uint16(buf[6:8]))
+	mat.stateCount = int(bo.Uint16(buf[8:10]))
+
+	sigmaCount := int(bo.Uint16(buf[10:12]))
+	arraySize := (mat.stateCount + 1) * (sigmaCount + 1)
+	// int(bo.Uint32(buf[12:16]))
+
+	// Shouldn't be relevant though
+	// mat.maxSize = arraySize - 1
+
+	for x := 0; x < sigmaCount; x++ {
+		sym, _, err := r.ReadRune()
+		if err == nil && sym != 0 {
+			if int(sym) < 256 {
+				mat.sigmaASCII[int(sym)] = x
+			}
+			mat.sigma[sym] = x
+		}
+	}
+
+	_, err = io.ReadFull(r, buf[0:1])
+
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+
+	if string("M") != string(buf[0:1]) {
+		log.Println("Not a matok file")
+		return nil
+	}
+
+	// Read based on length
+	mat.array = make([]uint32, arraySize)
+
+	dataArray, err := io.ReadAll(r)
+
+	if err == io.EOF {
+		log.Println(err)
+		return nil
+	}
+
+	if len(dataArray) < arraySize*4 {
+		log.Println("Not enough bytes read", len(dataArray), arraySize)
+		return nil
+	}
+
+	for x := 0; x < arraySize; x++ {
+		//		mat.array[x] = bo.Uint32(dataArray[x*8 : (x*8)+4])
+		mat.array[x] = bo.Uint32(dataArray[x*4 : (x*4)+4])
+	}
+
+	return mat
+}
+
 func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	var a int
-	var t0 int
-	t := int(1) // Initial state
+	var t0 uint32
+	t := uint32(1) // Initial state
 	var ok, rewindBuffer bool
 
 	// Remember the last position of a possible tokenend,
 	// in case the automaton fails.
-	epsilonState := int(0)
+	epsilonState := uint32(0)
 	epsilonOffset := 0
 
 	// Remember if the last transition was epsilon
@@ -150,10 +400,24 @@ PARSECHARM:
 
 			// Check for epsilon transitions and remember
 
-			if mat.array[(mat.epsilon-1)*mat.stateCount+t0] != 0 {
+			// TODO: Can t0 be negative here?
+			if mat.array[(mat.epsilon-1)*mat.stateCount+int(t0)] != 0 {
 				// Remember state for backtracking to last tokenend state
+
+				// Maybe not necessary - and should be simpler!
+				// Just Remove
+				t0 &= ^FIRSTBIT
+				/*
+					if (t0 & FIRSTBIT) != 0 {
+						t0 ^= FIRSTBIT
+					}
+				*/
 				epsilonState = t0
 				epsilonOffset = buffo
+
+				if DEBUG {
+					fmt.Println("epsilonOffset is set to", buffo)
+				}
 			}
 		}
 
@@ -219,7 +483,7 @@ PARSECHARM:
 
 			// Transition does not produce a character
 			// if buffo == 1 && ta.isNonToken() {
-			if buffo == 1 && t < 0 {
+			if buffo == 1 && (t&FIRSTBIT) != 0 {
 				if DEBUG {
 					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
 				}
@@ -248,13 +512,20 @@ PARSECHARM:
 		// Rewind the buffer if necessary
 		if rewindBuffer {
 
+			if DEBUG {
+				fmt.Println("-> Rewind buffer", buffo, buffi, epsilonOffset)
+			}
+
 			// TODO: Better as a ring buffer
 			for x, i := range buffer[buffo:buffi] {
 				buffer[x] = i
 			}
 
 			buffi -= buffo
-			epsilonOffset -= buffo
+			// epsilonOffset -= buffo
+			epsilonOffset = 0
+			epsilonState = 0
+
 			buffo = 0
 			if DEBUG {
 				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
@@ -274,9 +545,12 @@ PARSECHARM:
 		*/
 
 		// Ignore nontoken mark
-		if t < 0 {
-			t *= -1
-		}
+		/*
+			if t < 0 {
+				t *= -1
+			}
+		*/
+		t &= ^FIRSTBIT
 
 		newchar = true
 
@@ -340,7 +614,7 @@ PARSECHARM:
 	newchar = false
 	// if dat.array[t].getCheck() == t0 {
 	// t can't be < 0
-	if t > 0 {
+	if t != 0 {
 		// Remember state for backtracking to last tokenend state
 		goto PARSECHARM
 

@@ -39,7 +39,7 @@ import (
 
 const (
 	DEBUG            = false
-	MAGIC            = "DATOK"
+	DAMAGIC          = "DATOK"
 	VERSION          = uint16(1)
 	FIRSTBIT  uint32 = 1 << 31
 	SECONDBIT uint32 = 1 << 30
@@ -489,7 +489,7 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	defer wb.Flush()
 
 	// Store magical header
-	all, err := wb.Write([]byte(MAGIC))
+	all, err := wb.Write([]byte(DAMAGIC))
 	if err != nil {
 		log.Println(err)
 		return int64(all), err
@@ -614,7 +614,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	r := bufio.NewReader(ior)
 
 	buf := make([]byte, 1024)
-	buf = buf[0:len(MAGIC)]
+	buf = buf[0:len(DAMAGIC)]
 
 	_, err := r.Read(buf)
 
@@ -623,7 +623,7 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 		return nil
 	}
 
-	if string(MAGIC) != string(buf) {
+	if string(DAMAGIC) != string(buf) {
 		log.Println("Not a datok file")
 		return nil
 	}
@@ -907,7 +907,8 @@ PARSECHAR:
 			}
 
 			buffi -= buffo
-			epsilonOffset -= buffo
+			// epsilonOffset -= buffo
+			epsilonOffset = buffo
 			buffo = 0
 			if DEBUG {
 				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))

@@ -55,6 +55,36 @@ func TestFullTokenizerMatrix(t *testing.T) {
 	assert.Equal(6, len(tokens))
 }
 
+func TestReadWriteMatrixTokenizer(t *testing.T) {
+	assert := assert.New(t)
+	foma := LoadFomaFile("testdata/simpletok.fst")
+	assert.NotNil(foma)
+
+	mat := foma.ToMatrix()
+	assert.NotNil(foma)
+
+	assert.True(tmatch(mat, "bau"))
+	assert.True(tmatch(mat, "bad"))
+	assert.True(tmatch(mat, "wald gehen"))
+	b := make([]byte, 0, 1024)
+	buf := bytes.NewBuffer(b)
+	n, err := mat.WriteTo(buf)
+	assert.Nil(err)
+	assert.Equal(int64(248), n)
+	mat2 := ParseMatrix(buf)
+	assert.NotNil(mat2)
+	assert.Equal(mat.sigma, mat2.sigma)
+	assert.Equal(mat.epsilon, mat2.epsilon)
+	assert.Equal(mat.unknown, mat2.unknown)
+	assert.Equal(mat.identity, mat2.identity)
+	assert.Equal(mat.stateCount, mat2.stateCount)
+	assert.Equal(len(mat.array), len(mat2.array))
+	assert.Equal(mat.array, mat2.array)
+	assert.True(tmatch(mat2, "bau"))
+	assert.True(tmatch(mat2, "bad"))
+	assert.True(tmatch(mat2, "wald gehen"))
+}
+
 func TestFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/tokenizer.fst")
