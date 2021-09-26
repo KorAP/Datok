@@ -29,6 +29,7 @@ type edge struct {
 
 type Tokenizer interface {
 	Transduce(r io.Reader, w io.Writer) bool
+	Type() string
 }
 
 // Automaton is the intermediate representation
@@ -440,6 +441,40 @@ func ParseFoma(ior io.Reader) *Automaton {
 	}
 	auto.sigmaMCS = nil
 	return auto
+}
+
+func LoadTokenizerFile(file string) Tokenizer {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	defer gz.Close()
+
+	r := bufio.NewReader(gz)
+
+	mstr, err := r.Peek(len(DAMAGIC))
+
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if string(mstr) == MAMAGIC {
+		return ParseMatrix(r)
+	} else if string(mstr) == DAMAGIC {
+		return ParseDatok(r)
+	}
+
+	log.Println("Neither a matrix nor a datok file")
+	return nil
 }
 
 // Set alphabet A to the list of all symbols

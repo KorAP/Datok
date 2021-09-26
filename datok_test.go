@@ -179,6 +179,17 @@ func TestFullTokenizer(t *testing.T) {
 	assert.True(tmatch(dat, "wald gehen"))
 }
 
+func TestTokenizerBranch(t *testing.T) {
+	assert := assert.New(t)
+	tok := LoadTokenizerFile("testdata/simpletok.datok")
+	assert.NotNil(tok)
+	assert.Equal(tok.Type(), "DATOK")
+
+	tok = LoadTokenizerFile("testdata/simpletok.matok")
+	assert.NotNil(tok)
+	assert.Equal(tok.Type(), "MATOK")
+}
+
 func XTestFullTokenizerBuild(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/tokenizer.fst")

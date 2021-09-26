@@ -239,6 +239,11 @@ func stateAlreadyInTable(s int, table []*mapping, size int) uint32 {
 	return 0
 }
 
+// Type of tokenizer
+func (DaTokenizer) Type() string {
+	return DAMAGIC
+}
+
 // Resize double array when necessary
 func (dat *DaTokenizer) resize(l int) {
 	// TODO:

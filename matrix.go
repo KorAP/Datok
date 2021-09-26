@@ -82,6 +82,11 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 	return mat
 }
 
+// Type of tokenizer
+func (MatrixTokenizer) Type() string {
+	return MAMAGIC
+}
+
 // Save stores the matrix data in a file
 func (mat *MatrixTokenizer) Save(file string) (n int64, err error) {
 	f, err := os.Create(file)
