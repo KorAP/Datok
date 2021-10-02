@@ -23,8 +23,6 @@ type MatrixTokenizer struct {
 	epsilon  int
 	unknown  int
 	identity int
-	// final    int
-	// tokenend int
 }
 
 // ToMatrix turns the intermediate tokenizer into a
@@ -32,17 +30,14 @@ type MatrixTokenizer struct {
 func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 
 	mat := &MatrixTokenizer{
-		sigma: make(map[rune]int),
-		// final:      auto.final,
-		unknown:  auto.unknown,
-		identity: auto.identity,
-		epsilon:  auto.epsilon,
-		// tokenend:   auto.tokenend,
+		sigma:      make(map[rune]int),
+		unknown:    auto.unknown,
+		identity:   auto.identity,
+		epsilon:    auto.epsilon,
 		stateCount: auto.stateCount,
 	}
 
-	mat.array = make([]uint32, (auto.stateCount+1)*(auto.sigmaCount))
-
+	max := 0
 	for num, sym := range auto.sigmaRev {
 		if int(sym) < 256 {
 			mat.sigmaASCII[int(sym)] = num
@@ -51,8 +46,16 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 		if num > auto.sigmaCount {
 			panic("sigmaCount is smaller")
 		}
+		if num > max {
+			max = num
+		}
 	}
+	// Add final entry to the list (maybe not necessary actually)
+
 	remember := make([]bool, auto.stateCount+2)
+
+	// lower sigmaCount, as no final value exists
+	mat.array = make([]uint32, (auto.stateCount+1)*(max+1))
 
 	// Store all transitions in matrix
 	var toMatrix func([]uint32, int)
@@ -120,7 +123,8 @@ func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	// Get sigma as a list
-	sigmalist := make([]rune, len(mat.sigma)+12)
+	// In datok it's 16 - 4*4
+	sigmalist := make([]rune, len(mat.sigma)+16)
 	max := 0
 	for sym, num := range mat.sigma {
 		sigmalist[num] = sym
@@ -129,17 +133,17 @@ func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 		}
 	}
 
+	// Add final entry to the list (maybe not necessary actually)
 	sigmalist = sigmalist[:max+1]
 
-	buf := make([]byte, 0, 12)
+	buf := make([]byte, 0, 14)
 	bo.PutUint16(buf[0:2], VERSION)
 	bo.PutUint16(buf[2:4], uint16(mat.epsilon))
 	bo.PutUint16(buf[4:6], uint16(mat.unknown))
 	bo.PutUint16(buf[6:8], uint16(mat.identity))
-	bo.PutUint16(buf[8:10], uint16(mat.stateCount))
-	bo.PutUint16(buf[10:12], uint16(len(sigmalist)))
-	// bo.PutUint32(buf[12:16], uint32(len(mat.array)*2)) // Legacy support
-	more, err := wb.Write(buf[0:12])
+	bo.PutUint32(buf[8:12], uint32(mat.stateCount))
+	bo.PutUint16(buf[12:14], uint16(len(sigmalist)))
+	more, err := wb.Write(buf[0:14])
 	if err != nil {
 		log.Println(err)
 		return int64(all), err
@@ -171,7 +175,6 @@ func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	}
 	all += more
 
-	// for x := 0; x < len(dat.array); x++ {
 	for _, x := range mat.array {
 		bo.PutUint32(buf[0:4], uint32(x))
 		more, err = wb.Write(buf[0:4])
@@ -184,19 +187,6 @@ func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 			log.Println("Can not write base uint32")
 			return int64(all), err
 		}
-		/*
-			bo.PutUint32(buf[0:4], bc.check)
-			more, err = wb.Write(buf[0:4])
-			if err != nil {
-				log.Println(err)
-				return int64(all), err
-			}
-			all += more
-			if more != 4 {
-				log.Println("Can not write check uint32")
-				return int64(all), err
-			}
-		*/
 	}
 
 	return int64(all), err
@@ -229,13 +219,11 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 
 	// Initialize tokenizer with default values
 	mat := &MatrixTokenizer{
-		sigma:    make(map[rune]int),
-		epsilon:  0,
-		unknown:  0,
-		identity: 0,
-		// final:      0,
+		sigma:      make(map[rune]int),
+		epsilon:    0,
+		unknown:    0,
+		identity:   0,
 		stateCount: 0,
-		// transCount: 0,
 	}
 
 	r := bufio.NewReader(ior)
@@ -255,13 +243,13 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 		return nil
 	}
 
-	more, err := io.ReadFull(r, buf[0:12])
+	more, err := io.ReadFull(r, buf[0:14])
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
-	if more != 12 {
+	if more != 14 {
 		log.Println("Read bytes do not fit")
 		return nil
 	}
@@ -276,11 +264,9 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 	mat.epsilon = int(bo.Uint16(buf[2:4]))
 	mat.unknown = int(bo.Uint16(buf[4:6]))
 	mat.identity = int(bo.Uint16(buf[6:8]))
-	mat.stateCount = int(bo.Uint16(buf[8:10]))
-
-	sigmaCount := int(bo.Uint16(buf[10:12]))
-	arraySize := (mat.stateCount + 1) * (sigmaCount + 1)
-	// int(bo.Uint32(buf[12:16]))
+	mat.stateCount = int(bo.Uint32(buf[8:12]))
+	sigmaCount := int(bo.Uint16(buf[12:14]))
+	arraySize := (mat.stateCount + 1) * sigmaCount
 
 	// Shouldn't be relevant though
 	// mat.maxSize = arraySize - 1
@@ -318,12 +304,11 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 	}
 
 	if len(dataArray) < arraySize*4 {
-		log.Println("Not enough bytes read", len(dataArray), arraySize)
+		log.Println("Not enough bytes read", len(dataArray), arraySize*4)
 		return nil
 	}
 
 	for x := 0; x < arraySize; x++ {
-		//		mat.array[x] = bo.Uint32(dataArray[x*8 : (x*8)+4])
 		mat.array[x] = bo.Uint32(dataArray[x*4 : (x*4)+4])
 	}
 
