@@ -1013,3 +1013,8 @@ func BenchmarkToDoubleArrayLarger(b *testing.B) {
 //   BenchmarkToDoubleArray-4                   69192             17355 ns/op           10704 B/op         29 allocs/op
 //   BenchmarkToDoubleArrayLarger-4                16          65042885 ns/op         6357794 B/op       2576 allocs/op
 //   BenchmarkTransduceMatrix-4                 45404             25156 ns/op            8240 B/op          3 allocs/op
+// 2021-10-02
+//   BenchmarkTransduce-4                       47676             25398 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4                   71919             16083 ns/op           10702 B/op         29 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                16          68012819 ns/op         6357920 B/op       2578 allocs/op
+//   BenchmarkTransduceMatrix-4                 51529             23678 ns/op            8240 B/op          3 allocs/op

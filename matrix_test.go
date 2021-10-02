@@ -125,10 +125,7 @@ func TestReadWriteMatrixFullTokenizer(t *testing.T) {
 func TestFullTokenizerMatrixTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	foma := LoadFomaFile("testdata/tokenizer.fst")
-	assert.NotNil(foma)
-
-	mat := foma.ToMatrix()
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
 	assert.NotNil(mat)
 
@@ -157,10 +154,7 @@ func TestFullTokenizerMatrixTransduce(t *testing.T) {
 
 func TestFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
-	foma := LoadFomaFile("testdata/tokenizer.fst")
-	assert.NotNil(foma)
-
-	mat := foma.ToMatrix()
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -249,10 +243,7 @@ func TestFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 func TestFullTokenizerMatrixTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 
-	foma := LoadFomaFile("testdata/tokenizer.fst")
-	assert.NotNil(foma)
-
-	mat := foma.ToMatrix()
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -790,10 +781,8 @@ func TestFullTokenizerMatrixTokenSplitter(t *testing.T) {
 func TestFullTokenizerMatrixXML(t *testing.T) {
 	assert := assert.New(t)
 
-	foma := LoadFomaFile("testdata/tokenizer.fst")
-	assert.NotNil(foma)
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
-	mat := foma.ToMatrix()
 	assert.NotNil(mat)
 
 	b := make([]byte, 0, 2048)
@@ -845,8 +834,7 @@ func BenchmarkTransduceMatrix(b *testing.B) {
 	Mach's macht's was'n ist's haste willste kannste biste kriegste.`
 	r := strings.NewReader(s)
 
-	foma := LoadFomaFile("testdata/tokenizer.fst")
-	mat := foma.ToMatrix()
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
 	b.ResetTimer()
 
