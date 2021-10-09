@@ -10,6 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var s string = `Der Vorsitzende der Abk. hat gewählt. Gefunden auf wikipedia.org. Ich bin unter korap@ids-mannheim.de erreichbar.
+Unsere Website ist https://korap.ids-mannheim.de/?q=Baum. Unser Server ist 10.0.10.51. Zu 50.4% ist es sicher.
+Der Termin ist am 5.9.2018.
+Ich habe die readme.txt heruntergeladen.
+Ausschalten!!! Hast Du nicht gehört???
+Ich wohne in der Weststr. und Du? Kupietz und Schmidt [2018]: Korpuslinguistik. Dieses verf***** Kleid! Ich habe die readme.txt heruntergeladen.
+Er sagte: \"Es geht mir gut!\", daraufhin ging er. &quot;Das ist von C&A!&quot; Früher bzw. später ... Sie erreichte den 1. Platz!
+Archive:  Ich bin kein zip. D'dorf Ku'damm Lu'hafen M'gladbach W'schaft.
+Mach's macht's was'n ist's haste willste kannste biste kriegste.`
+
 func TestFullTokenizerMatrix(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/simpletok.fst")
@@ -819,19 +829,37 @@ func TestFullTokenizerMatrixXML(t *testing.T) {
 	assert.Equal(10, len(tokens))
 }
 
+func TestMatokDatokEquivalence(t *testing.T) {
+	assert := assert.New(t)
+
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	dat := LoadDatokFile("testdata/tokenizer.datok")
+
+	r := strings.NewReader(s)
+
+	tb := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(tb)
+
+	// Transduce with double array representation
+	dat.Transduce(r, w)
+
+	datStr := w.String()
+
+	r.Reset(s)
+	w.Reset()
+
+	// Transduce with matrix representation
+	mat.Transduce(r, w)
+
+	matStr := w.String()
+
+	assert.Equal(datStr, matStr)
+}
+
 func BenchmarkTransduceMatrix(b *testing.B) {
 	bu := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(bu)
 
-	s := `Der Vorsitzende der Abk. hat gewählt. Gefunden auf wikipedia.org. Ich bin unter korap@ids-mannheim.de erreichbar.
-	Unsere Website ist https://korap.ids-mannheim.de/?q=Baum. Unser Server ist 10.0.10.51. Zu 50.4% ist es sicher.
-	Der Termin ist am 5.9.2018.
-	Ich habe die readme.txt heruntergeladen.
-	Ausschalten!!! Hast Du nicht gehört???
-	Ich wohne in der Weststr. und Du? Kupietz und Schmidt [2018]: Korpuslinguistik. Dieses verf***** Kleid! Ich habe die readme.txt heruntergeladen.
-	Er sagte: \"Es geht mir gut!\", daraufhin ging er. &quot;Das ist von C&A!&quot; Früher bzw. später ... Sie erreichte den 1. Platz!
-	Archive:  Ich bin kein zip. D'dorf Ku'damm Lu'hafen M'gladbach W'schaft.
-	Mach's macht's was'n ist's haste willste kannste biste kriegste.`
 	r := strings.NewReader(s)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
