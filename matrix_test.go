@@ -856,6 +856,20 @@ func TestMatokDatokEquivalence(t *testing.T) {
 	assert.Equal(datStr, matStr)
 }
 
+func TestFullTokenizerMatrixCallbackTransduce(t *testing.T) {
+	assert := assert.New(t)
+
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
+
+	assert.NotNil(mat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	// var tokens []string
+
+	assert.True(mat.Transduce(strings.NewReader("Der alte Baum. Er war schon alt."), w))
+}
+
 func BenchmarkTransduceMatrix(b *testing.B) {
 	bu := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(bu)

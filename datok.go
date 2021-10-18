@@ -724,14 +724,19 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 	return string(out)
 }
 
-// Transduce an input string against the double array
-// FSA. The rules are always greedy. If the automaton fails,
-// it takes the last possible token ending branch.
+func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
+	return dat.TransduceTokenWriter(r, NewTokenWriter(w))
+}
+
+// TransduceTokenWriter transduces an input string against
+// the double array FSA. The rules are always greedy. If the
+// automaton fails, it takes the last possible token ending
+// branch.
 //
 // Based on Mizobuchi et al (2000), p. 129,
 // with additional support for IDENTITY, UNKNOWN
 // and EPSILON transitions and NONTOKEN and TOKENEND handling.
-func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
+func (dat *DaTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
 	var a int
 	var t0 uint32
 	t := uint32(1) // Initial state
@@ -741,6 +746,9 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	// in case the automaton fails.
 	epsilonState := uint32(0)
 	epsilonOffset := 0
+
+	// Remember if the last transition was epsilon
+	sentenceEnd := false
 
 	// Implement a low level buffer for full control,
 	// however - it is probably better to introduce
@@ -761,10 +769,10 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	buffi := 0 // Buffer length
 
 	reader := bufio.NewReader(r)
-	writer := bufio.NewWriter(w)
-	defer writer.Flush()
+	defer w.Flush()
 
 	var char rune
+
 	var err error
 	eof := false
 	newchar := true
@@ -819,6 +827,10 @@ PARSECHAR:
 				// Remember state for backtracking to last tokenend state
 				epsilonState = t0
 				epsilonOffset = buffo
+
+				if DEBUG {
+					fmt.Println("epsilonOffset is set to", buffo)
+				}
 			}
 		}
 
@@ -885,26 +897,32 @@ PARSECHAR:
 				}
 				rewindBuffer = true
 			}
-		}
 
-		// Transition marks the end of a token - so flush the buffer
-		if ta.isTokenEnd() {
+		} else {
 
-			if buffi > 0 {
+			// Transition marks the end of a token - so flush the buffer
+			if buffo > 0 {
 				if DEBUG {
 					fmt.Println("-> Flush buffer: [", string(buffer[:buffo]), "]", showBuffer(buffer, buffo, buffi))
 				}
-				writer.WriteString(string(buffer[:buffo]))
+				w.Token(0, buffer[:buffo])
 				rewindBuffer = true
+				sentenceEnd = false
+			} else {
+				sentenceEnd = true
+				w.SentenceEnd()
 			}
 			if DEBUG {
 				fmt.Println("-> Newline")
 			}
-			writer.WriteRune('\n')
 		}
 
 		// Rewind the buffer if necessary
 		if rewindBuffer {
+
+			if DEBUG {
+				fmt.Println("-> Rewind buffer", buffo, buffi, epsilonOffset)
+			}
 
 			// TODO: Better as a ring buffer
 			for x, i := range buffer[buffo:buffi] {
@@ -913,7 +931,9 @@ PARSECHAR:
 
 			buffi -= buffo
 			// epsilonOffset -= buffo
-			epsilonOffset = buffo
+			epsilonOffset = 0
+			epsilonState = 0
+
 			buffo = 0
 			if DEBUG {
 				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
@@ -948,6 +968,8 @@ PARSECHAR:
 		fmt.Println("Entering final check")
 	}
 
+	// --- unclear if relevant
+
 	// Automaton is in a final state, so flush the buffer and return
 	x := dat.array[t].getBase() + uint32(dat.final)
 
@@ -957,24 +979,14 @@ PARSECHAR:
 			if DEBUG {
 				fmt.Println("-> Flush buffer: [", string(buffer[:buffi]), "]")
 			}
-			writer.WriteString(string(buffer[:buffi]))
-
-			if dat.array[t].isTokenEnd() {
-				writer.WriteRune('\n')
-				if DEBUG {
-					fmt.Println("-> Newline")
-				}
-			}
+			w.Token(0, buffer[:buffi])
 		}
 
 		// Add an additional sentence ending, if the file is over but no explicit
 		// sentence split was reached. This may be controversial and therefore
 		// optional via parameter.
 		if !dat.array[t0].isTokenEnd() {
-			writer.WriteRune('\n')
-			if DEBUG {
-				fmt.Println("-> Newline")
-			}
+			w.SentenceEnd()
 		}
 
 		// TODO:
@@ -983,11 +995,14 @@ PARSECHAR:
 		return true
 	}
 
+	// -----
+
 	// Check epsilon transitions until a final state is reached
 	t0 = t
 	t = dat.array[t0].getBase() + uint32(dat.epsilon)
 	a = dat.epsilon
 	newchar = false
+
 	if dat.array[t].getCheck() == t0 {
 		// Remember state for backtracking to last tokenend state
 		goto PARSECHAR
@@ -1001,5 +1016,18 @@ PARSECHAR:
 		}
 		goto PARSECHAR
 	}
-	return false
+
+	// Add an additional sentence ending, if the file is over but no explicit
+	// sentence split was reached. This may be controversial and therefore
+	// optional via parameter.
+	if !sentenceEnd {
+		// writer.WriteRune('\n')
+		// ::Sentenceend
+		w.SentenceEnd()
+		if DEBUG {
+			fmt.Println("-> Newline")
+		}
+	}
+
+	return true
 }

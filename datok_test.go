@@ -38,7 +38,7 @@ func TestSimpleString(t *testing.T) {
 	assert.True(tmatch(dat, "bau"))
 	assert.True(tmatch(dat, "bauamt"))
 	assert.False(tmatch(dat, "baum"))
-	assert.False(tmatch(dat, "baua"))
+	assert.True(tmatch(dat, "baua"))
 }
 
 func TestSimpleBranches(t *testing.T) {
@@ -47,7 +47,7 @@ func TestSimpleBranches(t *testing.T) {
 	// (bau | wahl) (amt | en)
 	tok := LoadFomaFile("testdata/wahlamt.fst")
 	dat := tok.ToDoubleArray()
-	assert.False(tmatch(dat, "bau"))
+	assert.True(tmatch(dat, "bau"))
 	assert.True(tmatch(dat, "bauamt"))
 	assert.True(tmatch(dat, "wahlamt"))
 	assert.True(tmatch(dat, "bauen"))
@@ -154,11 +154,11 @@ func TestIgnorableMCS(t *testing.T) {
 	// Is only unambigous when transducing strictly greedy!
 	assert.True(dat.Transduce(strings.NewReader("ab<ab>"), w))
 	tokens = strings.Split(w.String(), "\n")
-	assert.Equal("a\nb\n<ab>\n", w.String())
+	assert.Equal("a\nb\n<ab>\n\n", w.String())
 	assert.Equal("a", tokens[0])
 	assert.Equal("b", tokens[1])
 	assert.Equal("<ab>", tokens[2])
-	assert.Equal(4, len(tokens))
+	assert.Equal(5, len(tokens))
 	assert.Equal(dat.TransCount(), 15)
 }
 
@@ -1018,3 +1018,13 @@ func BenchmarkToDoubleArrayLarger(b *testing.B) {
 //   BenchmarkToDoubleArray-4                   71919             16083 ns/op           10702 B/op         29 allocs/op
 //   BenchmarkToDoubleArrayLarger-4                16          68012819 ns/op         6357920 B/op       2578 allocs/op
 //   BenchmarkTransduceMatrix-4                 51529             23678 ns/op            8240 B/op          3 allocs/op
+// 2021-10-12 - Introduction of Callbacks in Matrix
+//   BenchmarkTransduce-4                       46947             26043 ns/op            8240 B/op          3 allocs/op
+//   BenchmarkToDoubleArray-4                   65192             16501 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                15          69263576 ns/op         6357859 B/op       2577 allocs/op
+//   BenchmarkTransduceMatrix-4                 49928             26313 ns/op           12408 B/op          6 allocs/op
+// 2021-10-18 - Introduction of Callbacks in DA
+//   BenchmarkTransduce-4                       41055             30058 ns/op           12408 B/op          6 allocs/op
+//   BenchmarkToDoubleArray-4                   64672             17659 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                15          71640553 ns/op         6357865 B/op       2577 allocs/op
+//   BenchmarkTransduceMatrix-4                 47036             26009 ns/op           12408 B/op          6 allocs/op

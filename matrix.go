@@ -313,6 +313,10 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 }
 
 func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
+	return mat.TransduceTokenWriter(r, NewTokenWriter(w))
+}
+
+func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
 	var a int
 	var t0 uint32
 	t := uint32(1) // Initial state
@@ -331,8 +335,7 @@ func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	buffi := 0 // Buffer length
 
 	reader := bufio.NewReader(r)
-	writer := bufio.NewWriter(w)
-	defer writer.Flush()
+	defer w.Flush()
 
 	var char rune
 
@@ -411,7 +414,7 @@ PARSECHARM:
 			fmt.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
 		}
 
-		// Check if the transition is invalid according to the double array
+		// Check if the transition is invalid according to the matrix
 		if t == 0 {
 
 			if DEBUG {
@@ -465,20 +468,21 @@ PARSECHARM:
 
 		} else {
 			// Transition marks the end of a token - so flush the buffer
-			if buffi > 0 {
+			if buffo > 0 {
 				if DEBUG {
 					fmt.Println("-> Flush buffer: [", string(buffer[:buffo]), "]", showBuffer(buffer, buffo, buffi))
 				}
-				writer.WriteString(string(buffer[:buffo]))
+				w.Token(0, buffer[:buffo])
 				rewindBuffer = true
 				sentenceEnd = false
 			} else {
 				sentenceEnd = true
+				w.SentenceEnd()
 			}
 			if DEBUG {
 				fmt.Println("-> Newline")
 			}
-			writer.WriteRune('\n')
+			// writer.WriteRune('\n')
 		}
 
 		// Rewind the buffer if necessary
@@ -548,7 +552,9 @@ PARSECHARM:
 	// sentence split was reached. This may be controversial and therefore
 	// optional via parameter.
 	if !sentenceEnd {
-		writer.WriteRune('\n')
+		// writer.WriteRune('\n')
+		// ::Sentenceend
+		w.SentenceEnd()
 		if DEBUG {
 			fmt.Println("-> Newline")
 		}
