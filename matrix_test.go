@@ -97,6 +97,32 @@ func TestReadWriteMatrixTokenizer(t *testing.T) {
 	assert.True(tmatch(mat2, "wald gehen"))
 }
 
+func TestMatrixIgnorableMCS(t *testing.T) {
+	assert := assert.New(t)
+
+	// This test relies on final states. That's why it is
+	// not working correctly anymore.
+
+	// File has MCS in sigma but not in net
+	tok := LoadFomaFile("testdata/ignorable_mcs.fst")
+	assert.NotNil(tok)
+	mat := tok.ToMatrix()
+	assert.NotNil(mat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	// Is only unambigous when transducing strictly greedy!
+	assert.True(mat.Transduce(strings.NewReader("ab<ab>a"), w))
+	tokens = strings.Split(w.String(), "\n")
+	assert.Equal("a\nb\n<ab>a\n\n", w.String())
+	assert.Equal("a", tokens[0])
+	assert.Equal("b", tokens[1])
+	assert.Equal("<ab>a", tokens[2])
+	assert.Equal(5, len(tokens))
+}
+
 func TestReadWriteMatrixFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/tokenizer.fst")
@@ -854,6 +880,20 @@ func TestMatokDatokEquivalence(t *testing.T) {
 	matStr := w.String()
 
 	assert.Equal(datStr, matStr)
+}
+
+func TestFullTokenizerMatrixCallbackTransduce(t *testing.T) {
+	assert := assert.New(t)
+
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
+
+	assert.NotNil(mat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	// var tokens []string
+
+	assert.True(mat.Transduce(strings.NewReader("Der alte Baum. Er war schon alt."), w))
 }
 
 func BenchmarkTransduceMatrix(b *testing.B) {
