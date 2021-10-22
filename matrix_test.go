@@ -20,7 +20,7 @@ Er sagte: \"Es geht mir gut!\", daraufhin ging er. &quot;Das ist von C&A!&quot; 
 Archive:  Ich bin kein zip. D'dorf Ku'damm Lu'hafen M'gladbach W'schaft.
 Mach's macht's was'n ist's haste willste kannste biste kriegste.`
 
-func TestFullTokenizerMatrix(t *testing.T) {
+func TestMatrixFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/simpletok.fst")
 	assert.NotNil(foma)
@@ -68,7 +68,7 @@ func TestFullTokenizerMatrix(t *testing.T) {
 	assert.Equal(7, len(tokens))
 }
 
-func TestReadWriteMatrixTokenizer(t *testing.T) {
+func TestMatrixReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/simpletok.fst")
 	assert.NotNil(foma)
@@ -124,7 +124,7 @@ func TestMatrixIgnorableMCS(t *testing.T) {
 	assert.Equal(6, len(tokens))
 }
 
-func xTestReadWriteMatrixFullTokenizer(t *testing.T) {
+func xTestMatrixReadWriteFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/tokenizer.fst")
 	assert.NotNil(foma)
@@ -159,7 +159,7 @@ func xTestReadWriteMatrixFullTokenizer(t *testing.T) {
 	assert.Equal("der\nalte\nbaum\n\n\n", w.String())
 }
 
-func TestFullTokenizerMatrixTransduce(t *testing.T) {
+func TestMatrixFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
@@ -189,7 +189,7 @@ func TestFullTokenizerMatrixTransduce(t *testing.T) {
 	assert.Equal("\"\nJohn\nDoe\n\"\n@xx\n.\n\ncom\n\n\n", w.String())
 }
 
-func TestFullTokenizerMatrixSentenceSplitter(t *testing.T) {
+func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
@@ -285,7 +285,7 @@ func TestFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	*/
 }
 
-func TestFullTokenizerMatrixTokenSplitter(t *testing.T) {
+func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
@@ -823,7 +823,7 @@ func TestFullTokenizerMatrixTokenSplitter(t *testing.T) {
 	*/
 }
 
-func TestFullTokenizerMatrixXML(t *testing.T) {
+func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
@@ -891,7 +891,7 @@ func TestMatokDatokEquivalence(t *testing.T) {
 	assert.Equal(datStr, matStr)
 }
 
-func TestFullTokenizerMatrixCallbackTransduce(t *testing.T) {
+func TestMatrixFullTokenizerCallbackTransduce(t *testing.T) {
 	assert := assert.New(t)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
@@ -908,7 +908,7 @@ func TestFullTokenizerMatrixCallbackTransduce(t *testing.T) {
 	assert.Equal("Der\nalte\nBaum\n.\n\nEr\nwar\nschon\nalt\n.\n\n\n", matStr)
 }
 
-func TestFullTokenizerMatrixTextTreatment(t *testing.T) {
+func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 	assert := assert.New(t)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
@@ -924,7 +924,7 @@ func TestFullTokenizerMatrixTextTreatment(t *testing.T) {
 
 }
 
-func BenchmarkTransduceMatrix(b *testing.B) {
+func BenchmarkMatrixTransduce(b *testing.B) {
 	bu := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(bu)
 

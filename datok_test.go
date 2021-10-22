@@ -29,7 +29,7 @@ func ttokenize(tok Tokenizer, w *bytes.Buffer, str string) []string {
 	return tokens[:len(tokens)-1]
 }
 
-func TestSimpleString(t *testing.T) {
+func TestDoubleArraySimpleString(t *testing.T) {
 	assert := assert.New(t)
 
 	// bau | bauamt
@@ -41,7 +41,7 @@ func TestSimpleString(t *testing.T) {
 	assert.True(tmatch(dat, "baua"))
 }
 
-func TestSimpleBranches(t *testing.T) {
+func TestDoubleArraySimpleBranches(t *testing.T) {
 	assert := assert.New(t)
 
 	// (bau | wahl) (amt | en)
@@ -64,7 +64,7 @@ func TestSimpleTokenizer(t *testing.T) {
 	assert.True(tmatch(dat, "wald gehen"))
 }
 
-func TestSimpleTokenizerTransduce(t *testing.T) {
+func TestDoubleArraySimpleTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
@@ -108,7 +108,7 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	assert.Equal(7, len(tokens))
 }
 
-func TestReadWriteTokenizer(t *testing.T) {
+func TestDoubleArrayReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
@@ -139,7 +139,7 @@ func TestReadWriteTokenizer(t *testing.T) {
 	assert.Equal(dat2.TransCount(), 17)
 }
 
-func TestIgnorableMCS(t *testing.T) {
+func TestDoubleArrayIgnorableMCS(t *testing.T) {
 
 	// This test relies on final states. That's why it is
 	// not working correctly anymore.
@@ -166,7 +166,7 @@ func TestIgnorableMCS(t *testing.T) {
 	assert.Equal(dat.TransCount(), 15)
 }
 
-func TestFullTokenizer(t *testing.T) {
+func TestDoubleArrayFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 	assert.NotNil(dat)
@@ -183,7 +183,7 @@ func TestFullTokenizer(t *testing.T) {
 	assert.True(tmatch(dat, "wald gehen"))
 }
 
-func TestTokenizerBranch(t *testing.T) {
+func TestDoubleArrayTokenizerBranch(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadTokenizerFile("testdata/simpletok.datok")
 	assert.NotNil(tok)
@@ -194,7 +194,7 @@ func TestTokenizerBranch(t *testing.T) {
 	assert.Equal(tok.Type(), "MATOK")
 }
 
-func XTestFullTokenizerBuild(t *testing.T) {
+func XTestDoubleArrayFullTokenizerBuild(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/tokenizer.fst")
 	dat := tok.ToDoubleArray()
@@ -204,7 +204,7 @@ func XTestFullTokenizerBuild(t *testing.T) {
 	// assert.True(n > 500)
 }
 
-func TestFullTokenizerTransduce(t *testing.T) {
+func TestDoubleArrayFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
 	dat := LoadDatokFile("testdata/tokenizer.datok")
@@ -234,7 +234,7 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.Equal("\"\nJohn\nDoe\n\"\n@xx\n.\n\ncom\n\n\n", w.String())
 }
 
-func TestFullTokenizerSentenceSplitter(t *testing.T) {
+func TestDoubleArrayFullTokenizerSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 	assert.NotNil(dat)
@@ -324,7 +324,7 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	*/
 }
 
-func TestFullTokenizerTokenSplitter(t *testing.T) {
+func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 	assert.NotNil(dat)
@@ -862,14 +862,14 @@ func TestFullTokenizerTokenSplitter(t *testing.T) {
 	*/
 }
 
-func TestLoadFactor1(t *testing.T) {
+func TestDoubleArrayLoadFactor1(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/abbr_bench.fst")
 	dat := tok.ToDoubleArray()
 	assert.True(dat.LoadFactor() > 88)
 }
 
-func TestFullTokenizerXML(t *testing.T) {
+func TestDoubleArrayFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
 	dat := LoadDatokFile("testdata/tokenizer.datok")
@@ -909,7 +909,7 @@ func TestFullTokenizerXML(t *testing.T) {
 	assert.Equal(10, len(tokens))
 }
 
-func BenchmarkTransduce(b *testing.B) {
+func BenchmarkDoubleArrayTransduce(b *testing.B) {
 	bu := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(bu)
 
@@ -951,7 +951,7 @@ func XBenchmarkLoadDatokFile(b *testing.B) {
 	}
 }
 
-func BenchmarkToDoubleArray(b *testing.B) {
+func BenchmarkDoubleArrayConstruction(b *testing.B) {
 	tok := LoadFomaFile("testdata/simple_bench.fst")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -963,7 +963,7 @@ func BenchmarkToDoubleArray(b *testing.B) {
 	}
 }
 
-func BenchmarkToDoubleArrayLarger(b *testing.B) {
+func BenchmarkDoubleArrayLarger(b *testing.B) {
 	tok := LoadFomaFile("testdata/abbr_bench.fst")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1038,3 +1038,8 @@ func BenchmarkToDoubleArrayLarger(b *testing.B) {
 //   BenchmarkToDoubleArray-4                   63663             17675 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkToDoubleArrayLarger-4                16          83535733 ns/op         6357874 B/op       2577 allocs/op
 //   BenchmarkTransduceMatrix-4                 45362             25258 ns/op           12408 B/op          6 allocs/op
+// 2021-10-21 - Introduxe EOT
+//   BenchmarkDoubleArrayTransduce-4            43820             27661 ns/op           12408 B/op          6 allocs/op
+//   BenchmarkDoubleArrayConstruction-4         68259             16608 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkDoubleArrayLarger-4                  16          69889532 ns/op         6357901 B/op       2578 allocs/op
+//   BenchmarkMatrixTransduce-4                 49426             25105 ns/op           12408 B/op          6 allocs/op
