@@ -6,7 +6,8 @@ import (
 )
 
 type TokenWriterI interface {
-	SentenceEnd()
+	SentenceEnd(int)
+	TextEnd(int)
 	Token(int, []rune)
 	Flush() error
 }
@@ -21,8 +22,13 @@ func NewTokenWriterSimple(w io.Writer) *TokenWriterSimple {
 	return &TokenWriterSimple{bufio.NewWriter(w)}
 }
 
-func (tw *TokenWriterSimple) SentenceEnd() {
+func (tw *TokenWriterSimple) SentenceEnd(_ int) {
 	tw.writer.WriteRune('\n')
+}
+
+func (tw *TokenWriterSimple) TextEnd(_ int) {
+	tw.writer.WriteRune('\n')
+	tw.writer.Flush()
 }
 
 func (tw *TokenWriterSimple) Token(_ int, buf []rune) {

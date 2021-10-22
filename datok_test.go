@@ -75,7 +75,7 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	var tokens []string
 	dat.Transduce(r, w)
 	tokens = strings.Split(w.String(), "\n")
-	assert.Equal(len(tokens), 10)
+	assert.Equal(len(tokens), 11)
 	assert.Equal("wald", tokens[0])
 	assert.Equal("gehen", tokens[1])
 	assert.Equal("Da", tokens[2])
@@ -105,7 +105,7 @@ func TestSimpleTokenizerTransduce(t *testing.T) {
 	assert.Equal("D", tokens[3])
 	assert.Equal("", tokens[4])
 	assert.Equal("", tokens[5])
-	assert.Equal(6, len(tokens))
+	assert.Equal(7, len(tokens))
 }
 
 func TestReadWriteTokenizer(t *testing.T) {
@@ -158,11 +158,11 @@ func TestIgnorableMCS(t *testing.T) {
 	// Is only unambigous when transducing strictly greedy!
 	assert.True(dat.Transduce(strings.NewReader("ab<ab>a"), w))
 	tokens = strings.Split(w.String(), "\n")
-	assert.Equal("a\nb\n<ab>a\n\n", w.String())
+	assert.Equal("a\nb\n<ab>a\n\n\n", w.String())
 	assert.Equal("a", tokens[0])
 	assert.Equal("b", tokens[1])
 	assert.Equal("<ab>a", tokens[2])
-	assert.Equal(5, len(tokens))
+	assert.Equal(6, len(tokens))
 	assert.Equal(dat.TransCount(), 15)
 }
 
@@ -174,8 +174,8 @@ func TestFullTokenizer(t *testing.T) {
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
-	assert.Equal(dat.final, 145)
-	assert.Equal(len(dat.sigma), 140)
+	assert.Equal(dat.final, 146)
+	assert.Equal(len(dat.sigma), 141)
 	assert.True(len(dat.array) > 3600000)
 	assert.True(dat.maxSize > 3600000)
 	assert.True(tmatch(dat, "bau"))
@@ -217,7 +217,7 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.True(dat.Transduce(strings.NewReader("tra. u Du?"), w))
 
 	tokens = strings.Split(w.String(), "\n")
-	assert.Equal("tra\n.\n\nu\nDu\n?\n\n", w.String())
+	assert.Equal("tra\n.\n\nu\nDu\n?\n\n\n", w.String())
 	assert.Equal("tra", tokens[0])
 	assert.Equal(".", tokens[1])
 	assert.Equal("", tokens[2])
@@ -226,11 +226,12 @@ func TestFullTokenizerTransduce(t *testing.T) {
 	assert.Equal("?", tokens[5])
 	assert.Equal("", tokens[6])
 	assert.Equal("", tokens[7])
-	assert.Equal(8, len(tokens))
+	assert.Equal("", tokens[8])
+	assert.Equal(9, len(tokens))
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("\"John Doe\"@xx.com"), w))
-	assert.Equal("\"\nJohn\nDoe\n\"\n@xx\n.\n\ncom\n\n", w.String())
+	assert.Equal("\"\nJohn\nDoe\n\"\n@xx\n.\n\ncom\n\n\n", w.String())
 }
 
 func TestFullTokenizerSentenceSplitter(t *testing.T) {
@@ -246,23 +247,23 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	assert.True(dat.Transduce(strings.NewReader("Der alte Mann."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 
-	assert.Equal("Der\nalte\nMann\n.\n\n", w.String())
+	assert.Equal("Der\nalte\nMann\n.\n\n\n", w.String())
 	assert.Equal("Der\nalte\nMann\n.", sentences[0])
-	assert.Equal("", sentences[1])
-	assert.Equal(len(sentences), 2)
+	assert.Equal("\n", sentences[1])
+	assert.Equal(2, len(sentences))
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Der Vorsitzende der Abk. hat gewählt."), w))
 	sentences = strings.Split(w.String(), "\n\n")
-	assert.Equal(len(sentences), 2)
+	assert.Equal(2, len(sentences))
 	assert.Equal("Der\nVorsitzende\nder\nAbk.\nhat\ngewählt\n.", sentences[0])
-	assert.Equal("", sentences[1])
+	assert.Equal("\n", sentences[1])
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader(""), w))
 	sentences = strings.Split(w.String(), "\n\n")
-	assert.Equal(len(sentences), 1)
-	assert.Equal("\n", sentences[0])
+	assert.Equal(2, len(sentences))
+	assert.Equal("", sentences[0])
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Gefunden auf wikipedia.org."), w))
@@ -278,14 +279,14 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	assert.True(dat.Transduce(strings.NewReader("Unsere Website ist https://korap.ids-mannheim.de/?q=Baum"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal("Unsere\nWebsite\nist\nhttps://korap.ids-mannheim.de/?q=Baum", sentences[0])
-	assert.Equal("", sentences[1])
-	assert.Equal(len(sentences), 2)
+	assert.Equal("\n", sentences[1])
+	assert.Equal(2, len(sentences))
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Unser Server ist 10.0.10.51."), w))
 	sentences = strings.Split(w.String(), "\n\n")
-	assert.Equal("", sentences[1])
-	assert.Equal(len(sentences), 2)
+	assert.Equal("\n", sentences[1])
+	assert.Equal(2, len(sentences))
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Zu 50.4% ist es sicher"), w))
@@ -300,17 +301,17 @@ func TestFullTokenizerSentenceSplitter(t *testing.T) {
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Ich habe die readme.txt heruntergeladen"), w))
 	sentences = strings.Split(w.String(), "\n\n")
-	assert.Equal(len(sentences), 2)
+	assert.Equal(2, len(sentences))
 	assert.Equal("Ich\nhabe\ndie\nreadme.txt\nheruntergeladen", sentences[0])
-	assert.Equal("", sentences[1])
+	assert.Equal("\n", sentences[1])
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Ausschalten!!! Hast Du nicht gehört???"), w))
 	sentences = strings.Split(w.String(), "\n\n")
-	assert.Equal(len(sentences), 3)
+	assert.Equal(3, len(sentences))
 	assert.Equal("Ausschalten\n!!!", sentences[0])
 	assert.Equal("Hast\nDu\nnicht\ngehört\n???", sentences[1])
-	assert.Equal("", sentences[2])
+	assert.Equal("\n", sentences[2])
 
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
@@ -1032,3 +1033,8 @@ func BenchmarkToDoubleArrayLarger(b *testing.B) {
 //   BenchmarkToDoubleArray-4                   64672             17659 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkToDoubleArrayLarger-4                15          71640553 ns/op         6357865 B/op       2577 allocs/op
 //   BenchmarkTransduceMatrix-4                 47036             26009 ns/op           12408 B/op          6 allocs/op
+// 2021-10-21 - Simplify DA code to ignore final states
+//   BenchmarkTransduce-4                       41365             33766 ns/op           12408 B/op          6 allocs/op
+//   BenchmarkToDoubleArray-4                   63663             17675 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkToDoubleArrayLarger-4                16          83535733 ns/op         6357874 B/op       2577 allocs/op
+//   BenchmarkTransduceMatrix-4                 45362             25258 ns/op           12408 B/op          6 allocs/op

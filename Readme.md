@@ -83,21 +83,22 @@ this FST, run
 $ datok convert -i mytokenizer.fst -o mytokenizer.datok
 ```
 
-To generate a Datok FSA (double array representation) based
+To generate a Datok FSA (double array representation*) based
 on this FST, run
 
 ```shell
 $ datok convert -i mytokenizer.fst -o mytokenizer.datok -d
 ```
 
-*Caution*: This may take some time depending on the number of arcs in the FST.
-
 The final datok file can then be used as a model for the tokenizer.
 
-## Example
+* This may take quite some time depending on the number
+of arcs in the FST and is therefore now deprecated.
+
+## Tokenizing
 
 ```shell
-$ echo "Es war spät, schon ca. 2 Uhr. ;-)" | ./datok tokenize -t testdata/tokenizer.datok 
+$ echo "Es war spät, schon ca. 2 Uhr. ;-)" | ./datok tokenize -t testdata/tokenizer.matok 
 Es
 war
 spät
@@ -110,6 +111,8 @@ Uhr
 
 ;-)
 ```
+
+The special `END OF TRANSMISSION` character (`\x04`) can be used to mark the end of a text.
 
 *Caution*: When experimenting with STDIN this way, you may need to disable history expansion.
 

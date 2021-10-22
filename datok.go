@@ -750,6 +750,9 @@ func (dat *DaTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
 	// Remember if the last transition was epsilon
 	sentenceEnd := false
 
+	// Remember if a text end was already set
+	textEnd := false
+
 	// Implement a low level buffer for full control,
 	// however - it is probably better to introduce
 	// this on a higher level with a io.Reader interface
@@ -775,6 +778,7 @@ func (dat *DaTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
 
 	var err error
 	eof := false
+	eot := false
 	newchar := true
 
 PARSECHAR:
@@ -800,13 +804,18 @@ PARSECHAR:
 			char = buffer[buffo]
 
 			if DEBUG {
-				fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
+				fmt.Println("Current char", string(char), int(char), showBuffer(buffer, buffo, buffi))
 			}
+
+			eot = false
 
 			// TODO:
 			//   Better not repeatedly check for a!
 			//   Possibly keep a buffer with a.
 			if int(char) < 256 {
+				if int(char) == EOT {
+					eot = true
+				}
 				a = dat.sigmaASCII[int(char)]
 			} else {
 				a, ok = dat.sigma[char]
@@ -879,6 +888,7 @@ PARSECHAR:
 			}
 
 			newchar = false
+			eot = false
 			continue
 		}
 
@@ -908,12 +918,10 @@ PARSECHAR:
 				w.Token(0, buffer[:buffo])
 				rewindBuffer = true
 				sentenceEnd = false
+				textEnd = false
 			} else {
 				sentenceEnd = true
-				w.SentenceEnd()
-			}
-			if DEBUG {
-				fmt.Println("-> Newline")
+				w.SentenceEnd(0)
 			}
 		}
 
@@ -937,6 +945,15 @@ PARSECHAR:
 			buffo = 0
 			if DEBUG {
 				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
+			}
+
+			if eot {
+				eot = false
+				textEnd = true
+				w.TextEnd(0)
+				if DEBUG {
+					fmt.Println("END OF TEXT")
+				}
 			}
 		}
 
@@ -999,7 +1016,7 @@ PARSECHAR:
 			}
 	*/
 
-	// Check epsilon transitions until a final state is reached
+	// Check epsilon transitions as long as possible
 	t0 = t
 	t = dat.array[t0].getBase() + uint32(dat.epsilon)
 	a = dat.epsilon
@@ -1023,11 +1040,18 @@ PARSECHAR:
 	// sentence split was reached. This may be controversial and therefore
 	// optional via parameter.
 	if !sentenceEnd {
-		// writer.WriteRune('\n')
-		// ::Sentenceend
-		w.SentenceEnd()
+		w.SentenceEnd(0)
+
 		if DEBUG {
-			fmt.Println("-> Newline")
+			fmt.Println("Sentence end")
+		}
+	}
+
+	if !textEnd {
+		w.TextEnd(0)
+
+		if DEBUG {
+			fmt.Println("Text end")
 		}
 	}
 

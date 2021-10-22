@@ -21,9 +21,11 @@ func TestTokenWriterSimple(t *testing.T) {
 
 	tws.Token(0, []rune{'d', 'e', 'f'})
 
-	tws.SentenceEnd()
+	tws.SentenceEnd(0)
+
+	tws.TextEnd(0)
 
 	tws.Flush()
 
-	assert.Equal("abc\ndef\n\n", w.String())
+	assert.Equal("abc\ndef\n\n\n", w.String())
 }

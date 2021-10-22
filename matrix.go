@@ -11,6 +11,7 @@ import (
 
 const (
 	MAMAGIC = "MATOK"
+	EOT     = 4
 )
 
 type MatrixTokenizer struct {
@@ -327,8 +328,14 @@ func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bo
 	epsilonState := uint32(0)
 	epsilonOffset := 0
 
+	// TEMP
+	loopcounter := 0
+
 	// Remember if the last transition was epsilon
 	sentenceEnd := false
+
+	// Remember if a text end was already set
+	textEnd := false
 
 	buffer := make([]rune, 1024)
 	buffo := 0 // Buffer offset
@@ -341,6 +348,7 @@ func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bo
 
 	var err error
 	eof := false
+	eot := false
 	newchar := true
 
 PARSECHARM:
@@ -366,13 +374,18 @@ PARSECHARM:
 			char = buffer[buffo]
 
 			if DEBUG {
-				fmt.Println("Current char", string(char), showBuffer(buffer, buffo, buffi))
+				fmt.Println("Current char", string(char), int(char), showBuffer(buffer, buffo, buffi))
 			}
+
+			eot = false
 
 			// TODO:
 			//   Better not repeatedly check for a!
 			//   Possibly keep a buffer with a.
 			if int(char) < 256 {
+				if int(char) == EOT {
+					eot = true
+				}
 				a = mat.sigmaASCII[int(char)]
 			} else {
 				a, ok = mat.sigma[char]
@@ -447,6 +460,7 @@ PARSECHARM:
 			}
 
 			newchar = false
+			eot = false
 			continue
 		}
 
@@ -475,9 +489,10 @@ PARSECHARM:
 				w.Token(0, buffer[:buffo])
 				rewindBuffer = true
 				sentenceEnd = false
+				textEnd = false
 			} else {
 				sentenceEnd = true
-				w.SentenceEnd()
+				w.SentenceEnd(0)
 			}
 			if DEBUG {
 				fmt.Println("-> Newline")
@@ -506,6 +521,15 @@ PARSECHARM:
 			if DEBUG {
 				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
 			}
+
+			if eot {
+				eot = false
+				textEnd = true
+				w.TextEnd(0)
+				if DEBUG {
+					fmt.Println("END OF TEXT")
+				}
+			}
 		}
 
 		t &= ^FIRSTBIT
@@ -515,6 +539,11 @@ PARSECHARM:
 		// TODO:
 		//   Prevent endless epsilon loops!
 	}
+
+	if loopcounter > 100 {
+		return false
+	}
+	loopcounter++
 
 	// Input reader is not yet finished
 	if !eof {
@@ -528,7 +557,7 @@ PARSECHARM:
 		fmt.Println("Entering final check")
 	}
 
-	// Check epsilon transitions until a final state is reached
+	// Check epsilon transitions as long as possible
 	t0 = t
 	t = mat.array[(int(mat.epsilon)-1)*mat.stateCount+int(t0)]
 	a = mat.epsilon
@@ -552,11 +581,17 @@ PARSECHARM:
 	// sentence split was reached. This may be controversial and therefore
 	// optional via parameter.
 	if !sentenceEnd {
-		// writer.WriteRune('\n')
-		// ::Sentenceend
-		w.SentenceEnd()
+		w.SentenceEnd(0)
 		if DEBUG {
-			fmt.Println("-> Newline")
+			fmt.Println("Sentence end")
+		}
+	}
+
+	if !textEnd {
+		w.TextEnd(0)
+
+		if DEBUG {
+			fmt.Println("Text end")
 		}
 	}
 

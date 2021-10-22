@@ -16,6 +16,7 @@ define NLout "@_TOKEN_SYMBOL_@";
 
 define Digit [%0|1|2|3|4|5|6|7|8|9];
 define AsciiLetter [a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z];
+define EOT "\u0004";
 
 !!!!!!!!!!!!!!!!!
 ! <from tmorph> !
@@ -25,7 +26,7 @@ define WS [" "|"\u0009"|"\u00a0"|"\u1680"|
            "\u2006"|"\u2007"|"\u2008"|"\u2009"|"\u200a"|
            "\u202f"|"\u205f"|"\u3000"];
 
-define NL ["\u000a"|"\u000b"|"\u000c"|"\u000d"|"\u0085"|"\u2028"|"\u2029"];
+define NL ["\u000a"|"\u000b"|"\u000c"|"\u000d"|"\u0085"|"\u2028"|"\u2029"|EOT];
 
 ! Punctuation that ends sentences
 ! Differs!
@@ -221,15 +222,10 @@ define Token [
   Emoji @-> ... NLout,
   [Streetname|Omission|Emdash] @-> ... NLout
   ]
-.o. [WS+ @-> 0 || NLout _ ]
+.o. [[WS|NL]+ @-> 0 || NLout _ ]
 ;
 
 echo - Introduce Sentence splitter
 read regex Token .o. [[["."|"!"|"?"]+|"…"] @-> ... NLout \/ NLout _ ];
 
 ! foma -e "source tokenizer.xfst" -q -s && cat text.txt | flookup tokenizer.fst -x -b
-
-! In a second pass, XML tags need to be combined. This requires tagging "<..." with ~xmls before \n
-! and anything with > with ~xmle.
-! In case this is part of an emoticon ( >:-P ), this needs to be split again .
-! The same is true for ( and )
