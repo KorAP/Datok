@@ -328,9 +328,6 @@ func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bo
 	epsilonState := uint32(0)
 	epsilonOffset := 0
 
-	// TEMP
-	loopcounter := 0
-
 	// Remember if the last transition was epsilon
 	sentenceEnd := false
 
@@ -539,11 +536,6 @@ PARSECHARM:
 		// TODO:
 		//   Prevent endless epsilon loops!
 	}
-
-	if loopcounter > 100 {
-		return false
-	}
-	loopcounter++
 
 	// Input reader is not yet finished
 	if !eof {

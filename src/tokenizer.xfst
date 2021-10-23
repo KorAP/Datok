@@ -223,6 +223,7 @@ define Token [
   [Streetname|Omission|Emdash] @-> ... NLout
   ]
 .o. [[WS|NL]+ @-> 0 || NLout _ ]
+.o. [[WS|NL]+ @-> 0 || .#. _ ]
 ;
 
 echo - Introduce Sentence splitter

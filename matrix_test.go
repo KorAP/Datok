@@ -921,7 +921,21 @@ func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 	assert.True(mat.Transduce(strings.NewReader("Erste.\n\n\n\n\x04\x0aNächst.\x04"), w))
 	matStr := w.String()
 	assert.Equal("Erste\n.\n\n\nNächst\n.\n\n\n", matStr)
+}
 
+func TestMatrixTrimming(t *testing.T) {
+	assert := assert.New(t)
+
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
+
+	assert.NotNil(mat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+
+	assert.True(mat.Transduce(strings.NewReader("  Erste."), w))
+	matStr := w.String()
+	assert.Equal("Erste\n.\n\n\n", matStr)
 }
 
 func BenchmarkMatrixTransduce(b *testing.B) {
