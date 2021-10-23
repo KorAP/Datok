@@ -724,6 +724,27 @@ func showBuffer(buffer []rune, buffo int, buffi int) string {
 	return string(out)
 }
 
+// Show the current state of the buffer,
+// for testing puroses
+func showBufferNew(buffer []rune, bufft int, buffc int, buffi int) string {
+	out := make([]rune, 0, 1024)
+	for x := 0; x < len(buffer); x++ {
+		if buffi == x {
+			out = append(out, '^')
+		}
+		if bufft == x {
+			out = append(out, '|')
+		}
+		if buffc == x {
+			out = append(out, '[', buffer[x], ']')
+		} else {
+			out = append(out, buffer[x])
+		}
+	}
+	return string(out)
+}
+
+// Transduce input to ouutput
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	return dat.TransduceTokenWriter(r, NewTokenWriterSimple(w))
 }
@@ -768,8 +789,12 @@ func (dat *DaTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
 	//   Store a translation buffer as well, so characters don't
 	//   have to be translated multiple times!
 	buffer := make([]rune, 1024)
-	buffo := 0 // Buffer offset
+	bufft := 0 // Buffer token offset
+	buffc := 0 // Buffer current symbol
 	buffi := 0 // Buffer length
+
+	// The buffer is organized as follows:
+	// [   t[....c..]..i]
 
 	reader := bufio.NewReader(r)
 	defer w.Flush()
@@ -786,7 +811,7 @@ PARSECHAR:
 
 		if newchar {
 			// Get from reader if buffer is empty
-			if buffo >= buffi {
+			if buffc >= buffi {
 				if eof {
 					break
 				}
@@ -801,10 +826,10 @@ PARSECHAR:
 				buffi++
 			}
 
-			char = buffer[buffo]
+			char = buffer[buffc]
 
 			if DEBUG {
-				fmt.Println("Current char", string(char), int(char), showBuffer(buffer, buffo, buffi))
+				fmt.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
 			}
 
 			eot = false
@@ -835,10 +860,10 @@ PARSECHAR:
 			if dat.array[dat.array[t0].getBase()+uint32(dat.epsilon)].getCheck() == t0 {
 				// Remember state for backtracking to last tokenend state
 				epsilonState = t0
-				epsilonOffset = buffo
+				epsilonOffset = buffc
 
 				if DEBUG {
-					fmt.Println("epsilonOffset is set to", buffo)
+					fmt.Println("epsilonOffset is set to", buffc)
 				}
 			}
 		}
@@ -876,11 +901,11 @@ PARSECHAR:
 				// Try again with epsilon symbol, in case everything else failed
 				t0 = epsilonState
 				epsilonState = 0 // reset
-				buffo = epsilonOffset
+				buffc = epsilonOffset
 				a = dat.epsilon
 
 				if DEBUG {
-					fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
+					fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 
 			} else {
@@ -898,24 +923,25 @@ PARSECHAR:
 		// Transition consumes a character
 		if a != dat.epsilon {
 
-			buffo++
+			buffc++
 
 			// Transition does not produce a character
-			if buffo == 1 && ta.isNonToken() {
+			if buffc-bufft == 1 && ta.isNonToken() {
 				if DEBUG {
-					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
+					fmt.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
 				}
-				rewindBuffer = true
+				bufft++
+				// rewindBuffer = true
 			}
 
 		} else {
 
 			// Transition marks the end of a token - so flush the buffer
-			if buffo > 0 {
+			if buffc-bufft > 0 {
 				if DEBUG {
-					fmt.Println("-> Flush buffer: [", string(buffer[:buffo]), "]", showBuffer(buffer, buffo, buffi))
+					fmt.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBuffer(buffer, buffc, buffi))
 				}
-				w.Token(0, buffer[:buffo])
+				w.Token(0, buffer[bufft:buffc])
 				rewindBuffer = true
 				sentenceEnd = false
 				textEnd = false
@@ -929,31 +955,33 @@ PARSECHAR:
 		if rewindBuffer {
 
 			if DEBUG {
-				fmt.Println("-> Rewind buffer", buffo, buffi, epsilonOffset)
+				fmt.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
 			// TODO: Better as a ring buffer
-			for x, i := range buffer[buffo:buffi] {
+			for x, i := range buffer[buffc:buffi] {
 				buffer[x] = i
 			}
 
-			buffi -= buffo
+			buffi -= buffc
 			// epsilonOffset -= buffo
 			epsilonOffset = 0
 			epsilonState = 0
 
-			buffo = 0
-			if DEBUG {
-				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
-			}
+			buffc = 0
+			bufft = 0
 
-			if eot {
-				eot = false
-				textEnd = true
-				w.TextEnd(0)
-				if DEBUG {
-					fmt.Println("END OF TEXT")
-				}
+			if DEBUG {
+				fmt.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
+			}
+		}
+
+		if eot {
+			eot = false
+			textEnd = true
+			w.TextEnd(0)
+			if DEBUG {
+				fmt.Println("END OF TEXT")
 			}
 		}
 
@@ -1029,9 +1057,9 @@ PARSECHAR:
 	} else if epsilonState != 0 {
 		t0 = epsilonState
 		epsilonState = 0 // reset
-		buffo = epsilonOffset
+		buffc = epsilonOffset
 		if DEBUG {
-			fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
+			fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 		}
 		goto PARSECHAR
 	}

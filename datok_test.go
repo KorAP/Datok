@@ -1038,8 +1038,13 @@ func BenchmarkDoubleArrayLarger(b *testing.B) {
 //   BenchmarkToDoubleArray-4                   63663             17675 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkToDoubleArrayLarger-4                16          83535733 ns/op         6357874 B/op       2577 allocs/op
 //   BenchmarkTransduceMatrix-4                 45362             25258 ns/op           12408 B/op          6 allocs/op
-// 2021-10-21 - Introduxe EOT
+// 2021-10-22 - Introduxe EOT
 //   BenchmarkDoubleArrayTransduce-4            43820             27661 ns/op           12408 B/op          6 allocs/op
 //   BenchmarkDoubleArrayConstruction-4         68259             16608 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkDoubleArrayLarger-4                  16          69889532 ns/op         6357901 B/op       2578 allocs/op
 //   BenchmarkMatrixTransduce-4                 49426             25105 ns/op           12408 B/op          6 allocs/op
+// 2021-10-23 - Improve offset handling
+//   BenchmarkDoubleArrayTransduce-4            41890             29729 ns/op           12408 B/op          6 allocs/op
+//   BenchmarkDoubleArrayConstruction-4         74510             15879 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkDoubleArrayLarger-4                  18          73752383 ns/op         6357956 B/op       2579 allocs/op
+//   BenchmarkMatrixTransduce-4                 46870             27140 ns/op           12408 B/op          6 allocs/op

@@ -313,10 +313,15 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 	return mat
 }
 
+// Transduce input to ouutput
 func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	return mat.TransduceTokenWriter(r, NewTokenWriterSimple(w))
 }
 
+// TransduceTokenWriter transduces an input string against
+// the matrix FSA. The rules are always greedy. If the
+// automaton fails, it takes the last possible token ending
+// branch.
 func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
 	var a int
 	var t0 uint32
@@ -335,8 +340,12 @@ func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bo
 	textEnd := false
 
 	buffer := make([]rune, 1024)
-	buffo := 0 // Buffer offset
+	bufft := 0 // Buffer token offset
+	buffc := 0 // Buffer current symbol
 	buffi := 0 // Buffer length
+
+	// The buffer is organized as follows:
+	// [   t[....c..]..i]
 
 	reader := bufio.NewReader(r)
 	defer w.Flush()
@@ -353,7 +362,7 @@ PARSECHARM:
 
 		if newchar {
 			// Get from reader if buffer is empty
-			if buffo >= buffi {
+			if buffc >= buffi {
 				if eof {
 					break
 				}
@@ -368,10 +377,10 @@ PARSECHARM:
 				buffi++
 			}
 
-			char = buffer[buffo]
+			char = buffer[buffc]
 
 			if DEBUG {
-				fmt.Println("Current char", string(char), int(char), showBuffer(buffer, buffo, buffi))
+				fmt.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
 			}
 
 			eot = false
@@ -408,10 +417,10 @@ PARSECHARM:
 				// Just Remove
 				t0 &= ^FIRSTBIT
 				epsilonState = t0
-				epsilonOffset = buffo
+				epsilonOffset = buffc
 
 				if DEBUG {
-					fmt.Println("epsilonOffset is set to", buffo)
+					fmt.Println("epsilonOffset is set to", buffc)
 				}
 			}
 		}
@@ -445,11 +454,11 @@ PARSECHARM:
 				// Try again with epsilon symbol, in case everything else failed
 				t0 = epsilonState
 				epsilonState = 0 // reset
-				buffo = epsilonOffset
+				buffc = epsilonOffset
 				a = mat.epsilon
 
 				if DEBUG {
-					fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
+					fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 
 			} else {
@@ -467,23 +476,24 @@ PARSECHARM:
 		// Transition consumes a character
 		if a != mat.epsilon {
 
-			buffo++
+			buffc++
 
 			// Transition does not produce a character
-			if buffo == 1 && (t&FIRSTBIT) != 0 {
+			if buffc-bufft == 1 && (t&FIRSTBIT) != 0 {
 				if DEBUG {
-					fmt.Println("Nontoken forward", showBuffer(buffer, buffo, buffi))
+					fmt.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
 				}
-				rewindBuffer = true
+				bufft++
+				// rewindBuffer = true
 			}
 
 		} else {
 			// Transition marks the end of a token - so flush the buffer
-			if buffo > 0 {
+			if buffc-bufft > 0 {
 				if DEBUG {
-					fmt.Println("-> Flush buffer: [", string(buffer[:buffo]), "]", showBuffer(buffer, buffo, buffi))
+					fmt.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
 				}
-				w.Token(0, buffer[:buffo])
+				w.Token(0, buffer[bufft:buffc])
 				rewindBuffer = true
 				sentenceEnd = false
 				textEnd = false
@@ -491,44 +501,41 @@ PARSECHARM:
 				sentenceEnd = true
 				w.SentenceEnd(0)
 			}
-			if DEBUG {
-				fmt.Println("-> Newline")
-			}
-			// writer.WriteRune('\n')
 		}
 
 		// Rewind the buffer if necessary
 		if rewindBuffer {
 
 			if DEBUG {
-				fmt.Println("-> Rewind buffer", buffo, buffi, epsilonOffset)
+				fmt.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
 			// TODO: Better as a ring buffer
-			for x, i := range buffer[buffo:buffi] {
+			for x, i := range buffer[buffc:buffi] {
 				buffer[x] = i
 			}
 
-			buffi -= buffo
+			buffi -= buffc
 			// epsilonOffset -= buffo
 			epsilonOffset = 0
 			epsilonState = 0
 
-			buffo = 0
-			if DEBUG {
-				fmt.Println("Remaining:", showBuffer(buffer, buffo, buffi))
-			}
+			buffc = 0
+			bufft = 0
 
-			if eot {
-				eot = false
-				textEnd = true
-				w.TextEnd(0)
-				if DEBUG {
-					fmt.Println("END OF TEXT")
-				}
+			if DEBUG {
+				fmt.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
 			}
 		}
 
+		if eot {
+			eot = false
+			textEnd = true
+			w.TextEnd(0)
+			if DEBUG {
+				fmt.Println("END OF TEXT")
+			}
+		}
 		t &= ^FIRSTBIT
 
 		newchar = true
@@ -562,9 +569,9 @@ PARSECHARM:
 	} else if epsilonState != 0 {
 		t0 = epsilonState
 		epsilonState = 0 // reset
-		buffo = epsilonOffset
+		buffc = epsilonOffset
 		if DEBUG {
-			fmt.Println("Get from epsilon stack and set buffo!", showBuffer(buffer, buffo, buffi))
+			fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 		}
 		goto PARSECHARM
 	}
