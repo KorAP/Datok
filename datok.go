@@ -941,7 +941,7 @@ PARSECHAR:
 				if DEBUG {
 					fmt.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBuffer(buffer, buffc, buffi))
 				}
-				w.Token(0, buffer[bufft:buffc])
+				w.Token(bufft, buffer[:buffc])
 				rewindBuffer = true
 				sentenceEnd = false
 				textEnd = false

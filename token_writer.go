@@ -31,8 +31,8 @@ func (tw *TokenWriterSimple) TextEnd(_ int) {
 	tw.writer.Flush()
 }
 
-func (tw *TokenWriterSimple) Token(_ int, buf []rune) {
-	tw.writer.WriteString(string(buf))
+func (tw *TokenWriterSimple) Token(offset int, buf []rune) {
+	tw.writer.WriteString(string(buf[offset:]))
 	tw.writer.WriteRune('\n')
 }
 
