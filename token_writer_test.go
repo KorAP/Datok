@@ -2,6 +2,7 @@ package datok
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ func TestTokenWriterSimple(t *testing.T) {
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 
-	tws := NewTokenWriterSimple(w)
+	tws := NewTokenWriter(w)
 
 	assert.NotNil(tws)
 
@@ -28,4 +29,24 @@ func TestTokenWriterSimple(t *testing.T) {
 	tws.Flush()
 
 	assert.Equal("abc\nef\n\n\n", w.String())
+}
+
+func TestTokenWriterFromOptions(t *testing.T) {
+	assert := assert.New(t)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+
+	tws := NewTokenWriterFromOptions(w, true)
+
+	mat := LoadMatrixFile("testdata/tokenizer.matok")
+
+	assert.NotNil(mat)
+
+	assert.True(mat.TransduceTokenWriter(
+		strings.NewReader("This.\x0a\x04And.\n\x04\n"), tws),
+	)
+
+	matStr := w.String()
+	assert.Equal("This\n.\n\n0 4 4 5\nAnd\n.\n\n0 3 3 4\n", matStr)
 }

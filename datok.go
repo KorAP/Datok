@@ -746,7 +746,7 @@ func showBufferNew(buffer []rune, bufft int, buffc int, buffi int) string {
 
 // Transduce input to ouutput
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
-	return dat.TransduceTokenWriter(r, NewTokenWriterSimple(w))
+	return dat.TransduceTokenWriter(r, NewTokenWriter(w))
 }
 
 // TransduceTokenWriter transduces an input string against
@@ -757,7 +757,7 @@ func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 // Based on Mizobuchi et al (2000), p. 129,
 // with additional support for IDENTITY, UNKNOWN
 // and EPSILON transitions and NONTOKEN and TOKENEND handling.
-func (dat *DaTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
+func (dat *DaTokenizer) TransduceTokenWriter(r io.Reader, w *TokenWriter) bool {
 	var a int
 	var t0 uint32
 	t := uint32(1) // Initial state

@@ -18,6 +18,8 @@ var cli struct {
 	} `kong:"cmd, help='Convert a foma file to a Matrix or Double Array tokenizer'"`
 	Tokenize struct {
 		Tokenizer string `kong:"required,short='t',help='The Matrix or Double Array Tokenizer file'"`
+		Positions bool   `kong:"optional,negatable,default=false,short='p',help='Print token offsets'"`
+		Tokens    bool   `kong:"optional,negatable,default=true,help="Print token surfaces""`
 	} `kong:"cmd, help='Tokenize a text'"`
 }
 
@@ -67,10 +69,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create token writer based on the options defined
+	tw := datok.NewTokenWriterFromOptions(os.Stdout, cli.Tokenize.Positions)
+
 	// Program is running in a pipe
 	fileInfo, _ := os.Stdin.Stat()
 	if fileInfo.Mode()&os.ModeCharDevice == 0 {
-		// Transduce from STDIN and write to STDOUT
-		dat.Transduce(os.Stdin, os.Stdout)
+		dat.TransduceTokenWriter(os.Stdin, tw)
+		tw.Flush()
 	}
 }

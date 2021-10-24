@@ -3,39 +3,96 @@ package datok
 import (
 	"bufio"
 	"io"
+	"strconv"
 )
 
-type TokenWriterI interface {
-	SentenceEnd(int)
-	TextEnd(int)
-	Token(int, []rune)
-	Flush() error
+type TokenWriter struct {
+	SentenceEnd func(int)
+	TextEnd     func(int)
+	Flush       func() error
+	Token       func(int, []rune)
 }
 
-var _ TokenWriterI = &TokenWriterSimple{}
+func NewTokenWriter(w io.Writer) *TokenWriter {
+	writer := bufio.NewWriter(w)
 
-type TokenWriterSimple struct {
-	writer *bufio.Writer
+	return &TokenWriter{
+		SentenceEnd: func(_ int) {
+			writer.WriteRune('\n')
+		},
+		TextEnd: func(_ int) {
+			writer.WriteRune('\n')
+			writer.Flush()
+		},
+		Token: func(offset int, buf []rune) {
+			writer.WriteString(string(buf[offset:]))
+			writer.WriteRune('\n')
+		},
+		Flush: func() error {
+			return writer.Flush()
+		},
+	}
 }
 
-func NewTokenWriterSimple(w io.Writer) *TokenWriterSimple {
-	return &TokenWriterSimple{bufio.NewWriter(w)}
-}
+// Create a new token writer based on the options
+func NewTokenWriterFromOptions(w io.Writer, positionFlag bool) *TokenWriter {
+	writer := bufio.NewWriter(w)
+	posC := 0
+	pos := make([]int, 0, 200)
 
-func (tw *TokenWriterSimple) SentenceEnd(_ int) {
-	tw.writer.WriteRune('\n')
-}
+	tw := &TokenWriter{}
 
-func (tw *TokenWriterSimple) TextEnd(_ int) {
-	tw.writer.WriteRune('\n')
-	tw.writer.Flush()
-}
+	if positionFlag {
+		tw.Token = func(offset int, buf []rune) {
 
-func (tw *TokenWriterSimple) Token(offset int, buf []rune) {
-	tw.writer.WriteString(string(buf[offset:]))
-	tw.writer.WriteRune('\n')
-}
+			// TODO:
+			//   Store in []uint16
+			//   and write to string
+			posC += offset
+			pos = append(pos, posC)
+			posC += len(buf) - offset
+			pos = append(pos, posC)
+			//		pos = append(pos, offset, len(buf)-offset)
 
-func (tw *TokenWriterSimple) Flush() error {
-	return tw.writer.Flush()
+			writer.WriteString(string(buf[offset:]))
+			writer.WriteRune('\n')
+		}
+	} else {
+		tw.Token = func(offset int, buf []rune) {
+			writer.WriteString(string(buf[offset:]))
+			writer.WriteRune('\n')
+		}
+	}
+
+	tw.SentenceEnd = func(_ int) {
+		writer.WriteRune('\n')
+	}
+
+	if positionFlag {
+		tw.TextEnd = func(offset int) {
+			writer.Flush()
+
+			writer.WriteString(strconv.Itoa(pos[0]))
+			for _, x := range pos[1:] {
+				writer.WriteByte(' ')
+				writer.WriteString(strconv.Itoa(x))
+			}
+			writer.WriteRune('\n')
+
+			posC = 0 - offset
+			pos = pos[:0]
+		}
+	} else {
+		tw.TextEnd = func(_ int) {
+			writer.WriteRune('\n')
+			writer.Flush()
+		}
+
+	}
+
+	tw.Flush = func() error {
+		return writer.Flush()
+	}
+
+	return tw
 }

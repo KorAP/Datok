@@ -315,14 +315,14 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 
 // Transduce input to ouutput
 func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
-	return mat.TransduceTokenWriter(r, NewTokenWriterSimple(w))
+	return mat.TransduceTokenWriter(r, NewTokenWriter(w))
 }
 
 // TransduceTokenWriter transduces an input string against
 // the matrix FSA. The rules are always greedy. If the
 // automaton fails, it takes the last possible token ending
 // branch.
-func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w TokenWriterI) bool {
+func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w *TokenWriter) bool {
 	var a int
 	var t0 uint32
 	t := uint32(1) // Initial state
@@ -499,7 +499,7 @@ PARSECHARM:
 				textEnd = false
 			} else {
 				sentenceEnd = true
-				w.SentenceEnd(0)
+				w.SentenceEnd(buffc)
 			}
 		}
 
@@ -531,7 +531,7 @@ PARSECHARM:
 		if eot {
 			eot = false
 			textEnd = true
-			w.TextEnd(0)
+			w.TextEnd(buffc)
 			if DEBUG {
 				fmt.Println("END OF TEXT")
 			}
@@ -580,14 +580,14 @@ PARSECHARM:
 	// sentence split was reached. This may be controversial and therefore
 	// optional via parameter.
 	if !sentenceEnd {
-		w.SentenceEnd(0)
+		w.SentenceEnd(buffc)
 		if DEBUG {
 			fmt.Println("Sentence end")
 		}
 	}
 
 	if !textEnd {
-		w.TextEnd(0)
+		w.TextEnd(buffc)
 
 		if DEBUG {
 			fmt.Println("Text end")

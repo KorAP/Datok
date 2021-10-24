@@ -29,6 +29,7 @@ type edge struct {
 
 type Tokenizer interface {
 	Transduce(r io.Reader, w io.Writer) bool
+	TransduceTokenWriter(r io.Reader, w *TokenWriter) bool
 	Type() string
 }
 
