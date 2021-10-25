@@ -951,6 +951,15 @@ PARSECHAR:
 			}
 		}
 
+		if eot {
+			eot = false
+			textEnd = true
+			w.TextEnd(0)
+			if DEBUG {
+				fmt.Println("END OF TEXT")
+			}
+		}
+
 		// Rewind the buffer if necessary
 		if rewindBuffer {
 
@@ -973,15 +982,6 @@ PARSECHAR:
 
 			if DEBUG {
 				fmt.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
-			}
-		}
-
-		if eot {
-			eot = false
-			textEnd = true
-			w.TextEnd(0)
-			if DEBUG {
-				fmt.Println("END OF TEXT")
 			}
 		}
 

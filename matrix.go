@@ -503,6 +503,16 @@ PARSECHARM:
 			}
 		}
 
+		if eot {
+			eot = false
+			textEnd = true
+			w.TextEnd(buffc)
+			rewindBuffer = true
+			if DEBUG {
+				fmt.Println("END OF TEXT")
+			}
+		}
+
 		// Rewind the buffer if necessary
 		if rewindBuffer {
 
@@ -528,14 +538,6 @@ PARSECHARM:
 			}
 		}
 
-		if eot {
-			eot = false
-			textEnd = true
-			w.TextEnd(buffc)
-			if DEBUG {
-				fmt.Println("END OF TEXT")
-			}
-		}
 		t &= ^FIRSTBIT
 
 		newchar = true

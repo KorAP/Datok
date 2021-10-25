@@ -48,6 +48,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool) *TokenWriter {
 			// TODO:
 			//   Store in []uint16
 			//   and write to string
+
 			posC += offset
 			pos = append(pos, posC)
 			posC += len(buf) - offset
@@ -79,7 +80,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool) *TokenWriter {
 			}
 			writer.WriteRune('\n')
 
-			posC = 0 - offset
+			posC = 0
 			pos = pos[:0]
 		}
 	} else {

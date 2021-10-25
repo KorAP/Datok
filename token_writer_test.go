@@ -49,4 +49,11 @@ func TestTokenWriterFromOptions(t *testing.T) {
 
 	matStr := w.String()
 	assert.Equal("This\n.\n\n0 4 4 5\nAnd\n.\n\n0 3 3 4\n", matStr)
+
+	w.Reset()
+	mat.TransduceTokenWriter(strings.NewReader("\nThis.\x0a\x04\nAnd.\n\x04\n"), tws)
+
+	matStr = w.String()
+	assert.Equal("This\n.\n\n1 5 5 6\nAnd\n.\n\n1 4 4 5\n", matStr)
+
 }
