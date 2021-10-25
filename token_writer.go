@@ -35,7 +35,7 @@ func NewTokenWriter(w io.Writer) *TokenWriter {
 }
 
 // Create a new token writer based on the options
-func NewTokenWriterFromOptions(w io.Writer, positionFlag bool) *TokenWriter {
+func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, newlineAfterEot bool) *TokenWriter {
 	writer := bufio.NewWriter(w)
 	posC := 0
 	pos := make([]int, 0, 200)
@@ -49,11 +49,15 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool) *TokenWriter {
 			//   Store in []uint16
 			//   and write to string
 
+			// Accept newline after EOT
+			if newlineAfterEot && posC == 0 && buf[0] == '\n' && writer.Buffered() != 0 {
+				posC--
+			}
+
 			posC += offset
 			pos = append(pos, posC)
 			posC += len(buf) - offset
 			pos = append(pos, posC)
-			//		pos = append(pos, offset, len(buf)-offset)
 
 			writer.WriteString(string(buf[offset:]))
 			writer.WriteRune('\n')
@@ -70,7 +74,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool) *TokenWriter {
 	}
 
 	if positionFlag {
-		tw.TextEnd = func(offset int) {
+		tw.TextEnd = func(_ int) {
 			writer.Flush()
 
 			writer.WriteString(strconv.Itoa(pos[0]))
