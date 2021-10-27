@@ -37,7 +37,7 @@ func TestTokenWriterFromOptions(t *testing.T) {
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 
-	tws := NewTokenWriterFromOptions(w, true, false)
+	tws := NewTokenWriterFromOptions(w, true, true, false)
 
 	mat := LoadMatrixFile("testdata/tokenizer.matok")
 
@@ -56,12 +56,23 @@ func TestTokenWriterFromOptions(t *testing.T) {
 	matStr = w.String()
 	assert.Equal("This\n.\n\n1 5 5 6\nAnd\n.\n\n1 4 4 5\n", matStr)
 
+	//
 	// Accept newline after EOT
-	tws = NewTokenWriterFromOptions(w, true, true)
+	tws = NewTokenWriterFromOptions(w, true, true, true)
 
 	w.Reset()
 	mat.TransduceTokenWriter(strings.NewReader("\nThis.\x0a\x04\nAnd.\n\x04\n"), tws)
 
 	matStr = w.String()
 	assert.Equal("This\n.\n\n1 5 5 6\nAnd\n.\n\n0 3 3 4\n", matStr)
+
+	//
+	// Write no tokens
+	tws = NewTokenWriterFromOptions(w, true, false, true)
+
+	w.Reset()
+	mat.TransduceTokenWriter(strings.NewReader("\nThis.\x0a\x04\nAnd.\n\x04\n"), tws)
+
+	matStr = w.String()
+	assert.Equal("\n1 5 5 6\n\n0 3 3 4\n", matStr)
 }

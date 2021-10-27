@@ -74,6 +74,7 @@ func main() {
 	tw := datok.NewTokenWriterFromOptions(
 		os.Stdout,
 		cli.Tokenize.Positions,
+		cli.Tokenize.Tokens,
 		cli.Tokenize.NewlineAfterEOT,
 	)
 
