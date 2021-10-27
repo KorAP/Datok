@@ -18,11 +18,11 @@ var cli struct {
 	} `kong:"cmd, help='Convert a foma file to a Matrix or Double Array tokenizer'"`
 	Tokenize struct {
 		Tokenizer         string `kong:"required,short='t',help='The Matrix or Double Array Tokenizer file'"`
-		Tokens            bool   `kong:"optional,negatable,default=true,help='Print token surfaces'"`
-		Sentences         bool   `kong:"optional,negatable,default=true,help='Print sentence boundaries'"`
-		TokenPositions    bool   `kong:"optional,negatable,default=false,short='p',help='Print token offsets'"`
-		SentencePositions bool   `kong:"optional,negatable,default=false,help='Print sentence offsets'"`
-		NewlineAfterEOT   bool   `kong:"optional,negatable,default=false,help='Ignore newline after EOT'"`
+		Tokens            bool   `kong:"optional,negatable,default=true,help='Print token surfaces (defaults to ${default})'"`
+		Sentences         bool   `kong:"optional,negatable,default=true,help='Print sentence boundaries (defaults to ${default})'"`
+		TokenPositions    bool   `kong:"optional,default=false,short='p',help='Print token offsets (defaults to ${default})'"`
+		SentencePositions bool   `kong:"optional,default=false,help='Print sentence offsets (defaults to ${default})'"`
+		NewlineAfterEOT   bool   `kong:"optional,default=false,help='Ignore newline after EOT (defaults to ${default})'"`
 	} `kong:"cmd, help='Tokenize a text'"`
 }
 
