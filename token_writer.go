@@ -35,7 +35,17 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 
 	tw := &TokenWriter{}
 
-	if flags&TOKEN_POS != 0 {
+	// Collect token positions and maybe tokens
+	if flags&(TOKEN_POS|SENTENCE_POS) != 0 {
+
+		// TODO:
+		//   Split to
+		//   - Token_pos+Tokens+Newline
+		//   - Token_pos+Newline
+		//   - Token_pos|Sentence_pos
+		//   - Sentence_pos
+		//   - Tokens
+
 		tw.Token = func(offset int, buf []rune) {
 
 			// TODO:
@@ -58,23 +68,26 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 			posC += len(buf) - offset
 			pos = append(pos, posC)
 
+			// Collect tokens also
 			if flags&TOKENS != 0 {
 				writer.WriteString(string(buf[offset:]))
-				writer.WriteRune('\n')
+				writer.WriteByte('\n')
 			}
 		}
 
-		// Only print one token per line
+		// Collect tokens
 	} else if flags&TOKENS != 0 {
 		tw.Token = func(offset int, buf []rune) {
 			writer.WriteString(string(buf[offset:]))
-			writer.WriteRune('\n')
+			writer.WriteByte('\n')
 		}
+
+		// Ignore tokens
 	} else {
 		tw.Token = func(_ int, _ []rune) {}
 	}
 
-	// Print sentence boundaries
+	// Collect sentence positions and maybe sentence boundaries
 	if flags&SENTENCE_POS != 0 {
 		tw.SentenceEnd = func(offset int) {
 
@@ -83,15 +96,16 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 			sent = append(sent, pos[len(pos)-1])
 			sentB = true
 
+			// Collect sentences also
 			if flags&SENTENCES != 0 {
-				writer.WriteRune('\n')
+				writer.WriteByte('\n')
 			}
 		}
 
-		// Print sentence boundaries as newlines
+		// Collect sentence boundaries
 	} else if flags&SENTENCES != 0 {
 		tw.SentenceEnd = func(_ int) {
-			writer.WriteRune('\n')
+			writer.WriteByte('\n')
 		}
 
 		// Ignore sentence boundaries
@@ -99,26 +113,29 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 		tw.SentenceEnd = func(_ int) {}
 	}
 
+	// Write token or sentence positions
 	if flags&(TOKEN_POS|SENTENCE_POS) != 0 {
 		tw.TextEnd = func(_ int) {
 			writer.Flush()
 
+			// Write token positions
 			if flags&TOKEN_POS != 0 {
 				writer.WriteString(strconv.Itoa(pos[0]))
 				for _, x := range pos[1:] {
 					writer.WriteByte(' ')
 					writer.WriteString(strconv.Itoa(x))
 				}
-				writer.WriteRune('\n')
+				writer.WriteByte('\n')
 			}
 
+			// Write sentence positions
 			if flags&SENTENCE_POS != 0 {
 				writer.WriteString(strconv.Itoa(sent[0]))
 				for _, x := range sent[1:] {
 					writer.WriteByte(' ')
 					writer.WriteString(strconv.Itoa(x))
 				}
-				writer.WriteRune('\n')
+				writer.WriteByte('\n')
 				sent = sent[:0]
 				sentB = true
 			}
@@ -126,6 +143,8 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 			posC = 0
 			pos = pos[:0]
 		}
+
+		// Collect text ends
 	} else {
 		tw.TextEnd = func(_ int) {
 			writer.WriteRune('\n')
@@ -133,6 +152,7 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 		}
 	}
 
+	// Flush the writer
 	tw.Flush = func() error {
 		return writer.Flush()
 	}
