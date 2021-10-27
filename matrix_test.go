@@ -20,6 +20,8 @@ Er sagte: \"Es geht mir gut!\", daraufhin ging er. &quot;Das ist von C&A!&quot; 
 Archive:  Ich bin kein zip. D'dorf Ku'damm Lu'hafen M'gladbach W'schaft.
 Mach's macht's was'n ist's haste willste kannste biste kriegste.`
 
+var mat *MatrixTokenizer
+
 func TestMatrixFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/simpletok.fst")
@@ -162,7 +164,9 @@ func xTestMatrixReadWriteFullTokenizer(t *testing.T) {
 func TestMatrixFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	assert.NotNil(mat)
 
@@ -191,7 +195,10 @@ func TestMatrixFullTokenizerTransduce(t *testing.T) {
 
 func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -288,7 +295,9 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -826,7 +835,9 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	assert.NotNil(mat)
 
@@ -867,7 +878,9 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 func TestMatokDatokEquivalence(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 
 	r := strings.NewReader(s)
@@ -894,7 +907,9 @@ func TestMatokDatokEquivalence(t *testing.T) {
 func TestMatrixFullTokenizerCallbackTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	assert.NotNil(mat)
 
@@ -911,7 +926,9 @@ func TestMatrixFullTokenizerCallbackTransduce(t *testing.T) {
 func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	assert.NotNil(mat)
 
@@ -926,7 +943,9 @@ func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 func TestMatrixTrimming(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
 
 	assert.NotNil(mat)
 

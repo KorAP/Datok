@@ -89,7 +89,7 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 
 	// Collect sentence positions and maybe sentence boundaries
 	if flags&SENTENCE_POS != 0 {
-		tw.SentenceEnd = func(offset int) {
+		tw.SentenceEnd = func(_ int) {
 
 			// Add end position of last token to sentence boundary
 			// TODO: This only works if token positions are taking into account

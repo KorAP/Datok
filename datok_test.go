@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var dat *DaTokenizer
+
 func tmatch(tok Tokenizer, s string) bool {
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -168,7 +170,10 @@ func TestDoubleArrayIgnorableMCS(t *testing.T) {
 
 func TestDoubleArrayFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
 	assert.NotNil(dat)
 	assert.True(dat.LoadFactor() >= 70)
 	assert.Equal(dat.epsilon, 1)
@@ -207,7 +212,10 @@ func XTestDoubleArrayFullTokenizerBuild(t *testing.T) {
 func TestDoubleArrayFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
+
 	assert.NotNil(dat)
 
 	b := make([]byte, 0, 2048)
@@ -236,7 +244,11 @@ func TestDoubleArrayFullTokenizerTransduce(t *testing.T) {
 
 func TestDoubleArrayFullTokenizerSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
+
 	assert.NotNil(dat)
 
 	b := make([]byte, 0, 2048)
@@ -326,7 +338,11 @@ func TestDoubleArrayFullTokenizerSentenceSplitter(t *testing.T) {
 
 func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
+
 	assert.NotNil(dat)
 
 	b := make([]byte, 0, 2048)
@@ -872,7 +888,10 @@ func TestDoubleArrayLoadFactor1(t *testing.T) {
 func TestDoubleArrayFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
+
 	assert.NotNil(dat)
 
 	b := make([]byte, 0, 2048)
