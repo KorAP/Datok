@@ -6,6 +6,16 @@ import (
 	"strconv"
 )
 
+type Bits uint8
+
+const (
+	TOKENS Bits = 1 << iota
+	SENTENCES
+	TOKEN_POS
+	SENTENCE_POS
+	NEWLINE_AFTER_EOT
+)
+
 type TokenWriter struct {
 	SentenceEnd func(int)
 	TextEnd     func(int)
@@ -35,7 +45,7 @@ func NewTokenWriter(w io.Writer) *TokenWriter {
 }
 
 // Create a new token writer based on the options
-func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, sentenceFlag bool, sentencePositionFlag bool, newlineAfterEot bool) *TokenWriter {
+func NewTokenWriterFromOptions(w io.Writer, flags Bits) *TokenWriter {
 	writer := bufio.NewWriter(w)
 	posC := 0
 	pos := make([]int, 0, 1024)
@@ -44,7 +54,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, s
 
 	tw := &TokenWriter{}
 
-	if positionFlag {
+	if flags&TOKEN_POS != 0 {
 		tw.Token = func(offset int, buf []rune) {
 
 			// TODO:
@@ -52,7 +62,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, s
 			//   and write to string
 
 			// Accept newline after EOT
-			if newlineAfterEot && posC == 0 && buf[0] == '\n' && writer.Buffered() != 0 {
+			if flags&NEWLINE_AFTER_EOT != 0 && posC == 0 && buf[0] == '\n' && writer.Buffered() != 0 {
 				posC--
 			}
 
@@ -67,7 +77,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, s
 			posC += len(buf) - offset
 			pos = append(pos, posC)
 
-			if tokenFlag {
+			if flags&TOKENS != 0 {
 				writer.WriteString(string(buf[offset:]))
 				writer.WriteRune('\n')
 			}
@@ -82,20 +92,21 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, s
 	}
 
 	// Print sentence boundaries
-	if sentenceFlag || sentencePositionFlag {
+	if flags&(SENTENCES|SENTENCE_POS) != 0 {
 		tw.SentenceEnd = func(offset int) {
 
 			// Add end position of last token to sentence boundary
+			// TODO: This only works if token positions are taking into account
 			sent = append(sent, pos[len(pos)-1])
 			sentB = true
 
-			if sentenceFlag {
+			if flags&SENTENCES != 0 {
 				writer.WriteRune('\n')
 			}
 		}
 
 		// Print sentence boundaries as newlines
-	} else if sentenceFlag {
+	} else if flags&SENTENCES != 0 {
 		tw.SentenceEnd = func(_ int) {
 			writer.WriteRune('\n')
 		}
@@ -105,11 +116,11 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, s
 		tw.SentenceEnd = func(_ int) {}
 	}
 
-	if positionFlag || sentencePositionFlag {
+	if flags&(TOKEN_POS|SENTENCE_POS) != 0 {
 		tw.TextEnd = func(_ int) {
 			writer.Flush()
 
-			if positionFlag {
+			if flags&TOKEN_POS != 0 {
 				writer.WriteString(strconv.Itoa(pos[0]))
 				for _, x := range pos[1:] {
 					writer.WriteByte(' ')
@@ -118,7 +129,7 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, s
 				writer.WriteRune('\n')
 			}
 
-			if sentencePositionFlag {
+			if flags&SENTENCE_POS != 0 {
 				writer.WriteString(strconv.Itoa(sent[0]))
 				for _, x := range sent[1:] {
 					writer.WriteByte(' ')

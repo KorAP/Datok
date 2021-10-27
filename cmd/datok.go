@@ -22,7 +22,7 @@ var cli struct {
 		Sentences         bool   `kong:"optional,negatable,default=true,help='Print sentence boundaries'"`
 		TokenPositions    bool   `kong:"optional,negatable,default=false,short='p',help='Print token offsets'"`
 		SentencePositions bool   `kong:"optional,negatable,default=false,help='Print sentence offsets'"`
-		NewlineAfterEOT   bool   `kong:"optional,negatable,help='Ignore newline after EOT'"`
+		NewlineAfterEOT   bool   `kong:"optional,negatable,default=false,help='Ignore newline after EOT'"`
 	} `kong:"cmd, help='Tokenize a text'"`
 }
 
@@ -72,15 +72,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create flags parameter based on command line parameters
+	var flags datok.Bits
+	if cli.Tokenize.Tokens {
+		flags |= datok.TOKENS
+	}
+
+	if cli.Tokenize.TokenPositions {
+		flags |= datok.TOKEN_POS
+	}
+
+	if cli.Tokenize.Sentences {
+		flags |= datok.SENTENCES
+	}
+
+	if cli.Tokenize.SentencePositions {
+		flags |= datok.SENTENCE_POS
+	}
+
+	if cli.Tokenize.NewlineAfterEOT {
+		flags |= datok.NEWLINE_AFTER_EOT
+	}
+
 	// Create token writer based on the options defined
-	tw := datok.NewTokenWriterFromOptions(
-		os.Stdout,
-		cli.Tokenize.TokenPositions,
-		cli.Tokenize.Tokens,
-		cli.Tokenize.Sentences,
-		cli.Tokenize.SentencePositions,
-		cli.Tokenize.NewlineAfterEOT,
-	)
+	tw := datok.NewTokenWriterFromOptions(os.Stdout, flags)
 
 	// Program is running in a pipe
 	fileInfo, _ := os.Stdin.Stat()
