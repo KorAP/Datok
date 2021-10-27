@@ -14,6 +14,8 @@ const (
 	TOKEN_POS
 	SENTENCE_POS
 	NEWLINE_AFTER_EOT
+
+	SIMPLE = TOKENS | SENTENCES
 )
 
 type TokenWriter struct {
@@ -23,29 +25,8 @@ type TokenWriter struct {
 	Token       func(int, []rune)
 }
 
-func NewTokenWriter(w io.Writer) *TokenWriter {
-	writer := bufio.NewWriter(w)
-
-	return &TokenWriter{
-		SentenceEnd: func(_ int) {
-			writer.WriteRune('\n')
-		},
-		TextEnd: func(_ int) {
-			writer.WriteRune('\n')
-			writer.Flush()
-		},
-		Token: func(offset int, buf []rune) {
-			writer.WriteString(string(buf[offset:]))
-			writer.WriteRune('\n')
-		},
-		Flush: func() error {
-			return writer.Flush()
-		},
-	}
-}
-
 // Create a new token writer based on the options
-func NewTokenWriterFromOptions(w io.Writer, flags Bits) *TokenWriter {
+func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 	writer := bufio.NewWriter(w)
 	posC := 0
 	pos := make([]int, 0, 1024)
@@ -84,15 +65,17 @@ func NewTokenWriterFromOptions(w io.Writer, flags Bits) *TokenWriter {
 		}
 
 		// Only print one token per line
-	} else {
+	} else if flags&TOKENS != 0 {
 		tw.Token = func(offset int, buf []rune) {
 			writer.WriteString(string(buf[offset:]))
 			writer.WriteRune('\n')
 		}
+	} else {
+		tw.Token = func(_ int, _ []rune) {}
 	}
 
 	// Print sentence boundaries
-	if flags&(SENTENCES|SENTENCE_POS) != 0 {
+	if flags&SENTENCE_POS != 0 {
 		tw.SentenceEnd = func(offset int) {
 
 			// Add end position of last token to sentence boundary
@@ -148,7 +131,6 @@ func NewTokenWriterFromOptions(w io.Writer, flags Bits) *TokenWriter {
 			writer.WriteRune('\n')
 			writer.Flush()
 		}
-
 	}
 
 	tw.Flush = func() error {

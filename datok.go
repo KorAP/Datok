@@ -746,7 +746,7 @@ func showBufferNew(buffer []rune, bufft int, buffc int, buffi int) string {
 
 // Transduce input to ouutput
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
-	return dat.TransduceTokenWriter(r, NewTokenWriter(w))
+	return dat.TransduceTokenWriter(r, NewTokenWriter(w, SIMPLE))
 }
 
 // TransduceTokenWriter transduces an input string against

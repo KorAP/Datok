@@ -95,7 +95,7 @@ func main() {
 	}
 
 	// Create token writer based on the options defined
-	tw := datok.NewTokenWriterFromOptions(os.Stdout, flags)
+	tw := datok.NewTokenWriter(os.Stdout, flags)
 
 	// Program is running in a pipe
 	fileInfo, _ := os.Stdin.Stat()

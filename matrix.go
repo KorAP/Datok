@@ -315,7 +315,7 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 
 // Transduce input to ouutput
 func (mat *MatrixTokenizer) Transduce(r io.Reader, w io.Writer) bool {
-	return mat.TransduceTokenWriter(r, NewTokenWriter(w))
+	return mat.TransduceTokenWriter(r, NewTokenWriter(w, SIMPLE))
 }
 
 // TransduceTokenWriter transduces an input string against
