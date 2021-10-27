@@ -35,10 +35,12 @@ func NewTokenWriter(w io.Writer) *TokenWriter {
 }
 
 // Create a new token writer based on the options
-func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, newlineAfterEot bool) *TokenWriter {
+func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, sentenceFlag bool, sentencePositionFlag bool, newlineAfterEot bool) *TokenWriter {
 	writer := bufio.NewWriter(w)
 	posC := 0
-	pos := make([]int, 0, 200)
+	pos := make([]int, 0, 1024)
+	sentB := true
+	sent := make([]int, 0, 1024)
 
 	tw := &TokenWriter{}
 
@@ -56,6 +58,12 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, n
 
 			posC += offset
 			pos = append(pos, posC)
+
+			// Token is the start of a sentence
+			if sentB {
+				sentB = false
+				sent = append(sent, posC)
+			}
 			posC += len(buf) - offset
 			pos = append(pos, posC)
 
@@ -64,6 +72,8 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, n
 				writer.WriteRune('\n')
 			}
 		}
+
+		// Only print one token per line
 	} else {
 		tw.Token = func(offset int, buf []rune) {
 			writer.WriteString(string(buf[offset:]))
@@ -71,20 +81,53 @@ func NewTokenWriterFromOptions(w io.Writer, positionFlag bool, tokenFlag bool, n
 		}
 	}
 
-	tw.SentenceEnd = func(_ int) {
-		writer.WriteRune('\n')
+	// Print sentence boundaries
+	if sentenceFlag || sentencePositionFlag {
+		tw.SentenceEnd = func(offset int) {
+
+			// Add end position of last token to sentence boundary
+			sent = append(sent, pos[len(pos)-1])
+			sentB = true
+
+			if sentenceFlag {
+				writer.WriteRune('\n')
+			}
+		}
+
+		// Print sentence boundaries as newlines
+	} else if sentenceFlag {
+		tw.SentenceEnd = func(_ int) {
+			writer.WriteRune('\n')
+		}
+
+		// Ignore sentence boundaries
+	} else {
+		tw.SentenceEnd = func(_ int) {}
 	}
 
-	if positionFlag {
+	if positionFlag || sentencePositionFlag {
 		tw.TextEnd = func(_ int) {
 			writer.Flush()
 
-			writer.WriteString(strconv.Itoa(pos[0]))
-			for _, x := range pos[1:] {
-				writer.WriteByte(' ')
-				writer.WriteString(strconv.Itoa(x))
+			if positionFlag {
+				writer.WriteString(strconv.Itoa(pos[0]))
+				for _, x := range pos[1:] {
+					writer.WriteByte(' ')
+					writer.WriteString(strconv.Itoa(x))
+				}
+				writer.WriteRune('\n')
 			}
-			writer.WriteRune('\n')
+
+			if sentencePositionFlag {
+				writer.WriteString(strconv.Itoa(sent[0]))
+				for _, x := range sent[1:] {
+					writer.WriteByte(' ')
+					writer.WriteString(strconv.Itoa(x))
+				}
+				writer.WriteRune('\n')
+				sent = sent[:0]
+				sentB = true
+			}
 
 			posC = 0
 			pos = pos[:0]

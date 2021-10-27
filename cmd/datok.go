@@ -17,10 +17,12 @@ var cli struct {
 		DoubleArray bool   `kong:"optional,short='d',help='Convert to Double Array instead of Matrix representation'"`
 	} `kong:"cmd, help='Convert a foma file to a Matrix or Double Array tokenizer'"`
 	Tokenize struct {
-		Tokenizer       string `kong:"required,short='t',help='The Matrix or Double Array Tokenizer file'"`
-		Positions       bool   `kong:"optional,negatable,default=false,short='p',help='Print token offsets'"`
-		Tokens          bool   `kong:"optional,negatable,default=true,help='Print token surfaces'"`
-		NewlineAfterEOT bool   `kong:"optional,negatable,help='Ignore newline after EOT'"`
+		Tokenizer         string `kong:"required,short='t',help='The Matrix or Double Array Tokenizer file'"`
+		Tokens            bool   `kong:"optional,negatable,default=true,help='Print token surfaces'"`
+		Sentences         bool   `kong:"optional,negatable,default=true,help='Print sentence boundaries'"`
+		TokenPositions    bool   `kong:"optional,negatable,default=false,short='p',help='Print token offsets'"`
+		SentencePositions bool   `kong:"optional,negatable,default=false,help='Print sentence offsets'"`
+		NewlineAfterEOT   bool   `kong:"optional,negatable,help='Ignore newline after EOT'"`
 	} `kong:"cmd, help='Tokenize a text'"`
 }
 
@@ -73,8 +75,10 @@ func main() {
 	// Create token writer based on the options defined
 	tw := datok.NewTokenWriterFromOptions(
 		os.Stdout,
-		cli.Tokenize.Positions,
+		cli.Tokenize.TokenPositions,
 		cli.Tokenize.Tokens,
+		cli.Tokenize.Sentences,
+		cli.Tokenize.SentencePositions,
 		cli.Tokenize.NewlineAfterEOT,
 	)
 
