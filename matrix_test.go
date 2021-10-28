@@ -707,6 +707,15 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal("kriegste", tokens[8])
 	assert.Equal(9, len(tokens))
 
+	tokens = ttokenize(mat, w, "Es ist gleich 2:30 Uhr.")
+	assert.Equal("Es", tokens[0])
+	assert.Equal("ist", tokens[1])
+	assert.Equal("gleich", tokens[2])
+	assert.Equal("2:30", tokens[3])
+	assert.Equal("Uhr", tokens[4])
+	assert.Equal(".", tokens[5])
+	assert.Equal(6, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {

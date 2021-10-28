@@ -117,6 +117,9 @@ define Plusampersand @txt"txt/plusampersand.txt";
 
 define Years ["(" Digit+ (".") ")"] | ["[" Digit+ (".") "]"];
 
+! 20:00 Uhr
+define Times [ ([%0|1|2]) Digit ( WS ) ":" [%0|1|2|3|4|5|6] Digit ];
+
 source emoji.xfst
 define Emoji;
 
@@ -212,7 +215,7 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 echo - Compile Real Token
 
-define RealToken [Punct|Word|XML|Email|URL|SNS|Domain|AcronymDep|File|Ord|Num|Years];
+define RealToken [Punct|Word|XML|Email|URL|SNS|Domain|AcronymDep|File|Ord|Num|Years|Times];
 
 echo - Introduce Token splitter
 
