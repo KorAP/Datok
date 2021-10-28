@@ -521,6 +521,7 @@ PARSECHARM:
 			}
 
 			// TODO: Better as a ring buffer
+			// buffer = buffer[buffc:]
 			for x, i := range buffer[buffc:buffi] {
 				buffer[x] = i
 			}

@@ -1067,3 +1067,8 @@ func BenchmarkDoubleArrayLarger(b *testing.B) {
 //   BenchmarkDoubleArrayConstruction-4         74510             15879 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkDoubleArrayLarger-4                  18          73752383 ns/op         6357956 B/op       2579 allocs/op
 //   BenchmarkMatrixTransduce-4                 46870             27140 ns/op           12408 B/op          6 allocs/op
+// 2021-10-28 - Finalize feature compatibility with KorAP-Tokenizer
+//   BenchmarkDoubleArrayTransduce-4            39130             31612 ns/op           28944 B/op         16 allocs/op
+//   BenchmarkDoubleArrayConstruction-4         79302             14994 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkDoubleArrayLarger-4                  18          67942077 ns/op         6357870 B/op       2577 allocs/op
+//   BenchmarkMatrixTransduce-4                 39536             30510 ns/op           28944 B/op         16 allocs/op
