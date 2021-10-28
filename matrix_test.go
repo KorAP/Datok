@@ -873,6 +873,13 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert.Equal("Mann", tokens[8])
 	assert.Equal(".", tokens[9])
 	assert.Equal(10, len(tokens))
+
+	tokens = ttokenize(mat, w, "das<br   class=\"br\" />ging.")
+	assert.Equal("das", tokens[0])
+	assert.Equal("<br   class=\"br\" />", tokens[1])
+	assert.Equal("ging", tokens[2])
+	assert.Equal(".", tokens[3])
+	assert.Equal(4, len(tokens))
 }
 
 func TestMatokDatokEquivalence(t *testing.T) {

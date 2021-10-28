@@ -103,4 +103,6 @@ func main() {
 		dat.TransduceTokenWriter(os.Stdin, tw)
 		tw.Flush()
 	}
+
+	fmt.Println("\n")
 }
