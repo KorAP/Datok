@@ -716,6 +716,19 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(".", tokens[5])
 	assert.Equal(6, len(tokens))
 
+	tokens = ttokenize(mat, w, "Sie schwamm die Strecke in 00:00:57,34 00:57,341 0:57 Stunden.")
+	assert.Equal("Sie", tokens[0])
+	assert.Equal("schwamm", tokens[1])
+	assert.Equal("die", tokens[2])
+	assert.Equal("Strecke", tokens[3])
+	assert.Equal("in", tokens[4])
+	assert.Equal("00:00:57,34", tokens[5])
+	assert.Equal("00:57,341", tokens[6])
+	assert.Equal("0:57", tokens[7])
+	assert.Equal("Stunden", tokens[8])
+	assert.Equal(".", tokens[9])
+	assert.Equal(10, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {

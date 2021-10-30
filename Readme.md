@@ -28,7 +28,7 @@ Uhr
 
 The special `END OF TRANSMISSION` character (`\x04`) can be used to mark the end of a text.
 
-*Caution*: When experimenting with STDIN this way, you may need to disable history expansion.
+> *Caution*: When experimenting with STDIN this way, you may need to disable history expansion.
 
 ## Conventions
 
@@ -73,7 +73,7 @@ define Tokenizer [[Word|PUNCT] @-> ... TE] .o.
 read regex Tokenizer;
 ```
 
-*Hint*: For development it's easier to replace `@_TOKEN_SYMBOL_@`
+> *Hint*: For development it's easier to replace `@_TOKEN_SYMBOL_@`
 with a newline.
 
 ## Building
