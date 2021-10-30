@@ -10,7 +10,7 @@ based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
 ## Tokenizing
 
 ```shell
-$ echo "Es war spät, schon ca. 2 Uhr. ;-)" | datok tokenize -t testdata/tokenizer.matok 
+$ echo "Es war spät, schon ca. 2 Uhr. ;-)" | datok tokenize -t testdata/tokenizer.matok -
 Es
 war
 spät

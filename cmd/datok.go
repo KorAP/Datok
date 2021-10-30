@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"log"
@@ -12,12 +13,13 @@ import (
 
 var cli struct {
 	Convert struct {
-		Foma        string `kong:"required,short='i',help='The Foma file'"`
+		Foma        string `kong:"required,short='i',help='The Foma FST file'"`
 		Tokenizer   string `kong:"required,short='o',help='The Tokenizer file'"`
 		DoubleArray bool   `kong:"optional,short='d',help='Convert to Double Array instead of Matrix representation'"`
 	} `kong:"cmd, help='Convert a foma file to a Matrix or Double Array tokenizer'"`
 	Tokenize struct {
 		Tokenizer         string `kong:"required,short='t',help='The Matrix or Double Array Tokenizer file'"`
+		Input             string `kong:"required,arg='',type='existingfile',help='Input file to tokenize (use - for STDIN)'"`
 		Tokens            bool   `kong:"optional,negatable,default=true,help='Print token surfaces (defaults to ${default})'"`
 		Sentences         bool   `kong:"optional,negatable,default=true,help='Print sentence boundaries (defaults to ${default})'"`
 		TokenPositions    bool   `kong:"optional,default=false,short='p',help='Print token offsets (defaults to ${default})'"`
@@ -97,10 +99,29 @@ func main() {
 	// Create token writer based on the options defined
 	tw := datok.NewTokenWriter(os.Stdout, flags)
 
+	var r io.Reader
+
 	// Program is running in a pipe
-	fileInfo, _ := os.Stdin.Stat()
-	if fileInfo.Mode()&os.ModeCharDevice == 0 {
-		dat.TransduceTokenWriter(os.Stdin, tw)
-		tw.Flush()
+	if cli.Tokenize.Input == "-" {
+		fileInfo, _ := os.Stdin.Stat()
+		if fileInfo.Mode()&os.ModeCharDevice == 0 {
+			r = os.Stdin
+		} else {
+			log.Fatalln("Unable to read from STDIN")
+			os.Exit(1)
+			return
+		}
+	} else {
+		f, err := os.Open(cli.Tokenize.Input)
+		if err != nil {
+			log.Fatalln(err)
+			os.Exit(1)
+			return
+		}
+		defer f.Close()
+		r = f
 	}
+
+	dat.TransduceTokenWriter(r, tw)
+	tw.Flush()
 }
