@@ -10,15 +10,17 @@ based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
 ## Tokenizing
 
 ```shell
-$ echo "Es war spät, schon ca. 2 Uhr. ;-)" | datok tokenize -t testdata/tokenizer.matok -
+$ echo "Es war spät, schon ca. <time datetime=\"02:00\">02:00 Uhr</time>. ;-)" | ./datok tokenize -t testdata/tokenizer.matok -
 Es
 war
 spät
 ,
 schon
 ca.
-2
+<time datetime="02:00">
+02:00
 Uhr
+</time>
 .
 
 ;-)
