@@ -1,36 +1,51 @@
 # Datok - Finite State Tokenizer
 
+![Introduction to Datok](https://raw.githubusercontent.com/KorAP/Datok/master/misc/introducing-datok.gif)
+
 Implementation of a finite state automaton for
-natural language tokenization, based on a finite state
+fast natural language tokenization, based on a finite state
 transducer generated with [Foma](https://fomafst.github.io/).
 
 The library contains sources for a german tokenizer
 based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
 
-## Tokenizing
+## Tokenization
 
-```shell
-$ echo "Es war spät, schon ca. <time datetime=\"02:00\">02:00 Uhr</time>. ;-)" | ./datok tokenize -t testdata/tokenizer.matok -
-Es
-war
-spät
-,
-schon
-ca.
-<time datetime="02:00">
-02:00
-Uhr
-</time>
-.
+```
+Usage: datok tokenize --tokenizer=STRING <input>
 
-;-)
+Arguments:
+  <input>    Input file to tokenize (use - for STDIN)
 
+Flags:
+  -h, --help                  Show context-sensitive help.
 
+  -t, --tokenizer=STRING      The Matrix or Double Array Tokenizer file
+      --[no-]tokens           Print token surfaces (defaults to true)
+      --[no-]sentences        Print sentence boundaries (defaults to true)
+  -p, --token-positions       Print token offsets (defaults to false)
+      --sentence-positions    Print sentence offsets (defaults to false)
+      --newline-after-eot     Ignore newline after EOT (defaults to false)
 ```
 
 The special `END OF TRANSMISSION` character (`\x04`) can be used to mark the end of a text.
 
-> *Caution*: When experimenting with STDIN this way, you may need to disable history expansion.
+> *Caution*: When experimenting with STDIN and echo,
+> you may need to disable history expansion.
+
+## Conversion
+
+```
+Usage: datok convert --foma=STRING --tokenizer=STRING
+
+Flags:
+  -h, --help                Show context-sensitive help.
+
+  -i, --foma=STRING         The Foma FST file
+  -o, --tokenizer=STRING    The Tokenizer file
+  -d, --double-array        Convert to Double Array instead of Matrix
+                            representation
+```
 
 ## Conventions
 
@@ -126,8 +141,10 @@ Internally the FSA is represented
 either as a matrix or as a double array.
 
 Both representations mark all non-word-character targets with a
-leading bit. The transduction is greedy with a single backtracking
-option to the last ε (aka *tokenend*) transition.
+leading bit. All ε (aka *tokenend*) transitions mark the end of a
+token or the end of a sentence (2 subsequential ε).
+The transduction is greedy with a single backtracking
+option to the last ε transition.
 
 The double array representation (Aoe 1989) of all transitions
 in the FST is implemented as an extended DFA following Mizobuchi
