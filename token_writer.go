@@ -32,6 +32,7 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 	pos := make([]int, 0, 1024)
 	sentB := true
 	sent := make([]int, 0, 1024)
+	init := true
 
 	tw := &TokenWriter{}
 
@@ -53,9 +54,11 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 			//   and write to string
 
 			// Accept newline after EOT
-			if flags&NEWLINE_AFTER_EOT != 0 && posC == 0 && buf[0] == '\n' && writer.Buffered() != 0 {
+			if flags&NEWLINE_AFTER_EOT != 0 && posC == 0 && buf[0] == '\n' && !init {
 				posC--
 			}
+
+			init = false
 
 			posC += offset
 			pos = append(pos, posC)
