@@ -369,9 +369,16 @@ PARSECHARM:
 
 				// No more runes to read
 				if err != nil {
-					eof = true
-					break
+					if err == io.EOF {
+						eof = true
+						break
+					}
+
+					log.Fatalln(err)
+					os.Exit(1)
+					return false
 				}
+
 				buffer[buffi] = char
 				buffi++
 			}

@@ -106,6 +106,7 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 	} else if flags&SENTENCES != 0 {
 		tw.SentenceEnd = func(_ int) {
 			writer.WriteByte('\n')
+			writer.Flush()
 		}
 
 		// Ignore sentence boundaries
@@ -116,7 +117,6 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 	// Write token or sentence positions
 	if flags&(TOKEN_POS|SENTENCE_POS) != 0 {
 		tw.TextEnd = func(_ int) {
-			writer.Flush()
 
 			// Write token positions
 			if flags&TOKEN_POS != 0 {
@@ -139,6 +139,8 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 				sent = sent[:0]
 				sentB = true
 			}
+
+			writer.Flush()
 
 			posC = 0
 			pos = pos[:0]
