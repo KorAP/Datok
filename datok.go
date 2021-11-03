@@ -28,7 +28,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math"
 	"os"
@@ -168,7 +167,7 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 				}
 
 				if DEBUG {
-					fmt.Println("Translate transition",
+					log.Println("Translate transition",
 						s, "->", s1, "(", a, ")", "to", t, "->", t1)
 				}
 
@@ -176,7 +175,7 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 				if atrans.nontoken {
 					dat.array[t1].setNonToken(true)
 					if DEBUG {
-						fmt.Println("Set", t1, "to nontoken")
+						log.Println("Set", t1, "to nontoken")
 					}
 				}
 
@@ -184,7 +183,7 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 				if atrans.tokenend {
 					dat.array[t1].setTokenEnd(true)
 					if DEBUG {
-						fmt.Println("Set", t1, "to tokenend")
+						log.Println("Set", t1, "to tokenend")
 					}
 				}
 
@@ -829,7 +828,7 @@ PARSECHAR:
 			char = buffer[buffc]
 
 			if DEBUG {
-				fmt.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
+				log.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
 			}
 
 			eot = false
@@ -863,7 +862,7 @@ PARSECHAR:
 				epsilonOffset = buffc
 
 				if DEBUG {
-					fmt.Println("epsilonOffset is set to", buffc)
+					log.Println("epsilonOffset is set to", buffc)
 				}
 			}
 		}
@@ -874,9 +873,9 @@ PARSECHAR:
 
 		if DEBUG {
 			// Char is only relevant if set
-			fmt.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
+			log.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
 			if false {
-				fmt.Println(dat.outgoing(t0))
+				log.Println(dat.outgoing(t0))
 			}
 		}
 
@@ -884,7 +883,7 @@ PARSECHAR:
 		if t > dat.array[1].getCheck() || ta.getCheck() != t0 {
 
 			if DEBUG {
-				fmt.Println("Match is not fine!", t, "and", ta.getCheck(), "vs", t0)
+				log.Println("Match is not fine!", t, "and", ta.getCheck(), "vs", t0)
 			}
 
 			if !ok && a == dat.identity {
@@ -892,7 +891,7 @@ PARSECHAR:
 				// Try again with unknown symbol, in case identity failed
 				// Char is only relevant when set
 				if DEBUG {
-					fmt.Println("UNKNOWN symbol", string(char), "->", dat.unknown)
+					log.Println("UNKNOWN symbol", string(char), "->", dat.unknown)
 				}
 				a = dat.unknown
 
@@ -905,7 +904,7 @@ PARSECHAR:
 				a = dat.epsilon
 
 				if DEBUG {
-					fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 
 			} else {
@@ -928,7 +927,7 @@ PARSECHAR:
 			// Transition does not produce a character
 			if buffc-bufft == 1 && ta.isNonToken() {
 				if DEBUG {
-					fmt.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 				bufft++
 				// rewindBuffer = true
@@ -939,7 +938,7 @@ PARSECHAR:
 			// Transition marks the end of a token - so flush the buffer
 			if buffc-bufft > 0 {
 				if DEBUG {
-					fmt.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBuffer(buffer, buffc, buffi))
+					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBuffer(buffer, buffc, buffi))
 				}
 				w.Token(bufft, buffer[:buffc])
 				rewindBuffer = true
@@ -956,7 +955,7 @@ PARSECHAR:
 			textEnd = true
 			w.TextEnd(0)
 			if DEBUG {
-				fmt.Println("END OF TEXT")
+				log.Println("END OF TEXT")
 			}
 		}
 
@@ -964,7 +963,7 @@ PARSECHAR:
 		if rewindBuffer {
 
 			if DEBUG {
-				fmt.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
+				log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
 			// TODO: Better as a ring buffer
@@ -982,7 +981,7 @@ PARSECHAR:
 			bufft = 0
 
 			if DEBUG {
-				fmt.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
+				log.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
 			}
 		}
 
@@ -992,7 +991,7 @@ PARSECHAR:
 			ta = dat.array[t]
 
 			if DEBUG {
-				fmt.Println("Representative pointing to", t)
+				log.Println("Representative pointing to", t)
 			}
 		}
 
@@ -1005,13 +1004,13 @@ PARSECHAR:
 	// Input reader is not yet finished
 	if !eof {
 		if DEBUG {
-			fmt.Println("Not at the end - problem", t0, ":", dat.outgoing(t0))
+			log.Println("Not at the end - problem", t0, ":", dat.outgoing(t0))
 		}
 		return false
 	}
 
 	if DEBUG {
-		fmt.Println("Entering final check")
+		log.Println("Entering final check")
 	}
 
 	/*
@@ -1026,7 +1025,7 @@ PARSECHAR:
 
 				if buffi > 0 {
 					if DEBUG {
-						fmt.Println("-> Flush buffer: [", string(buffer[:buffi]), "]")
+						log.Println("-> Flush buffer: [", string(buffer[:buffi]), "]")
 					}
 					w.Token(0, buffer[:buffi])
 				}
@@ -1060,7 +1059,7 @@ PARSECHAR:
 		epsilonState = 0 // reset
 		buffc = epsilonOffset
 		if DEBUG {
-			fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
+			log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 		}
 		goto PARSECHAR
 	}
@@ -1072,7 +1071,7 @@ PARSECHAR:
 		w.SentenceEnd(0)
 
 		if DEBUG {
-			fmt.Println("Sentence end")
+			log.Println("Sentence end")
 		}
 	}
 
@@ -1080,7 +1079,7 @@ PARSECHAR:
 		w.TextEnd(0)
 
 		if DEBUG {
-			fmt.Println("Text end")
+			log.Println("Text end")
 		}
 	}
 

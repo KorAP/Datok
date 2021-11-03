@@ -3,7 +3,6 @@ package datok
 import (
 	"bufio"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -380,7 +379,7 @@ PARSECHARM:
 			char = buffer[buffc]
 
 			if DEBUG {
-				fmt.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
+				log.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
 			}
 
 			eot = false
@@ -420,7 +419,7 @@ PARSECHARM:
 				epsilonOffset = buffc
 
 				if DEBUG {
-					fmt.Println("epsilonOffset is set to", buffc)
+					log.Println("epsilonOffset is set to", buffc)
 				}
 			}
 		}
@@ -430,14 +429,14 @@ PARSECHARM:
 
 		if DEBUG {
 			// Char is only relevant if set
-			fmt.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
+			log.Println("Check", t0, "-", a, "(", string(char), ")", "->", t)
 		}
 
 		// Check if the transition is invalid according to the matrix
 		if t == 0 {
 
 			if DEBUG {
-				fmt.Println("Match is not fine!")
+				log.Println("Match is not fine!")
 			}
 
 			if !ok && a == mat.identity {
@@ -445,7 +444,7 @@ PARSECHARM:
 				// Try again with unknown symbol, in case identity failed
 				// Char is only relevant when set
 				if DEBUG {
-					fmt.Println("UNKNOWN symbol", string(char), "->", mat.unknown)
+					log.Println("UNKNOWN symbol", string(char), "->", mat.unknown)
 				}
 				a = mat.unknown
 
@@ -458,7 +457,7 @@ PARSECHARM:
 				a = mat.epsilon
 
 				if DEBUG {
-					fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 
 			} else {
@@ -481,7 +480,7 @@ PARSECHARM:
 			// Transition does not produce a character
 			if buffc-bufft == 1 && (t&FIRSTBIT) != 0 {
 				if DEBUG {
-					fmt.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 				bufft++
 				// rewindBuffer = true
@@ -491,7 +490,7 @@ PARSECHARM:
 			// Transition marks the end of a token - so flush the buffer
 			if buffc-bufft > 0 {
 				if DEBUG {
-					fmt.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
 				}
 				w.Token(bufft, buffer[:buffc])
 				rewindBuffer = true
@@ -509,7 +508,7 @@ PARSECHARM:
 			w.TextEnd(buffc)
 			rewindBuffer = true
 			if DEBUG {
-				fmt.Println("END OF TEXT")
+				log.Println("END OF TEXT")
 			}
 		}
 
@@ -517,11 +516,11 @@ PARSECHARM:
 		if rewindBuffer {
 
 			if DEBUG {
-				fmt.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
+				log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
 			// TODO: Better as a ring buffer
-			// buffer = buffer[buffc:]
+			// buffer = buffer[buffc:] !slower
 			for x, i := range buffer[buffc:buffi] {
 				buffer[x] = i
 			}
@@ -535,7 +534,7 @@ PARSECHARM:
 			bufft = 0
 
 			if DEBUG {
-				fmt.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
+				log.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
 			}
 		}
 
@@ -550,13 +549,13 @@ PARSECHARM:
 	// Input reader is not yet finished
 	if !eof {
 		if DEBUG {
-			fmt.Println("Not at the end")
+			log.Println("Not at the end")
 		}
 		return false
 	}
 
 	if DEBUG {
-		fmt.Println("Entering final check")
+		log.Println("Entering final check")
 	}
 
 	// Check epsilon transitions as long as possible
@@ -574,7 +573,7 @@ PARSECHARM:
 		epsilonState = 0 // reset
 		buffc = epsilonOffset
 		if DEBUG {
-			fmt.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
+			log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 		}
 		goto PARSECHARM
 	}
@@ -585,7 +584,7 @@ PARSECHARM:
 	if !sentenceEnd {
 		w.SentenceEnd(buffc)
 		if DEBUG {
-			fmt.Println("Sentence end")
+			log.Println("Sentence end")
 		}
 	}
 
@@ -593,7 +592,7 @@ PARSECHARM:
 		w.TextEnd(buffc)
 
 		if DEBUG {
-			fmt.Println("Text end")
+			log.Println("Text end")
 		}
 	}
 

@@ -3,7 +3,6 @@ package datok
 import (
 	"bufio"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -142,19 +141,19 @@ func ParseFoma(ior io.Reader) *Automaton {
 			{
 				elem = strings.Split(line, " ")
 				/*
-					fmt.Println("arity:            " + elem[0])
-					fmt.Println("arccount:         " + elem[1])
-					fmt.Println("statecount:       " + elem[2])
-					fmt.Println("linecount:        " + elem[3])
-					fmt.Println("finalcount:       " + elem[4])
-					fmt.Println("pathcount:        " + elem[5])
-					fmt.Println("is_deterministic: " + elem[6])
-					fmt.Println("is_pruned:        " + elem[7])
-					fmt.Println("is_minimized:     " + elem[8])
-					fmt.Println("is_epsilon_free:  " + elem[9])
-					fmt.Println("is_loop_free:     " + elem[10])
-					fmt.Println("extras:           " + elem[11])
-					fmt.Println("name:             " + elem[12])
+					log.Println("arity:            " + elem[0])
+					log.Println("arccount:         " + elem[1])
+					log.Println("statecount:       " + elem[2])
+					log.Println("linecount:        " + elem[3])
+					log.Println("finalcount:       " + elem[4])
+					log.Println("pathcount:        " + elem[5])
+					log.Println("is_deterministic: " + elem[6])
+					log.Println("is_pruned:        " + elem[7])
+					log.Println("is_minimized:     " + elem[8])
+					log.Println("is_epsilon_free:  " + elem[9])
+					log.Println("is_loop_free:     " + elem[10])
+					log.Println("extras:           " + elem[11])
+					log.Println("name:             " + elem[12])
 				*/
 				if elem[6] != "1" {
 					log.Print("The FST needs to be deterministic")
@@ -191,38 +190,38 @@ func ParseFoma(ior io.Reader) *Automaton {
 				elem = strings.Split(line[0:len(line)-1], " ")
 				if elem[0] == "-1" {
 					if DEBUG {
-						fmt.Println("Skip", elem)
+						log.Println("Skip", elem)
 					}
 					continue
 				}
 				elemint[0], err = strconv.Atoi(elem[0])
 				if err != nil {
-					fmt.Println("Unable to translate", elem[0])
+					log.Println("Unable to translate", elem[0])
 					break
 				}
 
 				if len(elem) > 1 {
 					elemint[1], err = strconv.Atoi(elem[1])
 					if err != nil {
-						fmt.Println("Unable to translate", elem[1])
+						log.Println("Unable to translate", elem[1])
 						break
 					}
 					if len(elem) > 2 {
 						elemint[2], err = strconv.Atoi(elem[2])
 						if err != nil {
-							fmt.Println("Unable to translate", elem[2])
+							log.Println("Unable to translate", elem[2])
 							break
 						}
 						if len(elem) > 3 {
 							elemint[3], err = strconv.Atoi(elem[3])
 							if err != nil {
-								fmt.Println("Unable to translate", elem[3])
+								log.Println("Unable to translate", elem[3])
 								break
 							}
 							if len(elem) > 4 {
 								elemint[4], err = strconv.Atoi(elem[4])
 								if err != nil {
-									fmt.Println("Unable to translate", elem[4])
+									log.Println("Unable to translate", elem[4])
 									break
 								}
 							}
@@ -350,7 +349,7 @@ func ParseFoma(ior io.Reader) *Automaton {
 				}
 
 				if DEBUG {
-					fmt.Println("Add",
+					log.Println("Add",
 						state+1, "->", end+1,
 						"(",
 						inSym,
