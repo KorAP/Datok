@@ -729,6 +729,21 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(".", tokens[9])
 	assert.Equal(10, len(tokens))
 
+	// waste example
+	tokens = ttokenize(mat, w, "Am 24.1.1806 feierte E. T. A. Hoffmann seinen 30. Geburtstag.")
+	assert.Equal(tokens[0], "Am")
+	assert.Equal(tokens[1], "24.1.1806")
+	assert.Equal(tokens[2], "feierte")
+	assert.Equal(tokens[3], "E.")
+	assert.Equal(tokens[4], "T.")
+	assert.Equal(tokens[5], "A.")
+	assert.Equal(tokens[6], "Hoffmann")
+	assert.Equal(tokens[7], "seinen")
+	assert.Equal(tokens[8], "30.")
+	assert.Equal(tokens[9], "Geburtstag")
+	assert.Equal(tokens[10], ".")
+	assert.Equal(11, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {

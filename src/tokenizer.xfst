@@ -108,7 +108,9 @@ z (->) Z,
 ß (->) {SS}
 ];
 
-define Abbr @txt"txt/abbrv.txt" %.;
+define Letter [ [ AsciiLetter | ö | ü | ä | ß ] .o. Caseinsensitive ];
+
+define Abbr [ @txt"txt/abbrv.txt" | Letter ] %.;
 
 define Plusampersand @txt"txt/plusampersand.txt";
 
@@ -125,7 +127,7 @@ define Emoji;
 
 ! acronyms: U.S.A., I.B.M., etc.
 ! use a post-filter to remove dots
-define AcronymDep Char %. [Char %.]+;
+define AcronymDep Letter %. [Letter %.]+;
 
 define Dot "."|[["["|"("] "d" "o" "t" [")"|"]"]] .o. Caseinsensitive;
 define At "@"|[["["|"("] "a" "t" [")"|"]"]] .o. Caseinsensitive;
@@ -220,8 +222,8 @@ define RealToken [Punct|Word|XML|Email|URL|SNS|Domain|AcronymDep|File|Ord|Num|Ye
 echo - Introduce Token splitter
 
 define Token [
-  RealToken @-> ... NLout,
   Abbr @-> ... NLout,
+  RealToken @-> ... NLout,
   Plusampersand @-> ... NLout,
   Emoji @-> ... NLout,
   [Streetname|Omission|Emdash] @-> ... NLout
