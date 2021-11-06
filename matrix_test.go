@@ -744,6 +744,15 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[10], ".")
 	assert.Equal(11, len(tokens))
 
+	// IPtest
+	tokens = ttokenize(mat, w, "Meine IP ist 192.178.168.55.")
+	assert.Equal(tokens[0], "Meine")
+	assert.Equal(tokens[1], "IP")
+	assert.Equal(tokens[2], "ist")
+	assert.Equal(tokens[3], "192.178.168.55")
+	assert.Equal(tokens[4], ".")
+	assert.Equal(5, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
