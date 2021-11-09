@@ -143,25 +143,9 @@ URLChar [URLChar|SP]* URLChar
 
 define Domain Char+ [Dash Char+]* Dot TldEnd;
 
-! XML rule
-define XMLns [AsciiLetter [AsciiLetter|Digit|%-]* (%: AsciiLetter [AsciiLetter|Digit|%-]*)] .o. Caseinsensitive;
-define XML [
-  "<" [
-      [
-        XMLns
-        [WS+ XMLns WS*
-          (%= WS*
-            [[%" [? - %" - %>]+ %"] | [%' [? - %' - %>]+ %']]
-          )
-        ]*
-        (WS* "/")   
-      ]
-      |
-      [
-        "/" XMLns
-      ]
-    ] WS* ">"
-].u;
+! XML sources
+source xml.xfst
+define XML;
 
 ! XML entities
 source entities.xfst

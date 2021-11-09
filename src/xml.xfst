@@ -1,0 +1,19 @@
+! XML rule
+define XMLns [AsciiLetter [AsciiLetter|Digit|%-]* (%: AsciiLetter [AsciiLetter|Digit|%-]*)] .o. Caseinsensitive;
+read regex [
+  "<" [
+      [
+        XMLns
+        [WS+ XMLns WS*
+          (%= WS*
+            [[%" [? - %" - %>]+ %"] | [%' [? - %' - %>]+ %']]
+          )
+        ]*
+        (WS* "/")   
+      ]
+      |
+      [
+        "/" XMLns
+      ]
+    ] WS* ">"
+].u;
