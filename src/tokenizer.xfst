@@ -225,7 +225,7 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 echo - Compile Real Token
 
-define RealToken [Punct|Word|XML|Email|URL|SNS|Domain|AcronymDep|File|Ord|Num|Years|Times];
+define RealToken [Punct|Word|SNS|AcronymDep|Ord|Num|Years|Times];
 
 echo - Introduce Token splitter
 
@@ -233,7 +233,12 @@ define Token [
   XMLEntities @-> ... NLout,
   Abbr @-> ... NLout,
   RealToken @-> ... NLout,
+  XML @-> ... NLout,
+  URL @-> ... NLout,
+  Email @-> ... NLout,
+  File @-> ... NLout,
   Plusampersand @-> ... NLout,
+  Domain @-> ... NLout,
   Emoji @-> ... NLout,
   [Streetname|Omission|Emdash] @-> ... NLout
   ]
