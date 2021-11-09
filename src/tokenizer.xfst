@@ -54,7 +54,7 @@ define RP [SP|","|";"|":"|
               ! from book
               [%‘ %‘]|[%’ %’]];
 
-define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@];
+define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@|%&];
 define Apos %'|%’|%`;
 define Punct [LP|RP|Sym];
 !define nonSym \[WS|LP|RP|Sym];
@@ -163,7 +163,12 @@ define XML [
     ] WS* ">"
 ].u;
 
-!define Email [Alpha [URLChar-At]* At Alpha URLChar* [Dot [[Alpha URLChar+]-Dot-At]]+];
+! XML entities
+source entities.xfst
+define XMLEntities;
+
+
+! Email addresses
 define Email URLChar+ At URLChar+ [Dot URLChar+]+;
 
 ! Twitter user, hashtag, Google+
@@ -225,6 +230,7 @@ define RealToken [Punct|Word|XML|Email|URL|SNS|Domain|AcronymDep|File|Ord|Num|Ye
 echo - Introduce Token splitter
 
 define Token [
+  XMLEntities @-> ... NLout,
   Abbr @-> ... NLout,
   RealToken @-> ... NLout,
   Plusampersand @-> ... NLout,

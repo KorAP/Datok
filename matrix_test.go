@@ -753,6 +753,22 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[4], ".")
 	assert.Equal(5, len(tokens))
 
+	// XML entities
+	tokens = ttokenize(mat, w, "Das ist&nbsp;1:30 Stunden&20 Minuten zu spät &GT;.")
+	assert.Equal(tokens[0], "Das")
+	assert.Equal(tokens[1], "ist")
+	assert.Equal(tokens[2], "&nbsp;")
+	assert.Equal(tokens[3], "1:30")
+	assert.Equal(tokens[4], "Stunden")
+	assert.Equal(tokens[5], "&")
+	assert.Equal(tokens[6], "20")
+	assert.Equal(tokens[7], "Minuten")
+	assert.Equal(tokens[8], "zu")
+	assert.Equal(tokens[9], "spät")
+	assert.Equal(tokens[10], "&GT;")
+	assert.Equal(tokens[11], ".")
+	assert.Equal(12, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
