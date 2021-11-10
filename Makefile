@@ -18,3 +18,6 @@ test:
 
 build:
 	go build -v -o ./bin/datok ./cmd/datok.go
+
+benchmark:
+	go test -bench=. -test.benchmem
