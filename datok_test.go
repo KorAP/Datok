@@ -179,10 +179,10 @@ func TestDoubleArrayFullTokenizer(t *testing.T) {
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
-	assert.Equal(dat.final, 146)
-	assert.Equal(len(dat.sigma), 141)
-	assert.True(len(dat.array) > 3600000)
-	assert.True(dat.maxSize > 3600000)
+	assert.Equal(dat.final, 142)
+	assert.Equal(len(dat.sigma), 137)
+	// assert.True(len(dat.array) > 3000000)
+	// assert.True(dat.maxSize > 3000000)
 	assert.True(tmatch(dat, "bau"))
 	assert.True(tmatch(dat, "bad"))
 	assert.True(tmatch(dat, "wald gehen"))
@@ -1077,3 +1077,8 @@ func BenchmarkDoubleArrayLarger(b *testing.B) {
 //   BenchmarkDoubleArrayConstruction-4         72446             15614 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkDoubleArrayLarger-4                  16          71058822 ns/op         6357860 B/op       2577 allocs/op
 //   BenchmarkMatrixTransduce-4                 36703             31891 ns/op           28944 B/op         17 allocs/op
+// 2021-11-10 - rearranged longest match operator
+//   BenchmarkDoubleArrayTransduce-4    	   34522	     33210 ns/op	   28944 B/op	      17 allocs/op
+//   BenchmarkDoubleArrayConstruction-4   	   66990	     16012 ns/op	   10703 B/op	      29 allocs/op
+//   BenchmarkDoubleArrayLarger-4         	      16	  62829878 ns/op	 6357823 B/op	    2576 allocs/op
+//   BenchmarkMatrixTransduce-4           	   36154	     32702 ns/op	   28944 B/op	      17 allocs/op

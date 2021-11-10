@@ -209,13 +209,12 @@ define Omission Char+ Asterisk Asterisk+ Char*;
 
 echo - Compile Real Token
 
-define RealToken [Punct|Word|SNS|AcronymDep|Ord|Num|Years|Times];
+define RealToken [Punct|Emdash|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
 
 echo - Introduce Token splitter
 
 define Token [
-  XMLEntities @-> ... NLout,
-  Abbr @-> ... NLout,
+  [Abbr|Streetname] @-> ... NLout,
   RealToken @-> ... NLout,
   XML @-> ... NLout,
   URL @-> ... NLout,
@@ -223,11 +222,8 @@ define Token [
   File @-> ... NLout,
   Plusampersand @-> ... NLout,
   Domain @-> ... NLout,
-  Emoji @-> ... NLout,
-  [Streetname|Omission|Emdash] @-> ... NLout
-  ]
-.o. [[WS|NL]+ @-> 0 || [ .#. | NLout ] _ ]
-;
+  Emoji @-> ... NLout
+] .o. [[WS|NL]+ @-> 0 || [ .#. | NLout ] _ ];
 
 echo - Introduce Sentence splitter
 read regex Token .o. [[["."|"!"|"?"]+|"…"] @-> ... NLout \/ NLout _ ];
