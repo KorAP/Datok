@@ -11,6 +11,7 @@ import (
 const (
 	MAMAGIC = "MATOK"
 	EOT     = 4
+	BUFSIZE = 4096
 )
 
 type MatrixTokenizer struct {
@@ -338,13 +339,14 @@ func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w *TokenWriter) bo
 	// Remember if a text end was already set
 	textEnd := false
 
-	buffer := make([]rune, 1024)
+	buffer := make([]rune, BUFSIZE)
+	buffo := 0 // Buffer absolute offset
 	bufft := 0 // Buffer token offset
 	buffc := 0 // Buffer current symbol
 	buffi := 0 // Buffer length
 
 	// The buffer is organized as follows:
-	// [   t[....c..]..i]
+	// ...o[...t[....c..]..i]
 
 	reader := bufio.NewReader(r)
 	defer w.Flush()
@@ -386,7 +388,7 @@ PARSECHARM:
 			char = buffer[buffc]
 
 			if DEBUG {
-				log.Println("Current char", string(char), int(char), showBufferNew(buffer, bufft, buffc, buffi))
+				log.Println("Current char", string(char), int(char), showBufferNew2(buffer, buffo, bufft, buffc, buffi))
 			}
 
 			eot = false
@@ -487,7 +489,7 @@ PARSECHARM:
 			// Transition does not produce a character
 			if buffc-bufft == 1 && (t&FIRSTBIT) != 0 {
 				if DEBUG {
-					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("Nontoken forward", showBufferNew2(buffer, buffo, bufft, buffc, buffi))
 				}
 				bufft++
 				// rewindBuffer = true
@@ -497,22 +499,23 @@ PARSECHARM:
 			// Transition marks the end of a token - so flush the buffer
 			if buffc-bufft > 0 {
 				if DEBUG {
-					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
+					log.Println("-> Buffer values", buffo, bufft, buffc, buffi, epsilonOffset)
+					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew2(buffer, buffo, bufft, buffc, buffi))
 				}
-				w.Token(bufft, buffer[:buffc])
+				w.Token(bufft-buffo, buffer[buffo:buffc])
 				rewindBuffer = true
 				sentenceEnd = false
 				textEnd = false
 			} else {
 				sentenceEnd = true
-				w.SentenceEnd(buffc)
+				w.SentenceEnd(buffc - buffo)
 			}
 		}
 
 		if eot {
 			eot = false
 			textEnd = true
-			w.TextEnd(buffc)
+			w.TextEnd(buffc - buffo)
 			rewindBuffer = true
 			if DEBUG {
 				log.Println("END OF TEXT")
@@ -522,26 +525,35 @@ PARSECHARM:
 		// Rewind the buffer if necessary
 		if rewindBuffer {
 
-			if DEBUG {
-				log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
-			}
+			if buffo < (BUFSIZE - 128) {
+				buffo = buffc
+				bufft = buffc
+				epsilonOffset = 0
+				epsilonState = 0
+			} else {
 
-			// TODO: Better as a ring buffer
-			// buffer = buffer[buffc:] !slower
-			for x, i := range buffer[buffc:buffi] {
-				buffer[x] = i
-			}
+				if DEBUG {
+					log.Println("-> Rewind buffer", buffo, bufft, buffc, buffi, epsilonOffset)
+				}
 
-			buffi -= buffc
-			// epsilonOffset -= buffo
-			epsilonOffset = 0
-			epsilonState = 0
+				// TODO: Better as a ring buffer
+				// buffer = buffer[buffc:] !slower
+				for x, i := range buffer[buffc:buffi] {
+					buffer[x] = i
+				}
 
-			buffc = 0
-			bufft = 0
+				buffo = 0
 
-			if DEBUG {
-				log.Println("Remaining:", showBufferNew(buffer, bufft, buffc, buffi))
+				buffi -= buffc
+				epsilonOffset = 0
+				epsilonState = 0
+
+				buffc = 0
+				bufft = 0
+
+				if DEBUG {
+					log.Println("Remaining:", showBufferNew2(buffer, buffo, bufft, buffc, buffi))
+				}
 			}
 		}
 
@@ -580,7 +592,7 @@ PARSECHARM:
 		epsilonState = 0 // reset
 		buffc = epsilonOffset
 		if DEBUG {
-			log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
+			log.Println("Get from epsilon stack and set buffc!", showBufferNew2(buffer, buffo, bufft, buffc, buffi))
 		}
 		goto PARSECHARM
 	}
@@ -589,14 +601,14 @@ PARSECHARM:
 	// sentence split was reached. This may be controversial and therefore
 	// optional via parameter.
 	if !sentenceEnd {
-		w.SentenceEnd(buffc)
+		w.SentenceEnd(buffc - buffo)
 		if DEBUG {
 			log.Println("Sentence end")
 		}
 	}
 
 	if !textEnd {
-		w.TextEnd(buffc)
+		w.TextEnd(buffc - buffo)
 
 		if DEBUG {
 			log.Println("Text end")

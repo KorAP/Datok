@@ -743,6 +743,29 @@ func showBufferNew(buffer []rune, bufft int, buffc int, buffi int) string {
 	return string(out)
 }
 
+// Show the current state of the buffer,
+// for testing puroses
+func showBufferNew2(buffer []rune, buffo int, bufft int, buffc int, buffi int) string {
+	out := make([]rune, 0, 1024)
+	for x := 0; x < len(buffer); x++ {
+		if buffo == x {
+			out = append(out, '>')
+		}
+		if buffi == x {
+			out = append(out, '^')
+		}
+		if bufft == x {
+			out = append(out, '|')
+		}
+		if buffc == x {
+			out = append(out, '[', buffer[x], ']')
+		} else {
+			out = append(out, buffer[x])
+		}
+	}
+	return string(out)
+}
+
 // Transduce input to ouutput
 func (dat *DaTokenizer) Transduce(r io.Reader, w io.Writer) bool {
 	return dat.TransduceTokenWriter(r, NewTokenWriter(w, SIMPLE))
