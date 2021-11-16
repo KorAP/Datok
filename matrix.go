@@ -479,21 +479,8 @@ PARSECHARM:
 		// Transition was successful
 		rewindBuffer = false
 
-		// Transition consumes a character
-		if a != mat.epsilon {
-
-			buffc++
-
-			// Transition does not produce a character
-			if buffc-bufft == 1 && (t&FIRSTBIT) != 0 {
-				if DEBUG {
-					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
-				}
-				bufft++
-				// rewindBuffer = true
-			}
-
-		} else {
+		// Transition consumes no character
+		if a == mat.epsilon {
 			// Transition marks the end of a token - so flush the buffer
 			if buffc-bufft > 0 {
 				if DEBUG {
@@ -506,6 +493,19 @@ PARSECHARM:
 			} else {
 				sentenceEnd = true
 				w.SentenceEnd(buffc)
+			}
+
+			// Transition consumes a character
+		} else {
+			buffc++
+
+			// Transition does not produce a character
+			if buffc-bufft == 1 && (t&FIRSTBIT) != 0 {
+				if DEBUG {
+					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
+				}
+				bufft++
+				// rewindBuffer = true
 			}
 		}
 
@@ -526,11 +526,12 @@ PARSECHARM:
 				log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
-			// TODO: Better as a ring buffer
-			// buffer = buffer[buffc:] !slower
-			for x, i := range buffer[buffc:buffi] {
-				buffer[x] = i
-			}
+			buffer = buffer[buffc:]
+			/*
+				for x, i := range buffer[buffc:buffi] {
+					buffer[x] = i
+				}
+			*/
 
 			buffi -= buffc
 			// epsilonOffset -= buffo
@@ -597,7 +598,6 @@ PARSECHARM:
 
 	if !textEnd {
 		w.TextEnd(buffc)
-
 		if DEBUG {
 			log.Println("Text end")
 		}
