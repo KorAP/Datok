@@ -54,7 +54,7 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 			//   and write to string
 
 			// Accept newline after EOT
-			if flags&NEWLINE_AFTER_EOT != 0 && posC == 0 && buf[0] == '\n' && !init {
+			if posC == 0 && flags&NEWLINE_AFTER_EOT != 0 && buf[0] == '\n' && !init {
 				posC--
 			}
 
@@ -152,7 +152,7 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 		// Collect text ends
 	} else {
 		tw.TextEnd = func(_ int) {
-			writer.WriteRune('\n')
+			writer.WriteByte('\n')
 			writer.Flush()
 		}
 	}
