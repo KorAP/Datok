@@ -1009,6 +1009,54 @@ func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 	assert.Equal("Erste\n.\n\n\nNächst\n.\n\n\n", matStr)
 }
 
+func TestMatrixFullTokenizerLongText(t *testing.T) {
+	assert := assert.New(t)
+
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
+
+	assert.NotNil(mat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+
+	text := `The Project Gutenberg EBook of Effi Briest, by Theodor Fontane
+
+Copyright laws are changing all over the world. Be sure to check the
+copyright laws for your country before downloading or redistributing
+this or any other Project Gutenberg eBook.
+
+This header should be the first thing seen when viewing this Project
+Gutenberg file.  Please do not remove it.  Do not change or edit the
+header without written permission.
+
+Please read the "legal small print," and other information about the
+eBook and Project Gutenberg at the bottom of this file.  Included is
+important information about your specific rights and restrictions in
+how the file may be used.  You can also find out about how to make a
+donation to Project Gutenberg, and how to get involved.
+
+
+**Welcome To The World of Free Plain Vanilla Electronic Texts**
+
+**eBooks Readable By Both Humans and By Computers, Since 1971**
+
+*****These eBooks Were Prepared By Thousands of Volunteers!*****
+
+
+Title: Effi Briest
+
+Author: Theodor Fontane
+
+Release Date: March, 2004  [EBook #5323]
+`
+
+	assert.True(mat.Transduce(strings.NewReader(text), w))
+
+	assert.True(strings.Contains(w.String(), "Release"))
+}
+
 func TestMatrixTrimming(t *testing.T) {
 	assert := assert.New(t)
 

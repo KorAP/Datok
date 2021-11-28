@@ -526,12 +526,10 @@ PARSECHARM:
 				log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
-			buffer = buffer[buffc:]
-			/*
-				for x, i := range buffer[buffc:buffi] {
-					buffer[x] = i
-				}
-			*/
+			// buffer = buffer[buffc:]
+			for x, i := range buffer[buffc:buffi] {
+				buffer[x] = i
+			}
 
 			buffi -= buffc
 			// epsilonOffset -= buffo
