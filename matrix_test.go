@@ -769,6 +769,17 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[11], ".")
 	assert.Equal(12, len(tokens))
 
+	// Plusampersand compounds
+	tokens = ttokenize(mat, w, "Die 2G+-Regel soll weitere Covid-19-Erkrankungen reduzieren.")
+	assert.Equal(tokens[0], "Die")
+	assert.Equal(tokens[1], "2G+-Regel")
+	assert.Equal(tokens[2], "soll")
+	assert.Equal(tokens[3], "weitere")
+	assert.Equal(tokens[4], "Covid-19-Erkrankungen")
+	assert.Equal(tokens[5], "reduzieren")
+	assert.Equal(tokens[6], ".")
+	assert.Equal(7, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {

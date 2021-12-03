@@ -114,7 +114,7 @@ define Letter [ [ AsciiLetter | ö | ü | ä | ß ] .o. Caseinsensitive ];
 ! Abbreviations and Initials
 define Abbr [ @txt"txt/abbrv.txt" | Letter ] %.;
 
-define Plusampersand @txt"txt/plusampersand.txt";
+define Plusampersand @txt"txt/plusampersand.txt" (Dash Word);
 
 ! A solution to the "(author): problem" may be to add ) at the end of any
 ! string as a possible ending
