@@ -93,6 +93,13 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 
 	dat.resize(dat.final)
 
+	// Init with identity
+	if dat.identity != -1 {
+		for i := 0; i < 256; i++ {
+			dat.sigmaASCII[i] = dat.identity
+		}
+	}
+
 	for num, sym := range auto.sigmaRev {
 		if int(sym) < 256 {
 			dat.sigmaASCII[int(sym)] = num
@@ -661,6 +668,13 @@ func ParseDatok(ior io.Reader) *DaTokenizer {
 	// Shouldn't be relevant though
 	dat.maxSize = arraySize - 1
 
+	// Init with identity
+	if dat.identity != -1 {
+		for i := 0; i < 256; i++ {
+			dat.sigmaASCII[i] = dat.identity
+		}
+	}
+
 	for x := 0; x < sigmaCount; x++ {
 		sym, _, err := r.ReadRune()
 		if err == nil && sym != 0 {
@@ -841,12 +855,6 @@ PARSECHAR:
 					eot = true
 				}
 				a = dat.sigmaASCII[int(char)]
-
-				// Use identity symbol if character is not in sigma
-				if a == 0 && dat.identity != -1 {
-					a = dat.identity
-				}
-
 			} else {
 				a, ok = dat.sigma[char]
 

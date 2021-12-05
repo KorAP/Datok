@@ -37,11 +37,16 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 		stateCount: auto.stateCount,
 	}
 
-	for i := 0; i < 256; i++ {
-		mat.sigmaASCII[i] = mat.identity
+	max := 0
+
+	// Init with identity
+	if mat.identity != -1 {
+		for i := 0; i < 256; i++ {
+			mat.sigmaASCII[i] = mat.identity
+		}
+		max = mat.identity
 	}
 
-	max := 0
 	for num, sym := range auto.sigmaRev {
 		if int(sym) < 256 {
 			mat.sigmaASCII[int(sym)] = num
@@ -272,6 +277,13 @@ func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 	sigmaCount := int(bo.Uint16(buf[12:14]))
 	arraySize := (mat.stateCount + 1) * sigmaCount
 
+	// Init with identity
+	if mat.identity != -1 {
+		for i := 0; i < 256; i++ {
+			mat.sigmaASCII[i] = mat.identity
+		}
+	}
+
 	for x := 0; x < sigmaCount; x++ {
 		sym, _, err := r.ReadRune()
 		if err == nil && sym != 0 {
@@ -403,11 +415,6 @@ PARSECHARM:
 					eot = true
 				}
 				a = mat.sigmaASCII[int(char)]
-
-				if a == 0 && mat.identity != -1 {
-					a = mat.identity
-				}
-
 			} else {
 				a, ok = mat.sigma[char]
 

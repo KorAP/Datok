@@ -1087,3 +1087,8 @@ func BenchmarkDoubleArrayLarger(b *testing.B) {
 //   BenchmarkDoubleArrayConstruction-4         79394             14561 ns/op           10703 B/op         29 allocs/op
 //   BenchmarkDoubleArrayLarger-4                  19          60257675 ns/op         6357911 B/op       2577 allocs/op
 //   BenchmarkMatrixTransduce-4                 35076             30581 ns/op           28944 B/op         17 allocs/op
+// 2021-12-05 - init identity for sigma < 256
+//   BenchmarkDoubleArrayTransduce-4            35284             31918 ns/op           28944 B/op         17 allocs/op
+//   BenchmarkDoubleArrayConstruction-4         80342             14504 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkDoubleArrayLarger-4                  19          60343253 ns/op         6357789 B/op       2575 allocs/op
+//   BenchmarkMatrixTransduce-4                 34029             30238 ns/op           28944 B/op         17 allocs/op
