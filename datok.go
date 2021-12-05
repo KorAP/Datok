@@ -841,16 +841,19 @@ PARSECHAR:
 					eot = true
 				}
 				a = dat.sigmaASCII[int(char)]
+
+				// Use identity symbol if character is not in sigma
+				if a == 0 && dat.identity != -1 {
+					a = dat.identity
+				}
+
 			} else {
 				a, ok = dat.sigma[char]
-				if !ok {
-					a = 0
-				}
-			}
 
-			// Use identity symbol if character is not in sigma
-			if a == 0 && dat.identity != -1 {
-				a = dat.identity
+				// Use identity symbol if character is not in sigma
+				if !ok && dat.identity != -1 {
+					a = dat.identity
+				}
 			}
 
 			t0 = t

@@ -1,0 +1,3 @@
+0.1.2 2021-12-05
+    - Improve performance of rune to symbol conversion in transduction
+      method.

@@ -1078,7 +1078,12 @@ func BenchmarkDoubleArrayLarger(b *testing.B) {
 //   BenchmarkDoubleArrayLarger-4                  16          71058822 ns/op         6357860 B/op       2577 allocs/op
 //   BenchmarkMatrixTransduce-4                 36703             31891 ns/op           28944 B/op         17 allocs/op
 // 2021-11-10 - rearranged longest match operator
-//   BenchmarkDoubleArrayTransduce-4    	   34522	     33210 ns/op	   28944 B/op	      17 allocs/op
-//   BenchmarkDoubleArrayConstruction-4   	   66990	     16012 ns/op	   10703 B/op	      29 allocs/op
-//   BenchmarkDoubleArrayLarger-4         	      16	  62829878 ns/op	 6357823 B/op	    2576 allocs/op
-//   BenchmarkMatrixTransduce-4           	   36154	     32702 ns/op	   28944 B/op	      17 allocs/op
+//   BenchmarkDoubleArrayTransduce-4            34522	             33210 ns/op          28944 B/op	      17 allocs/op
+//   BenchmarkDoubleArrayConstruction-4         66990              16012 ns/op          10703 B/op	      29 allocs/op
+//   BenchmarkDoubleArrayLarger-4                  16           62829878 ns/op        6357823 B/op	    2576 allocs/op
+//   BenchmarkMatrixTransduce-4                 36154              32702 ns/op          28944 B/op	      17 allocs/op
+// 2021-12-04 - optimize identity branch
+//   BenchmarkDoubleArrayTransduce-4            34903             32255 ns/op           28944 B/op         17 allocs/op
+//   BenchmarkDoubleArrayConstruction-4         79394             14561 ns/op           10703 B/op         29 allocs/op
+//   BenchmarkDoubleArrayLarger-4                  19          60257675 ns/op         6357911 B/op       2577 allocs/op
+//   BenchmarkMatrixTransduce-4                 35076             30581 ns/op           28944 B/op         17 allocs/op

@@ -37,6 +37,10 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 		stateCount: auto.stateCount,
 	}
 
+	for i := 0; i < 256; i++ {
+		mat.sigmaASCII[i] = mat.identity
+	}
+
 	max := 0
 	for num, sym := range auto.sigmaRev {
 		if int(sym) < 256 {
@@ -399,16 +403,18 @@ PARSECHARM:
 					eot = true
 				}
 				a = mat.sigmaASCII[int(char)]
+
+				if a == 0 && mat.identity != -1 {
+					a = mat.identity
+				}
+
 			} else {
 				a, ok = mat.sigma[char]
-				if !ok {
-					a = 0
-				}
-			}
 
-			// Use identity symbol if character is not in sigma
-			if a == 0 && mat.identity != -1 {
-				a = mat.identity
+				// Use identity symbol if character is not in sigma
+				if !ok && mat.identity != -1 {
+					a = mat.identity
+				}
 			}
 
 			t0 = t
