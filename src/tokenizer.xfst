@@ -69,9 +69,11 @@ define Asterisk ["*"];
 
 define Char \[WS|NL|Punct|Apos]; ! |¨;
 
-! source lexicon.xfst
-! define Word;
-define Word Char+ ([Dash|Apos|Asterisk] Char+)*;
+define Word Char+ ([Apos|Asterisk] Char+)*;
+
+define Plusampersand @txt"txt/plusampersand.txt";
+define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;
+
 
 define URLChar [Char|[Sym - ["<"|">"|%"]]];
 !define Alpha ["a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"|"_"];
@@ -113,8 +115,6 @@ define Letter [ [ AsciiLetter | ö | ü | ä | ß ] .o. Caseinsensitive ];
 
 ! Abbreviations and Initials
 define Abbr [ @txt"txt/abbrv.txt" | Letter ] %.;
-
-define Plusampersand @txt"txt/plusampersand.txt" (Dash Word);
 
 ! A solution to the "(author): problem" may be to add ) at the end of any
 ! string as a possible ending
@@ -219,7 +219,6 @@ define Token [
   URL @-> ... NLout,
   Email @-> ... NLout,
   File @-> ... NLout,
-  Plusampersand @-> ... NLout,
   Domain @-> ... NLout,
   Emoji @-> ... NLout
 ] .o. [[WS|NL]+ @-> 0 || [ .#. | NLout ] _ ];
