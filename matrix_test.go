@@ -787,6 +787,35 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[2], ".")
 	assert.Equal(3, len(tokens))
 
+	// Emojis and Symbols
+	// see https://stackoverflow.com/questions/30757193/find-out-if-character-in-string-is-emoji#39425959
+	tokens = ttokenize(mat, w, "Der Glyph 👨‍👨‍👧‍👧 besteht aus 7 Unicode-Zeichen.")
+	assert.Equal(tokens[1], "Glyph")
+	assert.Equal(tokens[2], "👨‍👨‍👧‍👧")
+	assert.Equal(tokens[3], "besteht")
+	assert.Equal(8, len(tokens))
+
+	tokens = ttokenize(mat, w, "Der Glyph 👌🏿 besteht aus 2 Unicode-Zeichen.")
+	assert.Equal(tokens[1], "Glyph")
+	assert.Equal(tokens[2], "👌🏿")
+	assert.Equal(tokens[3], "besteht")
+	assert.Equal(8, len(tokens))
+
+	tokens = ttokenize(mat, w, "Der Glyph 1️⃣ besteht aus 2 Unicode-Zeichen.")
+	assert.Equal(tokens[1], "Glyph")
+	assert.Equal(tokens[2], "1️⃣")
+	assert.Equal(tokens[3], "besteht")
+	assert.Equal(8, len(tokens))
+
+	tokens = ttokenize(mat, w, "Zwei Glyphen: 👨‍👨‍👧‍👧👨‍👨‍👧‍👧!")
+	assert.Equal(tokens[0], "Zwei")
+	assert.Equal(tokens[1], "Glyphen")
+	assert.Equal(tokens[2], ":")
+	assert.Equal(tokens[3], "👨‍👨‍👧‍👧")
+	assert.Equal(tokens[4], "👨‍👨‍👧‍👧")
+	assert.Equal(tokens[5], "!")
+	assert.Equal(5, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
