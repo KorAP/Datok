@@ -973,20 +973,51 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[10], ".")
 	assert.Equal(11, len(tokens))
 
-	// z.B.
-	tokens = ttokenize(mat_de, w, "Dies sind z.B. zwei Wörter - z. B. auch.")
-	assert.Equal(tokens[0], "Dies")
-	assert.Equal(tokens[1], "sind")
-	assert.Equal(tokens[2], "z.")
-	assert.Equal(tokens[3], "B.")
-	assert.Equal(tokens[4], "zwei")
-	assert.Equal(tokens[5], "Wörter")
-	assert.Equal(tokens[6], "-")
-	assert.Equal(tokens[7], "z.")
-	assert.Equal(tokens[8], "B.")
-	assert.Equal(tokens[9], "auch")
-	assert.Equal(tokens[10], ".")
-	assert.Equal(11, len(tokens))
+	// Emojis and Symbols
+	// see https://stackoverflow.com/questions/30757193/find-out-if-character-in-string-is-emoji#39425959
+	tokens = ttokenize(mat_de, w, "Der Glyph 👨‍👨‍👧‍👧 besteht aus 7 Unicode-Zeichen.")
+	assert.Equal(tokens[1], "Glyph")
+	assert.Equal(tokens[2], "👨‍👨‍👧‍👧")
+	assert.Equal(tokens[3], "besteht")
+	assert.Equal(8, len(tokens))
+
+	tokens = ttokenize(mat_de, w, "Der Glyph 👌🏿 besteht aus 2 Unicode-Zeichen.")
+	assert.Equal(tokens[1], "Glyph")
+	assert.Equal(tokens[2], "👌🏿")
+	assert.Equal(tokens[3], "besteht")
+	assert.Equal(8, len(tokens))
+
+	tokens = ttokenize(mat_de, w, "Der Glyph 1️⃣ besteht aus 2 Unicode-Zeichen.")
+	assert.Equal(tokens[1], "Glyph")
+	assert.Equal(tokens[2], "1️⃣")
+	assert.Equal(tokens[3], "besteht")
+	assert.Equal(8, len(tokens))
+
+	tokens = ttokenize(mat_de, w, "Zwei Glyphen: 👨‍👨‍👧‍👧👨‍👨‍👧‍👧!")
+	assert.Equal(tokens[0], "Zwei")
+	assert.Equal(tokens[1], "Glyphen")
+	assert.Equal(tokens[2], ":")
+	assert.Equal(tokens[3], "👨‍👨‍👧‍👧")
+	assert.Equal(tokens[4], "👨‍👨‍👧‍👧")
+	assert.Equal(tokens[5], "!")
+	assert.Equal(5, len(tokens))
+
+	/*
+		@Test
+		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
+				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
+				tokens = tokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
+				assert.Equal("'ve", tokens[1]);
+				assert.Equal("'ll", tokens[3]);
+				assert.Equal("'d", tokens[5]);
+				assert.Equal("'m", tokens[7]);
+				assert.Equal("'re", tokens[9]);
+				assert.Equal("'s", tokens[11]);
+				assert.Equal("is", tokens[12]);
+				assert.Equal("n't", tokens[13]);
+				assert.Equal(14, len(tokens));
+		}
+*/
 
 	// Single quote handling
 	tokens = ttokenize(mat_de, w, "Es heißt 'Leitungssportteams' und nicht anders.")

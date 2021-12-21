@@ -3,14 +3,16 @@ package datok
 import (
 	"bufio"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"log"
 	"os"
 )
 
 const (
-	MAMAGIC = "MATOK"
-	EOT     = 4
+	MAMAGIC       = "MATOK"
+	SYMBOLSUPPORT = true
+	EOT           = 4
 )
 
 type MatrixTokenizer struct {
@@ -379,6 +381,7 @@ func (mat *MatrixTokenizer) TransduceTokenWriter(r io.Reader, w *TokenWriter) bo
 	eof := false
 	eot := false
 	newchar := true
+	var nextChar []byte
 
 PARSECHARM:
 	for {
@@ -405,6 +408,19 @@ PARSECHARM:
 
 				buffer[buffi] = char
 				buffi++
+
+				// Check if the next character is a Joiner or a Variant Joiner,
+				// which makes the preceeding char an emoji
+				nextChar, err = reader.Peek(3)
+
+				// check for zero width joiner aka []byte(string(rune(0x200d)))
+				if err == nil && nextChar[0] == 226 && nextChar[1] == 128 && nextChar[2] == 141 {
+					fmt.Println("Found zero width joiner")
+				}
+
+				// If yes, parse all joins in the buffer and increment buffi.
+				// If it is a symbol, store length in symbol[buffc], otherwise
+				// store 0
 			}
 
 			char = buffer[buffc]
@@ -418,11 +434,72 @@ PARSECHARM:
 			// TODO:
 			//   Better not repeatedly check for a!
 			//   Possibly keep a buffer with a.
+			//   And this could be joined with the
+			//   symbol buffer!
 			if int(char) < 256 {
 				eot = int(char) == EOT
 
 				// mat.SigmaASCII[] is initialized with mat.identity
 				a = mat.sigmaASCII[int(char)]
+			} else if SYMBOLSUPPORT && char > 0x2190 {
+				// Check symbol unicode blocks
+				//
+				// 0x2190 - 0x21FF - Arrows
+				// 0x2200 - 0x22FF - Mathematical Operators
+				// 0x2300 - 0x23FF - Miscellaneous Technical
+				// 0x2400 - 0x243F - Control Pictures
+				// ! 0x2440 - 0x245F - Optical Character Recognition
+				// 0x2460 - 0x24FF - Enclosed Alphanumerics
+				// 0x2500 - 0x257F - Box Drawing
+				// 0x2580 - 0x259F - Block Elements
+				// 0x25A0 - 0x25FF - Geometric Shapes
+				// 0x2600 - 0x26FF - Miscellaneous Symbols
+				// 0x2700 - 0x27BF - Dingbats
+				// 0x27C0 - 0x27EF - Miscellaneous Mathematical Symbols-A
+				// 0x27F0 - 0x27FF - Supplemental Arrows-A
+				// ! 0x2800..0x28FF 	Braille Patterns 	256 	256 	Braille
+				// 0x2900 - 0x297F - Supplemental Arrows-B
+				// 0x2980 - 0x29FF - Miscellaneous Mathematical Symbols-B
+				// 0x2A00 - 0x2AFF - Supplemental Mathematical Operators
+				// 0x2B00 - 0x2BFF - Miscellaneous Symbols and Arrows
+				// ---
+				// 0x1F000 - 0x1F02F - Mahjong Tiles
+				// 0x1F030 - 0x1F09F - Domino Tiles
+				// 0x1F0A0 - 0x1F0FF - Playing Cards
+				// ! 0x1F100 - 0x1F1FF - Enclosed Alphanumeric Supplement
+				// ! 0x1F200 - 0x1F2FF - Enclosed Ideographic Supplement
+				// 0x1F300 - 0x1F5FF - Miscellaneous Symbols and Pictographs
+				// 0x1F600 - 0x1F64F - Emoticons
+				// 0x1F650 - 0x1F67F - Ornamental Dingbats
+				// 0x1F680 - 0x1F6FF - Transport and Map Symbols
+				// 0x1F700 - 0x1F77F - Alchemical Symbols
+				// 0x1F780 - 0x1F7FF - Geometric Shapes Extended
+				// 0x1F800 - 0x1F8FF - Supplemental Arrows-C
+				// 0x1F900 - 0x1F9FF - Supplemental Symbols and Pictographs
+				// 0x1FA00 - 0x1FA6F - Chess Symbols
+				// 0x1FA70 - 0x1FAFF - Symbols and Pictographs Extended-A
+				// 0x1FB00 - 0x1FBFF - Symbols for Legacy Computing
+				if char < 0x2BFF || (char > 0x1F000 && char < 0x1FBFF) && !((char > 0x2440 && char < 0x245f) || (char > 0x2800 && char < 0x28FF) || (char > 0x1F100 && char < 0x1F2FF)) {
+					// TODO:
+					// Symbol! Check if the next character is 0x200d,
+					// which is a zero width joiner, that means
+					// multiple symbols form a single symbol
+					a, ok = mat.sigma[char]
+
+					// Use identity symbol if character is not in sigma
+					if !ok && mat.identity != -1 {
+						a = mat.identity
+					}
+
+				} else {
+					a, ok = mat.sigma[char]
+
+					// Use identity symbol if character is not in sigma
+					if !ok && mat.identity != -1 {
+						a = mat.identity
+					}
+
+				}
 			} else {
 				a, ok = mat.sigma[char]
 
