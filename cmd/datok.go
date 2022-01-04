@@ -11,6 +11,10 @@ import (
 	"github.com/alecthomas/kong"
 )
 
+// TODO:
+// - Support version information based on
+//   https://blog.carlmjohnson.net/post/2021/golang-118-minor-features/
+
 var cli struct {
 	Convert struct {
 		Foma        string `kong:"required,short='i',help='The Foma FST file'"`

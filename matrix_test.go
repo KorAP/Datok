@@ -787,6 +787,21 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[2], ".")
 	assert.Equal(3, len(tokens))
 
+	// z.B.
+	tokens = ttokenize(mat, w, "Dies sind z.B. zwei Wörter - z. B. auch.")
+	assert.Equal(tokens[0], "Dies")
+	assert.Equal(tokens[1], "sind")
+	assert.Equal(tokens[2], "z.")
+	assert.Equal(tokens[3], "B.")
+	assert.Equal(tokens[4], "zwei")
+	assert.Equal(tokens[5], "Wörter")
+	assert.Equal(tokens[6], "-")
+	assert.Equal(tokens[7], "z.")
+	assert.Equal(tokens[8], "B.")
+	assert.Equal(tokens[9], "auch")
+	assert.Equal(tokens[10], ".")
+	assert.Equal(11, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {

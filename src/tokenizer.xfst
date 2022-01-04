@@ -129,7 +129,7 @@ define Emoji;
 
 ! acronyms: U.S.A., I.B.M., etc.
 ! use a post-filter to remove dots
-define AcronymDep Letter %. [Letter %.]+;
+define AcronymDep Letter %. Letter %. [Letter %.]+;
 
 define Dot "."|[["["|"("] "d" "o" "t" [")"|"]"]] .o. Caseinsensitive;
 define At "@"|[["["|"("] "a" "t" [")"|"]"]] .o. Caseinsensitive;
