@@ -69,7 +69,7 @@ define Asterisk ["*"];
 
 define Char \[WS|NL|Punct|Apos]; ! |¨;
 
-define Word Char+ ([Apos|Asterisk] Char+)*;
+define Word Char+ ([Apos|Asterisk] Char+)* ([s|S] [%’|%`]);
 
 define Plusampersand @txt"txt/plusampersand.txt";
 define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;

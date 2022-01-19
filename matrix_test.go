@@ -830,6 +830,17 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[8], ".")
 	assert.Equal(9, len(tokens))
 
+	// Apostrophe handling
+	tokens = ttokenize(mat, w, "Das ist Nils’ Einkaufskorb bei McDonald's.")
+	assert.Equal(tokens[0], "Das")
+	assert.Equal(tokens[1], "ist")
+	assert.Equal(tokens[2], "Nils’")
+	assert.Equal(tokens[3], "Einkaufskorb")
+	assert.Equal(tokens[4], "bei")
+	assert.Equal(tokens[5], "McDonald's")
+	assert.Equal(tokens[6], ".")
+	assert.Equal(7, len(tokens))
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
