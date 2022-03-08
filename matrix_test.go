@@ -286,10 +286,22 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert.True(mat.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
-	/*
-		Test:
-		"\"Ausschalten!!!\", sagte er. \"Hast Du nicht gehört???\""), w))
-	*/
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader("\"Alter!\", sagte er: \"Komm nicht wieder!\" Geh!!! \"Lass!\" Dann ging er."), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 5)
+	assert.Equal("\"\nAlter\n!\n\"\n,\nsagte\ner\n:\n\"\nKomm\nnicht\nwieder\n!\n\"", sentences[0])
+	assert.Equal("Geh\n!!!", sentences[1])
+	assert.Equal("\"\nLass\n!\n\"", sentences[2])
+	assert.Equal("Dann\nging\ner\n.", sentences[3])
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader("\"Ausschalten!!!\", sagte er. \"Hast Du nicht gehört???\""), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 3)
+	assert.Equal("\"\nAusschalten\n!!!\n\"\n,\nsagte\ner\n.", sentences[0])
+	assert.Equal("\"\nHast\nDu\nnicht\ngehört\n???\n\"", sentences[1])
 }
 
 func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {

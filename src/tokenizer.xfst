@@ -44,15 +44,11 @@ define LP ["("|"["|"{"|
            [%, %,]];
 
 ! Right punctuation - excluding the characters that can be used as apostrophe
-define RP [SP|","|";"|":"|
+define RPS ["”"|"›"|"»"|%"|[%’ %’]|["'" "'"]|[%‘ %‘]];
+define RP [SP|RPS|","|";"|":"|
               ")"|"]"|"}"|
-              "”"|"›"|"»"|
-              %"|
               ! differs
-              ["'" "'"]|
-              "*"|"/"|"_"| ! Can be Markdown
-              ! from book
-              [%‘ %‘]|[%’ %’]];
+              "*"|"/"|"_"]; ! Can be Markdown
 
 define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@|%&];
 define Apos %'|%’|%`;
@@ -221,9 +217,16 @@ define Token [
   File @-> ... NLout,
   Domain @-> ... NLout,
   Emoji @-> ... NLout
-] .o. [[WS|NL]+ @-> 0 || [ .#. | NLout ] _ ];
+];
 
 echo - Introduce Sentence splitter
-read regex Token .o. [[["."|"!"|"?"]+|"…"] @-> ... NLout \/ NLout _ ];
+! And compose Whitespace ignorance
+read regex Token .o. [
+  SP NLout %" @-> ... NLout \/ _ NLout \%,
+] .o. [
+  SP @-> ... NLout \/ NLout _ NLout \%"
+] .o. [
+  [WS|NL]+ @-> 0 || [ .#. | NLout ] _
+];
 
 ! foma -e "source tokenizer.xfst" -q -s && cat text.txt | flookup tokenizer.fst -x -b
