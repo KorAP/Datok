@@ -302,6 +302,35 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert.Equal(len(sentences), 3)
 	assert.Equal("\"\nAusschalten\n!!!\n\"\n,\nsagte\ner\n.", sentences[0])
 	assert.Equal("\"\nHast\nDu\nnicht\ngehört\n???\n\"", sentences[1])
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader("“Ausschalten!!!”, sagte er. «Hast Du nicht gehört???»"), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 3)
+	assert.Equal("“\nAusschalten\n!!!\n”\n,\nsagte\ner\n.", sentences[0])
+	assert.Equal("«\nHast\nDu\nnicht\ngehört\n???\n»", sentences[1])
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader("“Ausschalten!!!”, sagte er. «Hast Du nicht gehört???»"), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 3)
+	assert.Equal("“\nAusschalten\n!!!\n”\n,\nsagte\ner\n.", sentences[0])
+	assert.Equal("«\nHast\nDu\nnicht\ngehört\n???\n»", sentences[1])
+
+	text := `»Meinetwegen. Denkst du, daß ich darauf warte? Das fehlte noch.
+Übrigens, ich kriege schon einen und vielleicht bald. Da ist mir nicht
+bange. Neulich erst hat mir der kleine Ventivegni von drüben gesagt:
+'Fräulein Effi, was gilt die Wette, wir sind hier noch in diesem Jahre
+zu Polterabend und Hochzeit.'«
+
+»Und was sagtest du da?«`
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader(text), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 8)
+	assert.Equal("Neulich\nerst\nhat\nmir\nder\nkleine\nVentivegni\nvon\ndrüben\ngesagt\n:\n'\nFräulein\nEffi\n,\nwas\ngilt\ndie\nWette\n,\nwir\nsind\nhier\nnoch\nin\ndiesem\nJahre\nzu\nPolterabend\nund\nHochzeit\n.\n'\n«", sentences[5])
+	assert.Equal("»\nUnd\nwas\nsagtest\ndu\nda\n?\n«", sentences[6])
 }
 
 func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {

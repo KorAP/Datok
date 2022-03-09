@@ -209,7 +209,7 @@ define RealToken [Punct|Emdash|Abbr|Streetname|Word|SNS|AcronymDep|Ord|Num|Years
 echo - Introduce Token splitter
 
 define Token [
-  RealToken @-> ... NLout,
+  [%. %. %. | RealToken] @-> ... NLout,
   XML @-> ... NLout,
   URL @-> ... NLout,
   Email @-> ... NLout,
@@ -220,10 +220,13 @@ define Token [
 
 echo - Introduce Sentence splitter
 ! And compose Whitespace ignorance
+
+define DQuotes ["”"|%"|"»"|"«"];
+
 read regex Token .o. [
-  SP NLout ["”"|"›"|"»"|%"|%’|"'"] @-> ... NLout \/ _ NLout \%,
+  SP NLout [DQuotes | "›" (NLout DQuotes)| %‹ (NLout DQuotes)| %’ (NLout DQuotes)| "'" (NLout DQuotes)] @-> ... NLout \/ _ NLout \%,
 ] .o. [
-  SP @-> ... NLout \/ NLout _ NLout [? - "”" - "›" - "»" - %" - %’ - "'"]
+  SP @-> ... NLout \/ NLout _ NLout [? - "”" - %" - "»" - "«" - "›" - %‹ - %’ - "'" - NLout]
 ] .o. [
   [WS|NL]+ @-> 0 || [ .#. | NLout ] _
 ];
