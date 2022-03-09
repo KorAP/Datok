@@ -44,10 +44,9 @@ define LP ["("|"["|"{"|
            [%, %,]];
 
 ! Right punctuation - excluding the characters that can be used as apostrophe
-define RPS ["”"|"›"|"»"|%"|[%’ %’]|["'" "'"]|[%‘ %‘]];
-define RP [SP|RPS|","|";"|":"|
+define RP [SP|","|";"|":"|
               ")"|"]"|"}"|
-              ! differs
+              "”"|"›"|"»"|%"|[%’ %’]|["'" "'"]|[%‘ %‘]|
               "*"|"/"|"_"]; ! Can be Markdown
 
 define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@|%&];
@@ -222,9 +221,9 @@ define Token [
 echo - Introduce Sentence splitter
 ! And compose Whitespace ignorance
 read regex Token .o. [
-  SP NLout %" @-> ... NLout \/ _ NLout \%,
+  SP NLout ["”"|"›"|"»"|%"|%’|"'"] @-> ... NLout \/ _ NLout \%,
 ] .o. [
-  SP @-> ... NLout \/ NLout _ NLout \%"
+  SP @-> ... NLout \/ NLout _ NLout [? - "”" - "›" - "»" - %" - %’ - "'"]
 ] .o. [
   [WS|NL]+ @-> 0 || [ .#. | NLout ] _
 ];
