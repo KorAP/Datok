@@ -331,6 +331,16 @@ zu Polterabend und Hochzeit.'«
 	assert.Equal(len(sentences), 8)
 	assert.Equal("Neulich\nerst\nhat\nmir\nder\nkleine\nVentivegni\nvon\ndrüben\ngesagt\n:\n'\nFräulein\nEffi\n,\nwas\ngilt\ndie\nWette\n,\nwir\nsind\nhier\nnoch\nin\ndiesem\nJahre\nzu\nPolterabend\nund\nHochzeit\n.\n'\n«", sentences[5])
 	assert.Equal("»\nUnd\nwas\nsagtest\ndu\nda\n?\n«", sentences[6])
+
+	text = `»Nun, gib dich zufrieden, ich fange schon an ... Also Baron
+Innstetten!`
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader(text), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 3)
+	assert.Equal("»\nNun\n,\ngib\ndich\nzufrieden\n,\nich\nfange\nschon\nan\n...", sentences[0])
+	assert.Equal("Also\nBaron\nInnstetten\n!", sentences[1])
 }
 
 func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
