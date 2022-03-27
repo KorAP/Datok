@@ -376,7 +376,7 @@ Innstetten!`
 	assert.Equal("»\nNun\n,\ngib\ndich\nzufrieden\n,\nich\nfange\nschon\nan\n...", sentences[0])
 	assert.Equal("Also\nBaron\nInnstetten\n!", sentences[1])
 
-	// Check paranthesis at the end of sentences.
+	// Check parantheses at the end of the sentence
 	w.Reset()
 	assert.True(mat.Transduce(strings.NewReader("(Er ging.) Und kam (später)."), w))
 	sentences = strings.Split(w.String(), "\n\n")
@@ -1081,6 +1081,32 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 				assert.Equal(len(tokens), 9 );
 		}
 	*/
+}
+
+func TestMatrixEmoticons(t *testing.T) {
+	assert := assert.New(t)
+
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
+
+	assert.NotNil(mat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	tokens = ttokenize(mat, w, ":-* ;) :)) :*( ^___^ T__T ^^; -_-;;; -_-^")
+	assert.Equal(tokens[0], ":-*")
+	assert.Equal(tokens[1], ";)")
+	assert.Equal(tokens[2], ":))")
+	assert.Equal(tokens[3], ":*(")
+	assert.Equal(tokens[4], "^___^")
+	assert.Equal(tokens[5], "T__T")
+	assert.Equal(tokens[6], "^^;")
+	assert.Equal(tokens[7], "-_-;;;")
+	assert.Equal(tokens[8], "-_-^")
+	assert.Equal(len(tokens), 9)
 }
 
 func TestMatrixFullTokenizerXML(t *testing.T) {

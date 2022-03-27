@@ -119,8 +119,8 @@ define Years ["(" Digit+ (".") ")"] | ["[" Digit+ (".") "]"];
 ! 20:00 Uhr, 00:12:25,34 Minuten
 define Times [ ( [%0|1|2|3|4|5] ) Digit [ ":" [%0|1|2|3|4|5] Digit ]^{1,2} ( "," [ Digit ]^{1,3} ) ];
 
-source emoji.xfst
-define Emoji;
+source emoticons.xfst
+define Emoticons;
 
 ! acronyms: U.S.A., I.B.M., etc.
 ! use a post-filter to remove dots
@@ -215,7 +215,7 @@ define Token [
   Email @-> ... NLout,
   File @-> ... NLout,
   Domain @-> ... NLout,
-  Emoji @-> ... NLout
+  Emoticons @-> ... NLout
 ];
 
 echo - Introduce Sentence splitter
