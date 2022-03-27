@@ -414,12 +414,16 @@ PARSECHARM:
 				if int(char) == EOT {
 					eot = true
 				}
+
+				// mat.SigmaASCII[] is initialized with mat.identity
 				a = mat.sigmaASCII[int(char)]
 			} else {
 				a, ok = mat.sigma[char]
 
 				// Use identity symbol if character is not in sigma
 				if !ok && mat.identity != -1 {
+
+					// TODO: Maybe use unknown?
 					a = mat.identity
 				}
 			}
@@ -434,7 +438,7 @@ PARSECHARM:
 
 				// Maybe not necessary - and should be simpler!
 				// Just Remove
-				t0 &= ^FIRSTBIT
+				// t0 &= ^FIRSTBIT
 				epsilonState = t0
 				epsilonOffset = buffc
 
@@ -444,8 +448,14 @@ PARSECHARM:
 			}
 		}
 
-		// Checks a transition based on t0, a and buffo
-		t = mat.array[(int(a)-1)*mat.stateCount+int(t0)]
+		// can happen when no identity is defined.
+		// This shouldn't be tested in every loop
+		if a == 0 {
+			t = 0
+		} else {
+			// Checks a transition based on t0, a and buffo
+			t = mat.array[(int(a)-1)*mat.stateCount+int(t0)]
+		}
 
 		if DEBUG {
 			// Char is only relevant if set
@@ -468,7 +478,7 @@ PARSECHARM:
 				}
 				a = mat.unknown
 
-			} else if a != mat.epsilon {
+			} else if a != mat.epsilon && epsilonState != 0 {
 
 				// Try again with epsilon symbol, in case everything else failed
 				t0 = epsilonState
@@ -481,7 +491,51 @@ PARSECHARM:
 				}
 
 			} else {
-				break
+
+				if DEBUG {
+					log.Println("Fail!")
+				}
+
+				// w.Fail(bufft)
+
+				// The following procedure means the automaton fails to consume a certain character.
+				// In the tokenization scenario, this means, the tokenizer will drop the old or current data as a
+				// token and start blank at the root node of the automaton for the remaining data.
+				// It may be beneficial to have something like a "drop()" event to capture these cases,
+				// as they are likely the result of a bad automaton design.
+				if buffc-bufft == 0 {
+					buffc++
+				}
+
+				if DEBUG {
+					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
+				}
+				w.Token(bufft, buffer[:buffc])
+
+				sentenceEnd = false
+				textEnd = false
+
+				if DEBUG {
+					log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
+				}
+
+				for x, i := range buffer[buffc:buffi] {
+					buffer[x] = i
+				}
+
+				buffi -= buffc
+				epsilonState = 0
+
+				buffc = 0
+				bufft = 0
+
+				a = mat.epsilon
+
+				// Restart from root state
+				t = uint32(1)
+				newchar = true
+				// goto PARSECHARM
+				continue
 			}
 
 			newchar = false
@@ -570,6 +624,7 @@ PARSECHARM:
 		if DEBUG {
 			log.Println("Not at the end")
 		}
+		// This should never happen
 		return false
 	}
 
@@ -595,6 +650,16 @@ PARSECHARM:
 			log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 		}
 		goto PARSECHARM
+	}
+
+	// something left in buffer
+	if buffc-bufft > 0 {
+		if DEBUG {
+			log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
+		}
+		w.Token(bufft, buffer[:buffc])
+		sentenceEnd = false
+		textEnd = false
 	}
 
 	// Add an additional sentence ending, if the file is over but no explicit

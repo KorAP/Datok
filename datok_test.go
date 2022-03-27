@@ -13,10 +13,10 @@ import (
 
 var dat *DaTokenizer
 
-func tmatch(tok Tokenizer, s string) bool {
+func ttokenizeStr(tok Tokenizer, str string) string {
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
-	return tok.Transduce(strings.NewReader(s), w)
+	return strings.Join(ttokenize(tok, w, str), "\n")
 }
 
 func ttokenize(tok Tokenizer, w *bytes.Buffer, str string) []string {
@@ -33,37 +33,75 @@ func ttokenize(tok Tokenizer, w *bytes.Buffer, str string) []string {
 
 func TestDoubleArraySimpleString(t *testing.T) {
 	assert := assert.New(t)
-
 	// bau | bauamt
 	tok := LoadFomaFile("testdata/bauamt.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(tmatch(dat, "bau"))
-	assert.True(tmatch(dat, "bauamt"))
-	assert.False(tmatch(dat, "baum"))
-	assert.True(tmatch(dat, "baua"))
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	tokens = ttokenize(dat, w, "ibauamt")
+	assert.Equal("i", tokens[0])
+	assert.Equal("bauamt", tokens[1])
+
+	tokens = ttokenize(dat, w, "ibbauamt")
+	assert.Equal("i", tokens[0])
+
+	assert.Equal("b", tokens[1])
+	assert.Equal("bauamt", tokens[2])
+
+	tokens = ttokenize(dat, w, "bau")
+	assert.Equal("bau", tokens[0])
+
+	tokens = ttokenize(dat, w, "baum")
+	assert.Equal("bau", tokens[0])
+	assert.Equal("m", tokens[1])
+
+	tokens = ttokenize(dat, w, "baudibauamt")
+	assert.Equal("bau", tokens[0])
+	assert.Equal("d", tokens[1])
+	assert.Equal("i", tokens[2])
+	assert.Equal("bauamt", tokens[3])
 }
 
 func TestDoubleArraySimpleBranches(t *testing.T) {
 	assert := assert.New(t)
-
 	// (bau | wahl) (amt | en)
 	tok := LoadFomaFile("testdata/wahlamt.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(tmatch(dat, "bau"))
-	assert.True(tmatch(dat, "bauamt"))
-	assert.True(tmatch(dat, "wahlamt"))
-	assert.True(tmatch(dat, "bauen"))
-	assert.True(tmatch(dat, "wahlen"))
-	assert.False(tmatch(dat, "baum"))
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	tokens = ttokenize(dat, w, "bau")
+	assert.Equal("bau", tokens[0])
+
+	tokens = ttokenize(dat, w, "bauamt")
+	assert.Equal("bauamt", tokens[0])
+
+	tokens = ttokenize(dat, w, "wahlamt")
+	assert.Equal("wahlamt", tokens[0])
+
+	tokens = ttokenize(dat, w, "bauen")
+	assert.Equal("bauen", tokens[0])
+
+	tokens = ttokenize(dat, w, "wahlen")
+	assert.Equal("wahlen", tokens[0])
+
+	tokens = ttokenize(dat, w, "baum")
+	assert.Equal("bau", tokens[0])
+	assert.Equal("m", tokens[1])
 }
 
-func TestSimpleTokenizer(t *testing.T) {
+func TestDoubleArraySimpleTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(tmatch(dat, "bau"))
-	assert.True(tmatch(dat, "bad"))
-	assert.True(tmatch(dat, "wald gehen"))
+	assert.Equal(ttokenizeStr(dat, "bau"), "bau")
+	assert.Equal(ttokenizeStr(dat, "bad"), "bad")
+	assert.Equal(ttokenizeStr(dat, "wald gehen"), "wald\ngehen")
 }
 
 func TestDoubleArraySimpleTokenizerTransduce(t *testing.T) {
@@ -114,9 +152,9 @@ func TestDoubleArrayReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	tok := LoadFomaFile("testdata/simpletok.fst")
 	dat := tok.ToDoubleArray()
-	assert.True(tmatch(dat, "bau"))
-	assert.True(tmatch(dat, "bad"))
-	assert.True(tmatch(dat, "wald gehen"))
+	assert.Equal(ttokenizeStr(dat, "bau"), "bau")
+	assert.Equal(ttokenizeStr(dat, "bad"), "bad")
+	assert.Equal(ttokenizeStr(dat, "wald gehen"), "wald\ngehen")
 
 	b := make([]byte, 0, 1024)
 	buf := bytes.NewBuffer(b)
@@ -133,9 +171,9 @@ func TestDoubleArrayReadWriteTokenizer(t *testing.T) {
 	assert.Equal(dat.identity, dat2.identity)
 	assert.Equal(dat.final, dat2.final)
 	assert.Equal(dat.LoadFactor(), dat2.LoadFactor())
-	assert.True(tmatch(dat2, "bau"))
-	assert.True(tmatch(dat2, "bad"))
-	assert.True(tmatch(dat2, "wald gehen"))
+	assert.Equal(ttokenizeStr(dat2, "bau"), "bau")
+	assert.Equal(ttokenizeStr(dat2, "bad"), "bad")
+	assert.Equal(ttokenizeStr(dat2, "wald gehen"), "wald\ngehen")
 
 	assert.Equal(dat.TransCount(), 17)
 	assert.Equal(dat2.TransCount(), 17)
@@ -183,9 +221,9 @@ func TestDoubleArrayFullTokenizer(t *testing.T) {
 	// assert.Equal(len(dat.sigma), 137)
 	// assert.True(len(dat.array) > 3000000)
 	// assert.True(dat.maxSize > 3000000)
-	assert.True(tmatch(dat, "bau"))
-	assert.True(tmatch(dat, "bad"))
-	assert.True(tmatch(dat, "wald gehen"))
+	assert.Equal(ttokenizeStr(dat, "bau"), "bau")
+	assert.Equal(ttokenizeStr(dat, "bad"), "bad")
+	assert.Equal(ttokenizeStr(dat, "wald gehen"), "wald\ngehen")
 }
 
 func TestDoubleArrayTokenizerBranch(t *testing.T) {
@@ -876,6 +914,29 @@ func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 				assert.Equal(len(tokens), 9 );
 		}
 	*/
+}
+
+func TestDoubleArrayFullTokenizerSentenceSplitterBug1(t *testing.T) {
+	assert := assert.New(t)
+
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer.datok")
+	}
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var sentences []string
+
+	text := `Wüllersdorf war aufgestanden. »Ich finde es furchtbar, daß Sie recht haben, aber Sie haben recht. Ich quäle Sie nicht länger mit meinem 'Muß es sein?'. Die Welt ist einmal, wie sie ist, und die Dinge verlaufen nicht, wie wir wollen, sondern wie die andern wollen. Das mit dem 'Gottesgericht', wie manche hochtrabend versichern, ist freilich ein Unsinn, nichts davon, umgekehrt, unser Ehrenkultus ist ein Götzendienst, aber wir müssen uns ihm unterwerfen, solange der Götze gilt.«`
+
+	w.Reset()
+	assert.True(dat.Transduce(strings.NewReader(text), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 5)
+	assert.Equal("Wüllersdorf\nwar\naufgestanden\n.", sentences[0])
+	assert.Equal("»\nIch\nfinde\nes\nfurchtbar\n,\ndaß\nSie\nrecht\nhaben\n,\naber\nSie\nhaben\nrecht\n.", sentences[1])
+	assert.Equal("Ich\nquäle\nSie\nnicht\nlänger\nmit\nmeinem\n'\nMuß\nes\nsein\n?\n'\n.\n \nDie\nWelt\nist\neinmal\n,\nwie\nsie\nist\n,\nund\ndie\nDinge\nverlaufen\nnicht\n,\nwie\nwir\nwollen\n,\nsondern\nwie\ndie\nandern\nwollen\n.", sentences[2])
+	assert.Equal("Das\nmit\ndem\n'\nGottesgericht\n'\n,\nwie\nmanche\nhochtrabend\nversichern\n,\nist\nfreilich\nein\nUnsinn\n,\nnichts\ndavon\n,\numgekehrt\n,\nunser\nEhrenkultus\nist\nein\nGötzendienst\n,\naber\nwir\nmüssen\nuns\nihm\nunterwerfen\n,\nsolange\nder\nGötze\ngilt\n.\n«", sentences[3])
 }
 
 func TestDoubleArrayLoadFactor1(t *testing.T) {

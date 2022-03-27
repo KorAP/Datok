@@ -70,6 +70,40 @@ func TestMatrixFullTokenizer(t *testing.T) {
 	assert.Equal(7, len(tokens))
 }
 
+func TestMatrixSimpleString(t *testing.T) {
+	assert := assert.New(t)
+	// bau | bauamt
+	tok := LoadFomaFile("testdata/bauamt.fst")
+	mat := tok.ToMatrix()
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	tokens = ttokenize(mat, w, "ibauamt")
+	assert.Equal("i", tokens[0])
+	assert.Equal("bauamt", tokens[1])
+
+	tokens = ttokenize(mat, w, "ibbauamt")
+	assert.Equal("i", tokens[0])
+
+	assert.Equal("b", tokens[1])
+	assert.Equal("bauamt", tokens[2])
+
+	tokens = ttokenize(mat, w, "bau")
+	assert.Equal("bau", tokens[0])
+
+	tokens = ttokenize(mat, w, "baum")
+	assert.Equal("bau", tokens[0])
+	assert.Equal("m", tokens[1])
+
+	tokens = ttokenize(mat, w, "baudibauamt")
+	assert.Equal("bau", tokens[0])
+	assert.Equal("d", tokens[1])
+	assert.Equal("i", tokens[2])
+	assert.Equal("bauamt", tokens[3])
+}
+
 func TestMatrixReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/simpletok.fst")
@@ -78,9 +112,9 @@ func TestMatrixReadWriteTokenizer(t *testing.T) {
 	mat := foma.ToMatrix()
 	assert.NotNil(mat)
 
-	assert.True(tmatch(mat, "bau"))
-	assert.True(tmatch(mat, "bad"))
-	assert.True(tmatch(mat, "wald gehen"))
+	assert.Equal(ttokenizeStr(mat, "bau"), "bau")
+	assert.Equal(ttokenizeStr(mat, "bad"), "bad")
+	assert.Equal(ttokenizeStr(mat, "wald gehen"), "wald\ngehen")
 	b := make([]byte, 0, 1024)
 	buf := bytes.NewBuffer(b)
 	n, err := mat.WriteTo(buf)
@@ -95,9 +129,9 @@ func TestMatrixReadWriteTokenizer(t *testing.T) {
 	assert.Equal(mat.stateCount, mat2.stateCount)
 	assert.Equal(len(mat.array), len(mat2.array))
 	assert.Equal(mat.array, mat2.array)
-	assert.True(tmatch(mat2, "bau"))
-	assert.True(tmatch(mat2, "bad"))
-	assert.True(tmatch(mat2, "wald gehen"))
+	assert.Equal(ttokenizeStr(mat2, "bau"), "bau")
+	assert.Equal(ttokenizeStr(mat2, "bad"), "bad")
+	assert.Equal(ttokenizeStr(mat2, "wald gehen"), "wald\ngehen")
 }
 
 func TestMatrixIgnorableMCS(t *testing.T) {
@@ -341,6 +375,30 @@ Innstetten!`
 	assert.Equal(len(sentences), 3)
 	assert.Equal("»\nNun\n,\ngib\ndich\nzufrieden\n,\nich\nfange\nschon\nan\n...", sentences[0])
 	assert.Equal("Also\nBaron\nInnstetten\n!", sentences[1])
+
+}
+
+func TestMatrixFullTokenizerMatrixSentenceSplitterBug1(t *testing.T) {
+	assert := assert.New(t)
+
+	if mat == nil {
+		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	}
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var sentences []string
+
+	text := `Wüllersdorf war aufgestanden. »Ich finde es furchtbar, daß Sie recht haben, aber Sie haben recht. Ich quäle Sie nicht länger mit meinem 'Muß es sein?'. Die Welt ist einmal, wie sie ist, und die Dinge verlaufen nicht, wie wir wollen, sondern wie die andern wollen. Das mit dem 'Gottesgericht', wie manche hochtrabend versichern, ist freilich ein Unsinn, nichts davon, umgekehrt, unser Ehrenkultus ist ein Götzendienst, aber wir müssen uns ihm unterwerfen, solange der Götze gilt.«`
+
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader(text), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 5)
+	assert.Equal("Wüllersdorf\nwar\naufgestanden\n.", sentences[0])
+	assert.Equal("»\nIch\nfinde\nes\nfurchtbar\n,\ndaß\nSie\nrecht\nhaben\n,\naber\nSie\nhaben\nrecht\n.", sentences[1])
+	assert.Equal("Ich\nquäle\nSie\nnicht\nlänger\nmit\nmeinem\n'\nMuß\nes\nsein\n?\n'\n.\n \nDie\nWelt\nist\neinmal\n,\nwie\nsie\nist\n,\nund\ndie\nDinge\nverlaufen\nnicht\n,\nwie\nwir\nwollen\n,\nsondern\nwie\ndie\nandern\nwollen\n.", sentences[2])
+	assert.Equal("Das\nmit\ndem\n'\nGottesgericht\n'\n,\nwie\nmanche\nhochtrabend\nversichern\n,\nist\nfreilich\nein\nUnsinn\n,\nnichts\ndavon\n,\numgekehrt\n,\nunser\nEhrenkultus\nist\nein\nGötzendienst\n,\naber\nwir\nmüssen\nuns\nihm\nunterwerfen\n,\nsolange\nder\nGötze\ngilt\n.\n«", sentences[3])
 }
 
 func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {

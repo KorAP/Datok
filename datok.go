@@ -868,6 +868,7 @@ PARSECHAR:
 
 			// Check for epsilon transitions and remember
 			if dat.array[dat.array[t0].getBase()+uint32(dat.epsilon)].getCheck() == t0 {
+
 				// Remember state for backtracking to last tokenend state
 				epsilonState = t0
 				epsilonOffset = buffc
@@ -906,7 +907,7 @@ PARSECHAR:
 				}
 				a = dat.unknown
 
-			} else if a != dat.epsilon {
+			} else if a != dat.epsilon && epsilonState != 0 {
 
 				// Try again with epsilon symbol, in case everything else failed
 				t0 = epsilonState
@@ -919,7 +920,51 @@ PARSECHAR:
 				}
 
 			} else {
-				break
+
+				if DEBUG {
+					log.Println("Fail!")
+				}
+
+				// w.Fail(bufft)
+
+				// The following procedure means the automaton fails to consume a certain character.
+				// In the tokenization scenario, this means, the tokenizer will drop the old or current data as a
+				// token and start blank at the root node of the automaton for the remaining data.
+				// It may be beneficial to have something like a "drop()" event to capture these cases,
+				// as they are likely the result of a bad automaton design.
+				if buffc-bufft == 0 {
+					buffc++
+				}
+
+				if DEBUG {
+					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
+				}
+				w.Token(bufft, buffer[:buffc])
+
+				sentenceEnd = false
+				textEnd = false
+
+				if DEBUG {
+					log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
+				}
+
+				for x, i := range buffer[buffc:buffi] {
+					buffer[x] = i
+				}
+
+				buffi -= buffc
+				epsilonState = 0
+
+				buffc = 0
+				bufft = 0
+
+				a = dat.epsilon
+
+				// Restart from root state
+				t = uint32(1)
+				newchar = true
+				// goto PARSECHARM
+				continue
 			}
 
 			newchar = false
@@ -1009,7 +1054,8 @@ PARSECHAR:
 		newchar = true
 
 		// TODO:
-		//   Prevent endless epsilon loops!
+		//   Prevent endless epsilon loops by checking
+		//   the model has no epsilon loops1
 	}
 
 	// Input reader is not yet finished
@@ -1017,43 +1063,13 @@ PARSECHAR:
 		if DEBUG {
 			log.Println("Not at the end - problem", t0, ":", dat.outgoing(t0))
 		}
+		// This should never happen
 		return false
 	}
 
 	if DEBUG {
 		log.Println("Entering final check")
 	}
-
-	/*
-		The following code is for deprecated automata relying on
-		final states. Datok now requires final states to be marked
-		with tokenends.
-
-			// Automaton is in a final state, so flush the buffer and return
-			x := dat.array[t].getBase() + uint32(dat.final)
-
-			if x < dat.array[1].getCheck() && dat.array[x].getCheck() == t {
-
-				if buffi > 0 {
-					if DEBUG {
-						log.Println("-> Flush buffer: [", string(buffer[:buffi]), "]")
-					}
-					w.Token(0, buffer[:buffi])
-				}
-
-				// Add an additional sentence ending, if the file is over but no explicit
-				// sentence split was reached. This may be controversial and therefore
-				// optional via parameter.
-				if !dat.array[t0].isTokenEnd() {
-					w.SentenceEnd()
-				}
-
-				// TODO:
-				//   There may be a new line at the end, from an epsilon,
-				//   so we may need to go on!
-				return true
-			}
-	*/
 
 	// Check epsilon transitions as long as possible
 	t0 = t
@@ -1073,6 +1089,16 @@ PARSECHAR:
 			log.Println("Get from epsilon stack and set buffo!", showBufferNew(buffer, bufft, buffc, buffi))
 		}
 		goto PARSECHAR
+	}
+
+	// something left in buffer
+	if buffc-bufft > 0 {
+		if DEBUG {
+			log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
+		}
+		w.Token(bufft, buffer[:buffc])
+		sentenceEnd = false
+		textEnd = false
 	}
 
 	// Add an additional sentence ending, if the file is over but no explicit

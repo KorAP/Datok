@@ -23,6 +23,7 @@ type TokenWriter struct {
 	TextEnd     func(int)
 	Flush       func() error
 	Token       func(int, []rune)
+	// Fail        func(int)
 }
 
 // Create a new token writer based on the options
@@ -35,6 +36,8 @@ func NewTokenWriter(w io.Writer, flags Bits) *TokenWriter {
 	init := true
 
 	tw := &TokenWriter{}
+
+	// tw.Fail = func(_ int) {}
 
 	// Collect token positions and maybe tokens
 	if flags&(TOKEN_POS|SENTENCE_POS) != 0 {
