@@ -1,5 +1,7 @@
-0.1.4 2022-03-11
+0.1.4 2022-03-27
     - Improved handling of ellipsis.
+    - Make algorithm more robust to nevere fail.
+    - Remove match option.
 
 0.1.3 2022-03-08
     - Introduced refined handling of sentences including speech.

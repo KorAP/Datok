@@ -932,11 +932,12 @@ func TestDoubleArrayFullTokenizerSentenceSplitterBug1(t *testing.T) {
 	w.Reset()
 	assert.True(dat.Transduce(strings.NewReader(text), w))
 	sentences = strings.Split(w.String(), "\n\n")
-	assert.Equal(len(sentences), 5)
+	assert.Equal(len(sentences), 6)
 	assert.Equal("Wüllersdorf\nwar\naufgestanden\n.", sentences[0])
 	assert.Equal("»\nIch\nfinde\nes\nfurchtbar\n,\ndaß\nSie\nrecht\nhaben\n,\naber\nSie\nhaben\nrecht\n.", sentences[1])
-	assert.Equal("Ich\nquäle\nSie\nnicht\nlänger\nmit\nmeinem\n'\nMuß\nes\nsein\n?\n'\n.\n \nDie\nWelt\nist\neinmal\n,\nwie\nsie\nist\n,\nund\ndie\nDinge\nverlaufen\nnicht\n,\nwie\nwir\nwollen\n,\nsondern\nwie\ndie\nandern\nwollen\n.", sentences[2])
-	assert.Equal("Das\nmit\ndem\n'\nGottesgericht\n'\n,\nwie\nmanche\nhochtrabend\nversichern\n,\nist\nfreilich\nein\nUnsinn\n,\nnichts\ndavon\n,\numgekehrt\n,\nunser\nEhrenkultus\nist\nein\nGötzendienst\n,\naber\nwir\nmüssen\nuns\nihm\nunterwerfen\n,\nsolange\nder\nGötze\ngilt\n.\n«", sentences[3])
+	assert.Equal("Ich\nquäle\nSie\nnicht\nlänger\nmit\nmeinem\n'\nMuß\nes\nsein\n?\n'\n.", sentences[2])
+	assert.Equal("Die\nWelt\nist\neinmal\n,\nwie\nsie\nist\n,\nund\ndie\nDinge\nverlaufen\nnicht\n,\nwie\nwir\nwollen\n,\nsondern\nwie\ndie\nandern\nwollen\n.", sentences[3])
+	assert.Equal("Das\nmit\ndem\n'\nGottesgericht\n'\n,\nwie\nmanche\nhochtrabend\nversichern\n,\nist\nfreilich\nein\nUnsinn\n,\nnichts\ndavon\n,\numgekehrt\n,\nunser\nEhrenkultus\nist\nein\nGötzendienst\n,\naber\nwir\nmüssen\nuns\nihm\nunterwerfen\n,\nsolange\nder\nGötze\ngilt\n.\n«", sentences[4])
 }
 
 func TestDoubleArrayLoadFactor1(t *testing.T) {
