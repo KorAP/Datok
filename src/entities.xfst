@@ -2,4 +2,4 @@ define XMLentitiesDec ["#" Digit Digit+ ];
 define XMLentitiesHex ["#" ["x"|"X"] HexLetter HexLetter+ ];
 define XMLentitiesStr [[[AsciiLetter .o. Caseinsensitive].l | Digit | "_" | "-" ] ];
 
-read regex ["&" [XMLentitiesDec|XMLentitiesHex|XMLentitiesStr XMLentitiesStr+] ";"];
+define XMLEntities ["&" [XMLentitiesDec|XMLentitiesHex|XMLentitiesStr XMLentitiesStr+] ";"];

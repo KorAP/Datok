@@ -15,7 +15,7 @@ define verticalemoticon [
 [ ["o"|"O"] ["_"|"."|"-"]+ ["o"|"O"] ] 
 ];
 
-read regex [
+define Emoticons [
 ["<" ("/") "3"+] |
 verticalemoticon (";"+|"^") |
 ["(" verticalemoticon ")"] |

@@ -69,8 +69,6 @@ define Word Char+ ([Apos|Asterisk] Char+)* ([s|S] [%’|%`]);
 define Plusampersand @txt"txt/plusampersand.txt";
 define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;
 
-
-define URLChar [Char|[Sym - ["<"|">"|%"]]];
 !define Alpha ["a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"|"_"];
 
 define Caseinsensitive [
@@ -119,59 +117,21 @@ define Years ["(" Digit+ (".") ")"] | ["[" Digit+ (".") "]"];
 ! 20:00 Uhr, 00:12:25,34 Minuten
 define Times [ ( [%0|1|2|3|4|5] ) Digit [ ":" [%0|1|2|3|4|5] Digit ]^{1,2} ( "," [ Digit ]^{1,3} ) ];
 
+! Emoticons
 source emoticons.xfst
-define Emoticons;
 
 ! acronyms: U.S.A., I.B.M., etc.
 ! use a post-filter to remove dots
 define AcronymDep Letter %. Letter %. [Letter %.]+;
 
-define Dot "."|[["["|"("] "d" "o" "t" [")"|"]"]] .o. Caseinsensitive;
-define At "@"|[["["|"("] "a" "t" [")"|"]"]] .o. Caseinsensitive;
-
-define TldEnd [{org}|{de}|{com}] .o. Caseinsensitive;
-
-! Very relaxed URL scheme, not based on the strict Lucene implementation
-define URL [ [ [{http} (s) | {ftp} | {file}] ":" "/" "/"] | [{www} Dot] ]
-URLChar [URLChar|SP]* URLChar
-.o. Caseinsensitive;
-
-define Domain Char+ [Dash Char+]* Dot TldEnd;
-
 ! XML sources
 source xml.xfst
-define XML;
 
 ! XML entities
 source entities.xfst
-define XMLEntities;
 
-
-! Email addresses
-define Email URLChar+ At URLChar+ [Dot URLChar+]+;
-
-! Twitter user, hashtag, Google+
-define SNS ["@"|"#"|"+"] Char+;
-
-define FileEnd [
-                [{htm} ("l")]|
-                [{doc} ("x")]|
-                {pdf}|
-                ["j" "p" ("e") "g"]|
-                ["m" "p" ["3"|"4"]]|
-                {ogg}|
-                {png}|
-                [{ppt} ("x")]|
-                {avi}|
-                {txt}|
-                {xls}|
-                {xml}|
-                {aac}|
-                {gif}|
-                {exe}
-                ] .o. Caseinsensitive;
-
-define File (( AsciiLetter ":" %\ | "/" ) [ Char | "_" | "-" | Char [ %\ | "/" ] ]*) [Char | "-" | "_" ]+ "." FileEnd;
+! Technical protocols
+source protocols.xfst
 
 define Streetname Word {str} %.;
 

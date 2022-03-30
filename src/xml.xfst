@@ -1,6 +1,6 @@
 ! XML rule
 define XMLns [AsciiLetter [AsciiLetter|Digit|%-]* (%: AsciiLetter [AsciiLetter|Digit|%-]*)] .o. Caseinsensitive;
-read regex [
+define XML [
   "<" [
       [
         XMLns

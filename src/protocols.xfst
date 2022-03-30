@@ -1,0 +1,39 @@
+define URLChar [Char|[Sym - ["<"|">"|%"]]];
+
+define Dot "."|[["["|"("] "d" "o" "t" [")"|"]"]] .o. Caseinsensitive;
+define At "@"|[["["|"("] "a" "t" [")"|"]"]] .o. Caseinsensitive;
+
+define TldEnd [{org}|{de}|{com}] .o. Caseinsensitive;
+
+! Very relaxed URL scheme, not based on the strict Lucene implementation
+define URL [ [ [{http} (s) | {ftp} | {file}] ":" "/" "/"] | [{www} Dot] ]
+URLChar [URLChar|SP]* URLChar
+.o. Caseinsensitive;
+
+define Domain Char+ [Dash Char+]* Dot TldEnd;
+
+! Email addresses
+define Email URLChar+ At URLChar+ [Dot URLChar+]+;
+
+! Twitter user, hashtag, Google+
+define SNS ["@"|"#"|"+"] Char+;
+
+define FileEnd [
+                [{htm} ("l")]|
+                [{doc} ("x")]|
+                {pdf}|
+                ["j" "p" ("e") "g"]|
+                ["m" "p" ["3"|"4"]]|
+                {ogg}|
+                {png}|
+                [{ppt} ("x")]|
+                {avi}|
+                {txt}|
+                {xls}|
+                {xml}|
+                {aac}|
+                {gif}|
+                {exe}
+                ] .o. Caseinsensitive;
+
+define File (( AsciiLetter ":" %\ | "/" ) [ Char | "_" | "-" | Char [ %\ | "/" ] ]*) [Char | "-" | "_" ]+ "." FileEnd;
