@@ -383,6 +383,15 @@ Innstetten!`
 	assert.Equal(len(sentences), 3)
 	assert.Equal("(\nEr\nging\n.\n)", sentences[0])
 	assert.Equal("Und\nkam\n(\nspäter\n)\n.", sentences[1])
+
+	// Check parantheses and quotes at the end of the sentence
+	w.Reset()
+	assert.True(mat.Transduce(strings.NewReader("(Er sagte: \"Hallo!\") Dann ging er."), w))
+	sentences = strings.Split(w.String(), "\n\n")
+	assert.Equal(len(sentences), 3)
+	assert.Equal("(\nEr\nsagte\n:\n\"\nHallo\n!\n\"\n)", sentences[0])
+	assert.Equal("Dann\nging\ner\n.", sentences[1])
+
 }
 
 func TestMatrixFullTokenizerMatrixSentenceSplitterBug1(t *testing.T) {
