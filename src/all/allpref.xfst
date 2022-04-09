@@ -58,6 +58,7 @@ define Punct [LP|RP|Sym];
 
 define Emdash [%- %- (%-)+ | ["\u2014"|"\u2015"|"\u2e3a"|"\u2e3b"|"\ufe58"]+];
 define Dash ["-"|"\u2011"|"\u2012"|"\u2013"|"\u2e1a"|"\ufe63"|"\uff0d"];
+define Alldash ["-"|"\u2011"|"\u2012"|"\u2013"|"\u2e1a"|"\ufe63"|"\uff0d"|"\u2014"|"\u2015"|"\u2e3a"|"\u2e3b"|"\ufe58"];
 define Slash ["⁄"|"∕"|"／"|"/"];
 define Asterisk ["*"];
 

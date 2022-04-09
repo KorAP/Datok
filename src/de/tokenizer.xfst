@@ -73,7 +73,7 @@ define Token [
   Email @-> ... NLout,
   File @-> ... NLout,
   Domain @-> ... NLout,
-  Emoticons @-> ... NLout
+  [Emoticons|Arrows] @-> ... NLout
 ];
 
 source all/allsentencesplit.xfst

@@ -1116,6 +1116,14 @@ func TestMatrixEmoticons(t *testing.T) {
 	assert.Equal(tokens[7], "-_-;;;")
 	assert.Equal(tokens[8], "-_-^")
 	assert.Equal(len(tokens), 9)
+
+	tokens = ttokenize(mat, w, "das -> Lustig<-!")
+	assert.Equal("das", tokens[0])
+	assert.Equal("->", tokens[1])
+	assert.Equal("Lustig", tokens[2])
+	assert.Equal("<-", tokens[3])
+	assert.Equal("!", tokens[4])
+	assert.Equal(5, len(tokens))
 }
 
 func TestMatrixFullTokenizerXML(t *testing.T) {
