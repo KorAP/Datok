@@ -1,0 +1,19 @@
+echo - Introduce Sentence splitter
+! And compose Whitespace ignorance
+
+read regex Token .o. [
+  ! Put a Token boundary behind the longest possible
+  ! sentence ending punctuation sequence,
+  ! that isn't followed by a comma
+  SentenceEnd @-> ... NLout \/ _ NLout \%,
+] .o. [
+  ! Put a Token boundary behind a punctuation                      
+  ! that is not a start of a punctuation sequence
+  SP @-> ... NLout \/ NLout _ NLout NotSentenceExtension
+] .o. [
+  ! Put a Token boundary behind ... if not followed by a small character
+  [%. %. %.] @-> ... NLout \/ _ NLout WS+ NotSmallCaps
+] .o. [
+  ! Remove whitespace between Tokens
+  [WS|NL]+ @-> 0 || [ .#. | NLout ] _
+];

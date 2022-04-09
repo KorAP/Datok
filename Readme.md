@@ -9,6 +9,7 @@ transducer generated with [Foma](https://fomafst.github.io/).
 The library contains sources for a german tokenizer
 based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
 
+
 ## Tokenization
 
 ```
@@ -32,6 +33,7 @@ The special `END OF TRANSMISSION` character (`\x04`) can be used to mark the end
 
 > *Caution*: When experimenting with STDIN and echo,
 > you may need to disable history expansion.
+
 
 ## Conversion
 
@@ -107,13 +109,13 @@ the root directory of this repository
 
 ```shell
 $ cd src && \
-  foma -e "source tokenizer.xfst" \
+  foma -e "source de/tokenizer.xfst" \
   -e "save stack ../mytokenizer.fst" -q -s && \
   cd ..
 ```
 
-This will load and compile `tokenizer.xfst` and will save
-the compiled FST as `mytokenizer.fst`
+This will load and compile the german `tokenizer.xfst`
+and will save the compiled FST as `mytokenizer.fst`
 in the root directory.
 
 To generate a Datok FSA (matrix representation) based on
@@ -135,6 +137,7 @@ The final datok file can then be used as a model for the tokenizer.
 * This may take quite some time depending on the number
 of arcs in the FST and is therefore now deprecated.
 
+
 ## Technology
 
 Internally the FSA is represented
@@ -150,6 +153,7 @@ The double array representation (Aoe 1989) of all transitions
 in the FST is implemented as an extended DFA following Mizobuchi
 et al. (2000) and implementation details following Kanda et al. (2018).
 
+
 ## License
 
 Datok is published under the [Apache 2.0 License](LICENSE).
@@ -162,7 +166,7 @@ The german tokenizer shipped is based on work done by the
 [Çağrı Çöltekin](https://github.com/coltekin/TRmorph/)
 (published under the MIT License),
 and [Marc Kupietz](https://github.com/KorAP/KorAP-Tokenizer)
- (published under the Apache License).
+(published under the Apache License).
 
 The foma parser is based on
 [*foma2js*](https://github.com/mhulden/foma),

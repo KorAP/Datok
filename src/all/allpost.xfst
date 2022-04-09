@@ -1,0 +1,51 @@
+! General rules that require certain language specific definitions
+
+! A solution to the "(author): problem" may be to add ) at the end of any
+! string as a possible ending
+define Years ["(" Digit+ (".") ")"] | ["[" Digit+ (".") "]"];
+
+! 20:00 Uhr, 00:12:25,34
+define Times [ ( [%0|1|2|3|4|5] ) Digit [ ":" [%0|1|2|3|4|5] Digit ]^{1,2} ( "," [ Digit ]^{1,3} ) ];
+
+! Emoticons
+source all/emoticons.xfst
+
+! XML sources
+source all/xml.xfst
+
+! XML entities
+source all/entities.xfst
+
+! Technical protocols
+source all/protocols.xfst
+
+! Also supports
+!   19.4.2015, 19/4/2015 etc.
+define DigitPunct ["_"|"-"|"."|","|Slash];
+define Num Digit+ [DigitPunct Digit+]* (Char+);
+
+! ordinals
+define Ord Digit ( Digit (Digit) ) %.;
+
+! TODO:
+!   floating point, serial, model numbers, ip addresses, etc.
+!   every other segment must have at least one digit
+
+! Omission words like "fu**ing!"
+define Omission Char+ Asterisk Asterisk+ Char*;
+
+! acronyms: U.S.A., I.B.M., etc.
+! use a post-filter to remove dots
+define AcronymDep Letter %. Letter %. [Letter %.]+;
+
+
+! TODO: Name words with ' and `
+
+! Support ASCII elements, like
+! +---------------+
+! <---->, -->, <--
+!       +---------------+
+! <---> | Worker Node N |
+!       +---------------+
+! |============= Core =============|
+

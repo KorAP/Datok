@@ -1,0 +1,70 @@
+! This tokenizer is based on work by
+!  - StandardTokenizerImpl by the Lucene project
+!    under the Apache License
+!  - https://github.com/dlwh/epic by David Hall (2014)
+!    under the Apacahe License
+!  - KorAPTokenizerImpl.jflex by Marc Kupietz (2016)
+!    under the Apache License
+!  - https://github.com/coltekin/TRmorph/tokenize.xfst by Çağrı Çöltekin (2011-2015)
+!    under the MIT License
+
+define NLout "@_TOKEN_SYMBOL_@";
+! define NLout "\u000a";
+
+define Digit [%0|1|2|3|4|5|6|7|8|9];
+define AsciiLetter [a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z];
+define HexLetter [Digit|a|A|b|B|c|C|d|D|e|E|f|F];
+define EOT "\u0004";
+
+!!!!!!!!!!!!!!!!!
+! <from tmorph> !
+!!!!!!!!!!!!!!!!!
+define WS [" "|"\u0009"|"\u00a0"|"\u1680"|
+           "\u2000"|"\u2001"|"\u2002"|"\u2003"|"\u2004"|"\u2005"| 
+           "\u2006"|"\u2007"|"\u2008"|"\u2009"|"\u200a"|
+           "\u202f"|"\u205f"|"\u3000"];
+
+define NL ["\u000a"|"\u000b"|"\u000c"|"\u000d"|"\u0085"|"\u2028"|"\u2029"|EOT];
+
+! Punctuation that ends sentences
+! Differs!
+define SP [["."|"?"|"!"]+|"…"];
+
+! Left punctuation
+define LP ["("|"["|"{"|
+           "“"|"‘"|"‹"|"«"|
+           "'"|%"|
+           ! differs
+           ["'" "'"] |
+           "*"|"/"|"_"| ! Can be Markdown
+           ! from book
+           [%, %,]];
+
+! Right punctuation - excluding the characters that can be used as apostrophe
+define RP [SP|","|";"|":"|
+              ")"|"]"|"}"|
+              "”"|"›"|"»"|%"|[%’ %’]|["'" "'"]|[%‘ %‘]|
+              "*"|"/"|"_"]; ! Can be Markdown
+
+define DQuotes ["”"|%"|"»"|"«"];
+
+define Sym ["-"|"+"|"<"|">"|"*"|"/"|%=|%@|%&];
+define Apos %'|%’|%`;
+define Punct [LP|RP|Sym];
+!define nonSym \[WS|LP|RP|Sym];
+!!!!!!!!!!!!!!!!!!
+! </from tmorph> !
+!!!!!!!!!!!!!!!!!!
+
+define Emdash [%- %- (%-)+ | ["\u2014"|"\u2015"|"\u2e3a"|"\u2e3b"|"\ufe58"]+];
+define Dash ["-"|"\u2011"|"\u2012"|"\u2013"|"\u2e1a"|"\ufe63"|"\uff0d"];
+define Slash ["⁄"|"∕"|"／"|"/"];
+define Asterisk ["*"];
+
+define Char \[WS|NL|Punct|Apos]; ! |¨;
+
+!define Alpha ["a"|"b"|"c"|"d"|"e"|"f"|"g"|"h"|"i"|"j"|"k"|"l"|"m"|"n"|"o"|"p"|"q"|"r"|"s"|"t"|"u"|"v"|"w"|"x"|"y"|"z"|"_"];
+
+define SentenceEnd SP NLout [DQuotes (NLout ")") | ["›"|%‹|%’|"'"] ( NLout DQuotes (NLout ")") | NLout ")" ) | ")" ] (NLout SP);
+
+define NotSentenceExtension [? - "”" - %" - "»" - "«" - "›" - %‹ - %’ - "'" - ")" - NLout];

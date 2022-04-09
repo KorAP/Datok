@@ -3,7 +3,7 @@ clean:
 
 buildfoma:
 	cd src && \
-	foma -e "source tokenizer.xfst" \
+	foma -e "source de/tokenizer.xfst" \
 	-e "save stack ../testdata/tokenizer.fst" -q -s && \
 	cd ..
 

@@ -1,0 +1,81 @@
+source all/allpref.xfst
+
+define Caseinsensitive [
+a (->) A,
+b (->) B,
+c (->) C,
+d (->) D,
+e (->) E,
+f (->) F,
+g (->) G,
+h (->) H,
+i (->) I,
+j (->) J,
+k (->) K,
+l (->) L,
+m (->) M,
+n (->) N,
+o (->) O,
+p (->) P,
+q (->) Q,
+r (->) R,
+s (->) S,
+t (->) T,
+u (->) U,
+v (->) V,
+w (->) W,
+x (->) X,
+y (->) Y,
+z (->) Z,
+ö (->) Ö,
+ü (->) Ü,
+ä (->) Ä,
+è (->) È,
+é (->) É,
+ú (->) Ú,
+á (->) Á,
+â (->) Â,
+ê (->) Ê,
+î (->) Î,
+ô (->) Ô,
+û (->) Û,
+ß (->) {SS}
+];
+
+define Letter [ [ AsciiLetter | ö | ü | ä | è | é | ú | á | â | ê | î | ô | û | ß ] .o. Caseinsensitive ];
+
+define NotSmallCaps [? - a - b - c - d - e - f - g - h - i - j - k - l - m - n - o - p - q - r - s - t - u - v - w - x - y - z - ü - ö - ä - è - é - ú - á - â - ê - î - ô - û];
+
+define Word Char+ ([Apos|Asterisk] Char+)* ([s|S] [%’|%`]);
+
+define Plusampersand @txt"de/plusampersand.txt";
+define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;
+
+! Abbreviations and Initials
+! The abbreviation list is part of the sentence splitter tool
+! of the IDS.
+define Abbr [ @txt"de/abbrv.txt" | Letter ] %.;
+
+define Streetname Word {str} %.;
+
+source all/allpost.xfst
+
+echo - Compile Real Token
+
+define RealToken [Punct|Emdash|Abbr|Streetname|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
+
+echo - Introduce Token splitter
+
+define Token [
+  RealToken @-> ... NLout,
+  XML @-> ... NLout,
+  URL @-> ... NLout,
+  Email @-> ... NLout,
+  File @-> ... NLout,
+  Domain @-> ... NLout,
+  Emoticons @-> ... NLout
+];
+
+source all/allsentencesplit.xfst
+
+! foma -e "source tokenizer.xfst" -q -s && cat text.txt | flookup tokenizer.fst -x -b
