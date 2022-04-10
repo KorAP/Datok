@@ -1,6 +1,11 @@
 ! XML rule
 define XMLns [AsciiLetter [AsciiLetter|Digit|%-]* (%: AsciiLetter [AsciiLetter|Digit|%-]*)] .o. Caseinsensitive;
-define XML [
+
+define XMLcomment [ %< %! %- %- | %- %- %> ];
+define XMLpi [ %< %? AsciiLetter [AsciiLetter | Digit | %- ]* | %? %> ];
+define CDATA [ %< %! %[ {CDATA} %[ | %] %] %> ];
+
+define XML [[
   "<" [
       [
         XMLns
@@ -16,4 +21,4 @@ define XML [
         "/" XMLns
       ]
     ] WS* ">"
-].u;
+].u | XMLcomment | XMLpi | CDATA ];

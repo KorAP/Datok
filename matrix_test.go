@@ -1174,6 +1174,22 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert.Equal("ging", tokens[2])
 	assert.Equal(".", tokens[3])
 	assert.Equal(4, len(tokens))
+
+	tokens = ttokenize(mat, w, "das  <?robot xgh ?>  <!-- hm hm -->   <![CDATA[ cdata ]]>  <br />")
+	assert.Equal("das", tokens[0])
+	assert.Equal("<?robot", tokens[1])
+	assert.Equal("xgh", tokens[2])
+	assert.Equal("?>", tokens[3])
+	assert.Equal("<!--", tokens[4])
+	assert.Equal("hm", tokens[5])
+	assert.Equal("hm", tokens[6])
+	assert.Equal("-->", tokens[7])
+	assert.Equal("<![CDATA[", tokens[8])
+	assert.Equal("cdata", tokens[9])
+	assert.Equal("]]>", tokens[10])
+	assert.Equal("<br />", tokens[11])
+	assert.Equal(12, len(tokens))
+
 }
 
 func TestMatokDatokEquivalence(t *testing.T) {

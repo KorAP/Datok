@@ -213,7 +213,7 @@ func TestDoubleArrayFullTokenizer(t *testing.T) {
 		dat = LoadDatokFile("testdata/tokenizer.datok")
 	}
 	assert.NotNil(dat)
-	assert.True(dat.LoadFactor() >= 70)
+	assert.True(dat.LoadFactor() >= 60)
 	assert.Equal(dat.epsilon, 1)
 	assert.Equal(dat.unknown, 2)
 	assert.Equal(dat.identity, 3)
