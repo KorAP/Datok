@@ -409,7 +409,13 @@ func ParseFoma(ior io.Reader) *Automaton {
 							auto.identity = number
 						}
 
+						// Deprecated
 					case "@_TOKEN_SYMBOL_@":
+						{
+							auto.tokenend = number
+						}
+
+					case "@_TOKEN_BOUND_@":
 						{
 							auto.tokenend = number
 						}

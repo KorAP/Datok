@@ -59,14 +59,14 @@ to be converted by Datok:
 - Character accepting arcs need to be translated
   *only* to themselves or to ε (the empty symbol).
 - Multi-character symbols are not allowed,
-  except for the `@_TOKEN_SYMBOL_@`,
+  except for the `@_TOKEN_BOUND_@`,
   that denotes the end of a token.
 - ε accepting arcs (transitions not consuming
   any character) need to be translated to
-  the `@_TOKEN_SYMBOL_@`.
-- Two consecutive `@_TOKEN_SYMBOL_@`s mark a sentence end.
+  the `@_TOKEN_BOUND_@`.
+- Two consecutive `@_TOKEN_BOUND_@`s mark a sentence end.
 - Flag diacritics are not supported.
-- Final states are ignored. The `@_TOKEN_SYMBOL_@` marks
+- Final states are ignored. The `@_TOKEN_BOUND_@` marks
   the end of a token instead.
 
 A minimal usable tokenizer written in XFST and following
@@ -74,7 +74,7 @@ the guidelines to tokenizers in Beesley and Karttunen (2003)
 and Beesley (2004) would look like this:
 
 ```xfst
-define TE "@_TOKEN_SYMBOL_@";
+define TB "@_TOKEN_BOUND_@";
 
 define WS [" "|"\u000a"|"\u0009"];
 
@@ -84,17 +84,17 @@ define Char \[WS|PUNCT];
 
 define Word Char+;
 
-! Compose token ends
-define Tokenizer [[Word|PUNCT] @-> ... TE] .o.
+! Compose token bounds
+define Tokenizer [[Word|PUNCT] @-> ... TB] .o.
 ! Compose Whitespace ignorance
        [WS+ @-> 0] .o.
 ! Compose sentence ends
-       [[PUNCT+] @-> ... TE \/ TE _ ];
+       [[PUNCT+] @-> ... TB \/ TB _ ];
 
 read regex Tokenizer;
 ```
 
-> *Hint*: For development it's easier to replace `@_TOKEN_SYMBOL_@`
+> *Hint*: For development it's easier to replace `@_TOKEN_BOUND_@`
 with a newline.
 
 ## Building
