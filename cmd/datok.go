@@ -54,6 +54,7 @@ func main() {
 		}
 		if cli.Convert.DoubleArray {
 			dat := tok.ToDoubleArray()
+			fmt.Println("Load factor", dat.LoadFactor())
 			_, err := dat.Save(cli.Convert.Tokenizer)
 			if err != nil {
 				log.Fatalln(err)
