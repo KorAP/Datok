@@ -8,27 +8,6 @@ Implementation of a finite state automaton for
 fast natural language tokenization, based on a finite state
 transducer generated with [Foma](https://fomafst.github.io/).
 
-## References
-
-Please cite this work as:
-
-> Diewald, N. (2022): *Matrix and Double-Array Representations
-> for Efficient Finite State Tokenization*. In: Proceedings of the
-> 10th Workshop on Challenges in the Management of Large Corpora
-> (CMLC-10) at LREC 2022. Marseille, France.
-
-The library contains sources for a german tokenizer
-based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
-
-For speed and quality analysis in comparison to other tokenizers for German,
-please refer to this article:
-
-> Diewald, N./Kupietz, M./Lüngen, H. (2022): *Tokenizing on scale -
-> Preprocessing large text corpora on the lexical and sentence level*.
-> In: Proceedings of EURALEX 2022. Mannheim, Germany.
-
-The benchmarks can be reproduced using [this test suite](https://github.com/KorAP/Tokenizer-Evaluation).
-
 ## Tokenization
 
 ```
@@ -171,6 +150,29 @@ option to the last ε transition.
 The double array representation (Aoe 1989) of all transitions
 in the FST is implemented as an extended DFA following Mizobuchi
 et al. (2000) and implementation details following Kanda et al. (2018).
+
+
+## References
+
+Please cite this work as:
+
+> Diewald, Nils (2022): *Matrix and Double-Array Representations
+> for Efficient Finite State Tokenization*. In: Proceedings of the
+> 10th Workshop on Challenges in the Management of Large Corpora
+> (CMLC-10) at LREC 2022. Marseille, France.
+
+The library contains sources for a german tokenizer
+based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
+
+For speed and quality analysis in comparison to other tokenizers for German,
+please refer to this article:
+
+> Diewald, Nils, Marc Kupietz, Harald Lüngen (2022): *Tokenizing on scale -
+> Preprocessing large text corpora on the lexical and sentence level*.
+> In: Proceedings of EURALEX 2022. Mannheim, Germany.
+
+The benchmarks can be reproduced using
+[this test suite](https://github.com/KorAP/Tokenizer-Evaluation).
 
 
 ## License
