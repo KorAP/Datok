@@ -160,7 +160,7 @@ Please cite this work as:
 > for Efficient Finite State Tokenization*](http://www.lrec-conf.org/proceedings/lrec2022/workshops/CMLC10/pdf/2022.cmlc10-1.4.pdf).
 > In: Proceedings of the
 > 10th Workshop on Challenges in the Management of Large Corpora
-> (CMLC-10) at LREC 2022. Marseille, France.
+> (CMLC-10) at LREC 2022. Marseille, France, pp. 20-26.
 
 The library contains sources for a german tokenizer
 based on [KorAP-Tokenizer](https://github.com/KorAP/KorAP-Tokenizer).
