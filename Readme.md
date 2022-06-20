@@ -156,8 +156,9 @@ et al. (2000) and implementation details following Kanda et al. (2018).
 
 Please cite this work as:
 
-> Diewald, Nils (2022): *Matrix and Double-Array Representations
-> for Efficient Finite State Tokenization*. In: Proceedings of the
+> Diewald, Nils (2022): [*Matrix and Double-Array Representations
+> for Efficient Finite State Tokenization*](http://www.lrec-conf.org/proceedings/lrec2022/workshops/CMLC10/pdf/2022.cmlc10-1.4.pdf).
+> In: Proceedings of the
 > 10th Workshop on Challenges in the Management of Large Corpora
 > (CMLC-10) at LREC 2022. Marseille, France.
 
