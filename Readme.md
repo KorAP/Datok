@@ -170,7 +170,7 @@ please refer to this article:
 
 > Diewald, Nils, Marc Kupietz, Harald Lüngen (2022): *Tokenizing on scale -
 > Preprocessing large text corpora on the lexical and sentence level*.
-> In: Proceedings of EURALEX 2022. Mannheim, Germany.
+> In: Proceedings of EURALEX 2022. Mannheim, Germany, pp. 208-221.
 
 The benchmarks can be reproduced using
 [this test suite](https://github.com/KorAP/Tokenizer-Evaluation).
