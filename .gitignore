@@ -5,6 +5,7 @@ tmp
 ~*
 .*
 !.gitignore
+!/.github
 \#*
 *.info
 datok
