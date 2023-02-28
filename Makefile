@@ -1,6 +1,9 @@
 clean:
 	go clean -testcache && rm -r ./bin
 
+update:
+	go get -u ./... && go mod tidy
+
 buildfoma:
 	cd src && \
 	foma -e "source de/tokenizer.xfst" \
