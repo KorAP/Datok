@@ -55,9 +55,13 @@ func (auto *Automaton) ToMatrix() *MatrixTokenizer {
 		if num > auto.sigmaCount {
 			panic("sigmaCount is smaller")
 		}
-		if num > max {
-			max = num
-		}
+
+		// Find max
+		// see https://dev.to/jobinrjohnson/branchless-programming-does-it-really-matter-20j4
+		max -= ((max - num) & ((max - num) >> 31))
+		// if num > max {
+		// 	 max = num
+		// }
 	}
 	// Add final entry to the list (maybe not necessary actually)
 
@@ -137,9 +141,13 @@ func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	max := 0
 	for sym, num := range mat.sigma {
 		sigmalist[num] = sym
-		if num > max {
-			max = num
-		}
+
+		// Find max
+		// see https://dev.to/jobinrjohnson/branchless-programming-does-it-really-matter-20j4
+		max -= ((max - num) & ((max - num) >> 31))
+		// if num > max {
+		// 	max = num
+		// }
 	}
 
 	// Add final entry to the list (maybe not necessary actually)
@@ -411,9 +419,7 @@ PARSECHARM:
 			//   Better not repeatedly check for a!
 			//   Possibly keep a buffer with a.
 			if int(char) < 256 {
-				if int(char) == EOT {
-					eot = true
-				}
+				eot = int(char) == EOT
 
 				// mat.SigmaASCII[] is initialized with mat.identity
 				a = mat.sigmaASCII[int(char)]
@@ -506,6 +512,7 @@ PARSECHARM:
 				if buffc-bufft == 0 {
 					buffc++
 				}
+				// This will hopefully be branchless by the compiler
 
 				if DEBUG {
 					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
@@ -519,9 +526,7 @@ PARSECHARM:
 					log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 				}
 
-				for x, i := range buffer[buffc:buffi] {
-					buffer[x] = i
-				}
+				copy(buffer[0:], buffer[buffc:buffi])
 
 				buffi -= buffc
 				epsilonState = 0
@@ -567,6 +572,7 @@ PARSECHARM:
 			buffc++
 
 			// Transition does not produce a character
+			// Hopefully generated branchless code
 			if buffc-bufft == 1 && (t&FIRSTBIT) != 0 {
 				if DEBUG {
 					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
@@ -593,10 +599,7 @@ PARSECHARM:
 				log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 			}
 
-			// buffer = buffer[buffc:]
-			for x, i := range buffer[buffc:buffi] {
-				buffer[x] = i
-			}
+			copy(buffer[0:], buffer[buffc:buffi])
 
 			buffi -= buffc
 			// epsilonOffset -= buffo
