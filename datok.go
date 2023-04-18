@@ -113,6 +113,7 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 	var atrans *edge
 	var s, s1 int
 	var t, t1 uint32
+	var diff int
 
 	// Create a mapping from s (in Ms aka Intermediate FSA)
 	// to t (in Mt aka Double Array FSA)
@@ -215,9 +216,10 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 				// Store a final transition
 				dat.array[base+uint32(dat.final)].setCheck(t)
 
-				if dat.maxSize < int(base)+dat.final {
-					dat.maxSize = int(base) + dat.final
-				}
+				// Find max
+				// see https://dev.to/jobinrjohnson/branchless-programming-does-it-really-matter-20j4
+				diff = dat.maxSize - (int(base) + dat.final)
+				dat.maxSize -= (diff & (diff >> 31))
 			}
 		}
 	}
@@ -461,6 +463,8 @@ func (dat *DaTokenizer) TransCount() int {
 
 	dat.transCount = 0
 	for x := 1; x < len(dat.array); x++ {
+
+		// Hopefully branchless
 		if dat.array[x].getBase() != 0 {
 			dat.transCount++
 		}
@@ -512,9 +516,12 @@ func (dat *DaTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	max := 0
 	for sym, num := range dat.sigma {
 		sigmalist[num] = sym
-		if num > max {
-			max = num
-		}
+
+		// Find max
+		max -= ((max - num) & ((max - num) >> 31))
+		// if num > max {
+		//   max = num
+		// }
 	}
 
 	sigmalist = sigmalist[:max+1]
@@ -852,9 +859,7 @@ PARSECHAR:
 			//   Better not repeatedly check for a!
 			//   Possibly keep a buffer with a.
 			if int(char) < 256 {
-				if int(char) == EOT {
-					eot = true
-				}
+				eot = int(char) == EOT
 				a = dat.sigmaASCII[int(char)]
 			} else {
 				a, ok = dat.sigma[char]
@@ -933,6 +938,7 @@ PARSECHAR:
 				// token and start blank at the root node of the automaton for the remaining data.
 				// It may be beneficial to have something like a "drop()" event to capture these cases,
 				// as they are likely the result of a bad automaton design.
+				// Hopefully this is branchless code
 				if buffc-bufft <= 0 {
 					buffc++
 					if buffc == 0 {
@@ -953,9 +959,7 @@ PARSECHAR:
 					log.Println("-> Rewind buffer", bufft, buffc, buffi, epsilonOffset)
 				}
 
-				for x, i := range buffer[buffc:buffi] {
-					buffer[x] = i
-				}
+				copy(buffer[0:], buffer[buffc:buffi])
 
 				buffi -= buffc
 				epsilonState = 0
@@ -986,6 +990,7 @@ PARSECHAR:
 			buffc++
 
 			// Transition does not produce a character
+			// Hopefully this is branchless
 			if buffc-bufft == 1 && ta.isNonToken() {
 				if DEBUG {
 					log.Println("Nontoken forward", showBufferNew(buffer, bufft, buffc, buffi))
@@ -1028,10 +1033,7 @@ PARSECHAR:
 			}
 
 			// TODO: Better as a ring buffer
-			// buffer = buffer[buffc:] !slower
-			for x, i := range buffer[buffc:buffi] {
-				buffer[x] = i
-			}
+			copy(buffer[0:], buffer[buffc:buffi])
 
 			buffi -= buffc
 			// epsilonOffset -= buffo
