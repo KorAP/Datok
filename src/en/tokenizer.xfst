@@ -89,10 +89,9 @@ define Letter [ [ AsciiLetter | ö | ü | ä | è | é | ú | á | â | ê | î 
 
 define NotSmallCaps [? - a - b - c - d - e - f - g - h - i - j - k - l - m - n - o - p - q - r - s - t - u - v - w - x - y - z - ü - ö - ä - è - é - ú - á - â - ê - î - ô - û];
 
-! Irrelevant becose of the more general rule followed
-! define Clitics [ Apos [{ll}|d|{ve}|s|{re}|m|n|{em}] .o. Caseinsensitive ] | ["n" Apos "t"] .o. Caseinsensitive ];
+define Clitics [ Apos [[{ll}|d|{ve}|s|{re}|m|n|{em}] .o. Caseinsensitive] ] | [["n" Apos "t"] .o. Caseinsensitive ]];
 
-define Word Char+ ([Apos|Asterisk] Char+)*;
+define Word Char+ (Apos Char+)*;
 
 define Plusampersand @txt"de/plusampersand.txt";
 define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;
@@ -105,7 +104,7 @@ source all/allpost.xfst
 
 echo - Compile Real Token
 
-define RealToken [Punct|Emdash|Abbr|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
+define RealToken [Punct|Emdash|Abbr|Clitics|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
 
 ! Treatmeant for I as a word in "M. I. Baxter was killed in World War I. So was I."
 define NonAbbrI [ {am}|{was}|{will}|{have}|{had}|{would}|{do}|{did}|{and}|{War}|{than}|{not}|[P|p]{art} ];
@@ -121,7 +120,11 @@ define Token [
   File @-> ... NLout,
   Domain @-> ... NLout,
   [Emoticons|Arrows] @-> ... NLout
-] .o. ["I" @-> ... NLout \/ NonAbbrI [WS | NLout ]+ _ ];
+]
+! I as a separate token
+.o. ["I" @-> ... NLout \/ NonAbbrI [WS | NLout ]+ _ ]
+! Clitiqs are tokens
+.o. [ 0 -> NLout \/ _ Clitics .#. ];
 
 source all/allsentencesplit.xfst
 

@@ -1,4 +1,5 @@
-define TB "@_TOKEN_BOUND_@";
+# define TB "@_TOKEN_BOUND_@";
+define TB "\n";
 define WS [" "|"\u000a"|"\u0009"];
 define PUNCT ["."|"?"|"!"];
 define Char \[WS|PUNCT];

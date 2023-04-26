@@ -131,6 +131,13 @@ func TestMatrixCliticRule(t *testing.T) {
 
 	matStr := w.String()
 	assert.Equal("dead\n.\n\n\n\n\n\n\n", matStr)
+
+	tokens = ttokenize(mat, w, "they're They're their")
+	assert.Equal("they", tokens[0])
+	assert.Equal("'re", tokens[1])
+	assert.Equal("They", tokens[2])
+	assert.Equal("'re", tokens[3])
+	assert.Equal("their", tokens[4])
 }
 
 func TestMatrixReadWriteTokenizer(t *testing.T) {
@@ -1051,68 +1058,67 @@ func TestMatrixFullTokenizerTokenSplitterEN(t *testing.T) {
 	assert.Equal("I", tokens[12])
 	assert.Equal(".", tokens[13])
 
+	// englishTokenizerSeparatesEnglishContractionsAndClitics
+	tokens = ttokenize(mat_en, w, "I've we'll you'd I'm we're Peter's isn't who'll've")
+	assert.Equal("'ve", tokens[1])
+	assert.Equal("'ll", tokens[3])
 	/*
-		@Test
-		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
-				assert.Equal("'ve", tokens[1]);
-				assert.Equal("'ll", tokens[3]);
-				assert.Equal("'d", tokens[5]);
-				assert.Equal("'m", tokens[7]);
-				assert.Equal("'re", tokens[9]);
-				assert.Equal("'s", tokens[11]);
-				assert.Equal("is", tokens[12]);
-				assert.Equal("n't", tokens[13]);
-				assert.Equal(14, len(tokens));
-		}
+		assert.Equal("'d", tokens[5])
+		assert.Equal("'m", tokens[7])
+		assert.Equal("'re", tokens[9])
+		assert.Equal("'s", tokens[11])
+		assert.Equal("is", tokens[12])
+		assert.Equal("n't", tokens[13])
+		assert.Equal("who", tokens[14])
+		assert.Equal("'ll", tokens[15])
+		assert.Equal("'ve", tokens[16])
+		assert.Equal(14, len(tokens))
+			@Test
+			public void frenchTokenizerKnowsFrenchAbbreviations () {
+					DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
+					tokens = tokenize(dat, w, "Approx. en juill. 2004 mon prof. M. Foux m'a dit qu'il faut faire exerc. no. 4, et lire pp. 27-30.")
+					assert.Equal("Approx.", tokens[0]);
+					assert.Equal("juill.", tokens[2]);
+					assert.Equal("prof.", tokens[5]);
+					assert.Equal("exerc.", tokens[15]);
+					assert.Equal("no.", tokens[16]);
+					assert.Equal("pp.", tokens[21]);
+			}
 
-		@Test
-		public void frenchTokenizerKnowsFrenchAbbreviations () {
-				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
-				tokens = tokenize(dat, w, "Approx. en juill. 2004 mon prof. M. Foux m'a dit qu'il faut faire exerc. no. 4, et lire pp. 27-30.")
-				assert.Equal("Approx.", tokens[0]);
-				assert.Equal("juill.", tokens[2]);
-				assert.Equal("prof.", tokens[5]);
-				assert.Equal("exerc.", tokens[15]);
-				assert.Equal("no.", tokens[16]);
-				assert.Equal("pp.", tokens[21]);
-		}
+			@Test
+			public void frenchTokenizerKnowsFrenchContractions () {
+					DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
+					tokens = tokenize(dat, w, "J'ai j'habite qu'il d'un jusqu'à Aujourd'hui D'accord Quelqu'un Presqu'île")
+					assert.Equal("J'", tokens[0]);
+					assert.Equal("j'", tokens[2]);
+					assert.Equal("qu'", tokens[4]);
+					assert.Equal("d'", tokens[6]);
+					assert.Equal("jusqu'", tokens[8]);
+					assert.Equal("Aujourd'hui", tokens[10]);
+					assert.Equal("D'", tokens[11]); // ’
+					assert.Equal("Quelqu'un", tokens[13]); // ’
+					assert.Equal("Presqu'île", tokens[14]); // ’
+			}
 
-		@Test
-		public void frenchTokenizerKnowsFrenchContractions () {
-				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
-				tokens = tokenize(dat, w, "J'ai j'habite qu'il d'un jusqu'à Aujourd'hui D'accord Quelqu'un Presqu'île")
-				assert.Equal("J'", tokens[0]);
-				assert.Equal("j'", tokens[2]);
-				assert.Equal("qu'", tokens[4]);
-				assert.Equal("d'", tokens[6]);
-				assert.Equal("jusqu'", tokens[8]);
-				assert.Equal("Aujourd'hui", tokens[10]);
-				assert.Equal("D'", tokens[11]); // ’
-				assert.Equal("Quelqu'un", tokens[13]); // ’
-				assert.Equal("Presqu'île", tokens[14]); // ’
-		}
-
-		@Test
-		public void frenchTokenizerKnowsFrenchClitics () {
-				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
-				tokens = tokenize(dat, w, "suis-je sont-elles ")
-				assert.Equal("suis", tokens[0]);
-				assert.Equal("-je", tokens[1]);
-				assert.Equal("sont", tokens[2]);
-				assert.Equal("-elles", tokens[3]);
-		}
+			@Test
+			public void frenchTokenizerKnowsFrenchClitics () {
+					DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
+					tokens = tokenize(dat, w, "suis-je sont-elles ")
+					assert.Equal("suis", tokens[0]);
+					assert.Equal("-je", tokens[1]);
+					assert.Equal("sont", tokens[2]);
+					assert.Equal("-elles", tokens[3]);
+			}
 
 
-		@Test
-		public void testZipOuputArchive () {
+			@Test
+			public void testZipOuputArchive () {
 
-				final ByteArrayOutputStream clearOut = new ByteArrayOutputStream();
-				System.setOut(new PrintStream(clearOut));
-				tokens = tokenize(dat, w, "Archive:  ich/bin/ein.zip\n")
-				assert.Equal(0, len(tokens));
-		}
+					final ByteArrayOutputStream clearOut = new ByteArrayOutputStream();
+					System.setOut(new PrintStream(clearOut));
+					tokens = tokenize(dat, w, "Archive:  ich/bin/ein.zip\n")
+					assert.Equal(0, len(tokens));
+			}
 	*/
 	/*
 
