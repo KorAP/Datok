@@ -98,7 +98,7 @@ with a newline.
 To build the tokenizer tool, run
 
 ```shell
-$ go build ./cmd/datok.go
+$ make build
 ```
 
 To create a foma file from the example sources, first install

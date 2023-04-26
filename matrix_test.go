@@ -20,7 +20,7 @@ Er sagte: \"Es geht mir gut!\", daraufhin ging er. &quot;Das ist von C&A!&quot; 
 Archive:  Ich bin kein zip. D'dorf Ku'damm Lu'hafen M'gladbach W'schaft.
 Mach's macht's was'n ist's haste willste kannste biste kriegste.`
 
-var mat *MatrixTokenizer
+var mat_de, mat_en *MatrixTokenizer
 
 func TestMatrixFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
@@ -198,17 +198,17 @@ func xTestMatrixReadWriteFullTokenizer(t *testing.T) {
 func TestMatrixFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 	var tokens []string
 
-	assert.True(mat.Transduce(strings.NewReader("tra. u Du?"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("tra. u Du?"), w))
 
 	tokens = strings.Split(w.String(), "\n")
 	assert.Equal("tra\n.\n\nu\nDu\n?\n\n\n", w.String())
@@ -223,15 +223,15 @@ func TestMatrixFullTokenizerTransduce(t *testing.T) {
 	assert.Equal(9, len(tokens))
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("\"John Doe\"@xx.com"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("\"John Doe\"@xx.com"), w))
 	assert.Equal("\"\nJohn\nDoe\n\"\n@xx\n.\n\ncom\n\n\n", w.String())
 }
 
 func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
 	b := make([]byte, 0, 2048)
@@ -239,7 +239,7 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	var sentences []string
 
 	// testSentSplitterSimple
-	assert.True(mat.Transduce(strings.NewReader("Der alte Mann."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Der alte Mann."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 
 	assert.Equal("Der\nalte\nMann\n.\n\n\n", w.String())
@@ -248,68 +248,68 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Der Vorsitzende der F.D.P. hat gewählt."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Der Vorsitzende der F.D.P. hat gewählt."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 	assert.Equal("Der\nVorsitzende\nder\nF.D.P.\nhat\ngewählt\n.", sentences[0])
 	assert.Equal("\n", sentences[1])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Der Vorsitzende der Abk. hat gewählt."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Der Vorsitzende der Abk. hat gewählt."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 	assert.Equal("Der\nVorsitzende\nder\nAbk.\nhat\ngewählt\n.", sentences[0])
 	assert.Equal("\n", sentences[1])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader(""), w))
+	assert.True(mat_de.Transduce(strings.NewReader(""), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 	assert.Equal("", sentences[0])
 	assert.Equal("", sentences[1])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Gefunden auf wikipedia.org."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Gefunden auf wikipedia.org."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Ich bin unter korap@ids-mannheim.de erreichbar."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Ich bin unter korap@ids-mannheim.de erreichbar."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Unsere Website ist https://korap.ids-mannheim.de/?q=Baum"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Unsere Website ist https://korap.ids-mannheim.de/?q=Baum"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal("Unsere\nWebsite\nist\nhttps://korap.ids-mannheim.de/?q=Baum", sentences[0])
 	assert.Equal("\n", sentences[1])
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Unser Server ist 10.0.10.51."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Unser Server ist 10.0.10.51."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal("\n", sentences[1])
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Zu 50.4% ist es sicher"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Zu 50.4% ist es sicher"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Der Termin ist am 5.9.2018"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Der Termin ist am 5.9.2018"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Ich habe die readme.txt heruntergeladen"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Ich habe die readme.txt heruntergeladen"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 	assert.Equal("Ich\nhabe\ndie\nreadme.txt\nheruntergeladen", sentences[0])
 	assert.Equal("\n", sentences[1])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Ausschalten!!! Hast Du nicht gehört???"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Ausschalten!!! Hast Du nicht gehört???"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("Ausschalten\n!!!", sentences[0])
@@ -317,12 +317,12 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert.Equal("\n", sentences[2])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Ich wohne in der Weststr. und Du?"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 2)
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("\"Alter!\", sagte er: \"Komm nicht wieder!\" Geh!!! \"Lass!\" Dann ging er."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("\"Alter!\", sagte er: \"Komm nicht wieder!\" Geh!!! \"Lass!\" Dann ging er."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 5)
 	assert.Equal("\"\nAlter\n!\n\"\n,\nsagte\ner\n:\n\"\nKomm\nnicht\nwieder\n!\n\"", sentences[0])
@@ -331,21 +331,21 @@ func TestMatrixFullTokenizerMatrixSentenceSplitter(t *testing.T) {
 	assert.Equal("Dann\nging\ner\n.", sentences[3])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("\"Ausschalten!!!\", sagte er. \"Hast Du nicht gehört???\""), w))
+	assert.True(mat_de.Transduce(strings.NewReader("\"Ausschalten!!!\", sagte er. \"Hast Du nicht gehört???\""), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("\"\nAusschalten\n!!!\n\"\n,\nsagte\ner\n.", sentences[0])
 	assert.Equal("\"\nHast\nDu\nnicht\ngehört\n???\n\"", sentences[1])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("“Ausschalten!!!”, sagte er. «Hast Du nicht gehört???»"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("“Ausschalten!!!”, sagte er. «Hast Du nicht gehört???»"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("“\nAusschalten\n!!!\n”\n,\nsagte\ner\n.", sentences[0])
 	assert.Equal("«\nHast\nDu\nnicht\ngehört\n???\n»", sentences[1])
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("“Ausschalten!!!”, sagte er. «Hast Du nicht gehört???»"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("“Ausschalten!!!”, sagte er. «Hast Du nicht gehört???»"), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("“\nAusschalten\n!!!\n”\n,\nsagte\ner\n.", sentences[0])
@@ -360,7 +360,7 @@ zu Polterabend und Hochzeit.'«
 »Und was sagtest du da?«`
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader(text), w))
+	assert.True(mat_de.Transduce(strings.NewReader(text), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 8)
 	assert.Equal("Neulich\nerst\nhat\nmir\nder\nkleine\nVentivegni\nvon\ndrüben\ngesagt\n:\n'\nFräulein\nEffi\n,\nwas\ngilt\ndie\nWette\n,\nwir\nsind\nhier\nnoch\nin\ndiesem\nJahre\nzu\nPolterabend\nund\nHochzeit\n.\n'\n«", sentences[5])
@@ -370,7 +370,7 @@ zu Polterabend und Hochzeit.'«
 Innstetten!`
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader(text), w))
+	assert.True(mat_de.Transduce(strings.NewReader(text), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("»\nNun\n,\ngib\ndich\nzufrieden\n,\nich\nfange\nschon\nan\n...", sentences[0])
@@ -378,7 +378,7 @@ Innstetten!`
 
 	// Check parantheses at the end of the sentence
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("(Er ging.) Und kam (später)."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("(Er ging.) Und kam (später)."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("(\nEr\nging\n.\n)", sentences[0])
@@ -386,7 +386,7 @@ Innstetten!`
 
 	// Check parantheses and quotes at the end of the sentence
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader("(Er sagte: \"Hallo!\") Dann ging er."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("(Er sagte: \"Hallo!\") Dann ging er."), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 3)
 	assert.Equal("(\nEr\nsagte\n:\n\"\nHallo\n!\n\"\n)", sentences[0])
@@ -397,8 +397,8 @@ Innstetten!`
 func TestMatrixFullTokenizerMatrixSentenceSplitterBug1(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
 	b := make([]byte, 0, 2048)
@@ -408,7 +408,7 @@ func TestMatrixFullTokenizerMatrixSentenceSplitterBug1(t *testing.T) {
 	text := `Wüllersdorf war aufgestanden. »Ich finde es furchtbar, daß Sie recht haben, aber Sie haben recht. Ich quäle Sie nicht länger mit meinem 'Muß es sein?'. Die Welt ist einmal, wie sie ist, und die Dinge verlaufen nicht, wie wir wollen, sondern wie die andern wollen. Das mit dem 'Gottesgericht', wie manche hochtrabend versichern, ist freilich ein Unsinn, nichts davon, umgekehrt, unser Ehrenkultus ist ein Götzendienst, aber wir müssen uns ihm unterwerfen, solange der Götze gilt.«`
 
 	w.Reset()
-	assert.True(mat.Transduce(strings.NewReader(text), w))
+	assert.True(mat_de.Transduce(strings.NewReader(text), w))
 	sentences = strings.Split(w.String(), "\n\n")
 	assert.Equal(len(sentences), 6)
 	assert.Equal("Wüllersdorf\nwar\naufgestanden\n.", sentences[0])
@@ -421,8 +421,8 @@ func TestMatrixFullTokenizerMatrixSentenceSplitterBug1(t *testing.T) {
 func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
 	b := make([]byte, 0, 2048)
@@ -430,13 +430,13 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	var tokens []string
 
 	// testTokenizerSimple
-	tokens = ttokenize(mat, w, "Der alte Mann")
+	tokens = ttokenize(mat_de, w, "Der alte Mann")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "alte")
 	assert.Equal(tokens[2], "Mann")
 	assert.Equal(len(tokens), 3)
 
-	tokens = ttokenize(mat, w, "Der alte Mann.")
+	tokens = ttokenize(mat_de, w, "Der alte Mann.")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "alte")
 	assert.Equal(tokens[2], "Mann")
@@ -444,7 +444,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerAbbr
-	tokens = ttokenize(mat, w, "Der Vorsitzende der F.D.P. hat gewählt")
+	tokens = ttokenize(mat_de, w, "Der Vorsitzende der F.D.P. hat gewählt")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Vorsitzende")
 	assert.Equal(tokens[2], "der")
@@ -455,21 +455,21 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerHost1
-	tokens = ttokenize(mat, w, "Gefunden auf wikipedia.org")
+	tokens = ttokenize(mat_de, w, "Gefunden auf wikipedia.org")
 	assert.Equal(tokens[0], "Gefunden")
 	assert.Equal(tokens[1], "auf")
 	assert.Equal(tokens[2], "wikipedia.org")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerWwwHost
-	tokens = ttokenize(mat, w, "Gefunden auf www.wikipedia.org")
+	tokens = ttokenize(mat_de, w, "Gefunden auf www.wikipedia.org")
 	assert.Equal("Gefunden", tokens[0])
 	assert.Equal("auf", tokens[1])
 	assert.Equal("www.wikipedia.org", tokens[2])
 	assert.Equal(3, len(tokens))
 
 	// testTokenizerWwwUrl
-	tokens = ttokenize(mat, w, "Weitere Infos unter www.info.biz/info")
+	tokens = ttokenize(mat_de, w, "Weitere Infos unter www.info.biz/info")
 	assert.Equal("www.info.biz/info", tokens[3])
 
 	// testTokenizerFtpHost
@@ -483,7 +483,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	*/
 
 	// testTokenizerDash
-	tokens = ttokenize(mat, w, "Das war -- spitze")
+	tokens = ttokenize(mat_de, w, "Das war -- spitze")
 	assert.Equal(tokens[0], "Das")
 	assert.Equal(tokens[1], "war")
 	assert.Equal(tokens[2], "--")
@@ -491,7 +491,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerEmail1
-	tokens = ttokenize(mat, w, "Ich bin unter korap@ids-mannheim.de erreichbar.")
+	tokens = ttokenize(mat_de, w, "Ich bin unter korap@ids-mannheim.de erreichbar.")
 	assert.Equal(tokens[0], "Ich")
 	assert.Equal(tokens[1], "bin")
 	assert.Equal(tokens[2], "unter")
@@ -501,7 +501,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 6)
 
 	// testTokenizerEmail2
-	tokens = ttokenize(mat, w, "Oder unter korap[at]ids-mannheim[dot]de.")
+	tokens = ttokenize(mat_de, w, "Oder unter korap[at]ids-mannheim[dot]de.")
 	assert.Equal(tokens[0], "Oder")
 	assert.Equal(tokens[1], "unter")
 	assert.Equal(tokens[2], "korap[at]ids-mannheim[dot]de")
@@ -509,7 +509,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerEmail3
-	tokens = ttokenize(mat, w, "Oder unter korap(at)ids-mannheim(dot)de.")
+	tokens = ttokenize(mat_de, w, "Oder unter korap(at)ids-mannheim(dot)de.")
 	assert.Equal(tokens[0], "Oder")
 	assert.Equal(tokens[1], "unter")
 	assert.Equal(tokens[2], "korap(at)ids-mannheim(dot)de")
@@ -518,7 +518,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerDoNotAcceptQuotedEmailNames
-	tokens = ttokenize(mat, w, "\"John Doe\"@xx.com")
+	tokens = ttokenize(mat_de, w, "\"John Doe\"@xx.com")
 	assert.Equal("\"", tokens[0])
 	assert.Equal("John", tokens[1])
 	assert.Equal("Doe", tokens[2])
@@ -529,7 +529,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(7, len(tokens))
 
 	// testTokenizerTwitter
-	tokens = ttokenize(mat, w, "Folgt @korap und #korap")
+	tokens = ttokenize(mat_de, w, "Folgt @korap und #korap")
 	assert.Equal(tokens[0], "Folgt")
 	assert.Equal(tokens[1], "@korap")
 	assert.Equal(tokens[2], "und")
@@ -537,7 +537,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerWeb1
-	tokens = ttokenize(mat, w, "Unsere Website ist https://korap.ids-mannheim.de/?q=Baum")
+	tokens = ttokenize(mat_de, w, "Unsere Website ist https://korap.ids-mannheim.de/?q=Baum")
 	assert.Equal(tokens[0], "Unsere")
 	assert.Equal(tokens[1], "Website")
 	assert.Equal(tokens[2], "ist")
@@ -545,7 +545,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerWeb2
-	tokens = ttokenize(mat, w, "Wir sind auch im Internet (https://korap.ids-mannheim.de/?q=Baum)")
+	tokens = ttokenize(mat_de, w, "Wir sind auch im Internet (https://korap.ids-mannheim.de/?q=Baum)")
 	assert.Equal(tokens[0], "Wir")
 	assert.Equal(tokens[1], "sind")
 	assert.Equal(tokens[2], "auch")
@@ -558,7 +558,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerWeb3
-	tokens = ttokenize(mat, w, "Die Adresse ist https://korap.ids-mannheim.de/?q=Baum.")
+	tokens = ttokenize(mat_de, w, "Die Adresse ist https://korap.ids-mannheim.de/?q=Baum.")
 	assert.Equal(tokens[0], "Die")
 	assert.Equal(tokens[1], "Adresse")
 	assert.Equal(tokens[2], "ist")
@@ -568,7 +568,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerServer
-	tokens = ttokenize(mat, w, "Unser Server ist 10.0.10.51.")
+	tokens = ttokenize(mat_de, w, "Unser Server ist 10.0.10.51.")
 	assert.Equal(tokens[0], "Unser")
 	assert.Equal(tokens[1], "Server")
 	assert.Equal(tokens[2], "ist")
@@ -577,7 +577,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 5)
 
 	// testTokenizerNum
-	tokens = ttokenize(mat, w, "Zu 50,4% ist es sicher")
+	tokens = ttokenize(mat_de, w, "Zu 50,4% ist es sicher")
 	assert.Equal(tokens[0], "Zu")
 	assert.Equal(tokens[1], "50,4%")
 	assert.Equal(tokens[2], "ist")
@@ -587,7 +587,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Differs from KorAP-Tokenizer
 
 	// testTokenizerDate
-	tokens = ttokenize(mat, w, "Der Termin ist am 5.9.2018")
+	tokens = ttokenize(mat_de, w, "Der Termin ist am 5.9.2018")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Termin")
 	assert.Equal(tokens[2], "ist")
@@ -595,7 +595,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[4], "5.9.2018")
 	assert.Equal(len(tokens), 5)
 
-	tokens = ttokenize(mat, w, "Der Termin ist am 5/9/2018")
+	tokens = ttokenize(mat_de, w, "Der Termin ist am 5/9/2018")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Termin")
 	assert.Equal(tokens[2], "ist")
@@ -618,7 +618,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	*/
 
 	// testTokenizerEmoji1
-	tokens = ttokenize(mat, w, "Das ist toll! ;)")
+	tokens = ttokenize(mat_de, w, "Das ist toll! ;)")
 	assert.Equal(tokens[0], "Das")
 	assert.Equal(tokens[1], "ist")
 	assert.Equal(tokens[2], "toll")
@@ -627,7 +627,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 5)
 
 	// testTokenizerRef1
-	tokens = ttokenize(mat, w, "Kupietz und Schmidt (2018): Korpuslinguistik")
+	tokens = ttokenize(mat_de, w, "Kupietz und Schmidt (2018): Korpuslinguistik")
 	assert.Equal(tokens[0], "Kupietz")
 	assert.Equal(tokens[1], "und")
 	assert.Equal(tokens[2], "Schmidt")
@@ -638,7 +638,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Differs from KorAP-Tokenizer!
 
 	// testTokenizerRef2 () {
-	tokens = ttokenize(mat, w, "Kupietz und Schmidt [2018]: Korpuslinguistik")
+	tokens = ttokenize(mat_de, w, "Kupietz und Schmidt [2018]: Korpuslinguistik")
 	assert.Equal(tokens[0], "Kupietz")
 	assert.Equal(tokens[1], "und")
 	assert.Equal(tokens[2], "Schmidt")
@@ -649,7 +649,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Differs from KorAP-Tokenizer!
 
 	// testTokenizerOmission1 () {
-	tokens = ttokenize(mat, w, "Er ist ein A****loch!")
+	tokens = ttokenize(mat_de, w, "Er ist ein A****loch!")
 	assert.Equal(tokens[0], "Er")
 	assert.Equal(tokens[1], "ist")
 	assert.Equal(tokens[2], "ein")
@@ -658,13 +658,13 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 5)
 
 	// testTokenizerOmission2
-	tokens = ttokenize(mat, w, "F*ck!")
+	tokens = ttokenize(mat_de, w, "F*ck!")
 	assert.Equal(tokens[0], "F*ck")
 	assert.Equal(tokens[1], "!")
 	assert.Equal(len(tokens), 2)
 
 	// testTokenizerOmission3 () {
-	tokens = ttokenize(mat, w, "Dieses verf***** Kleid!")
+	tokens = ttokenize(mat_de, w, "Dieses verf***** Kleid!")
 	assert.Equal(tokens[0], "Dieses")
 	assert.Equal(tokens[1], "verf*****")
 	assert.Equal(tokens[2], "Kleid")
@@ -673,7 +673,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Probably interpreted as HOST
 	// testTokenizerFileExtension1
-	tokens = ttokenize(mat, w, "Ich habe die readme.txt heruntergeladen")
+	tokens = ttokenize(mat_de, w, "Ich habe die readme.txt heruntergeladen")
 	assert.Equal(tokens[0], "Ich")
 	assert.Equal(tokens[1], "habe")
 	assert.Equal(tokens[2], "die")
@@ -683,7 +683,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Probably interpreted as HOST
 	// testTokenizerFileExtension2
-	tokens = ttokenize(mat, w, "Nimm die README.TXT!")
+	tokens = ttokenize(mat_de, w, "Nimm die README.TXT!")
 	assert.Equal(tokens[0], "Nimm")
 	assert.Equal(tokens[1], "die")
 	assert.Equal(tokens[2], "README.TXT")
@@ -692,7 +692,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Probably interpreted as HOST
 	// testTokenizerFileExtension3
-	tokens = ttokenize(mat, w, "Zeig mir profile.jpeg")
+	tokens = ttokenize(mat_de, w, "Zeig mir profile.jpeg")
 	assert.Equal(tokens[0], "Zeig")
 	assert.Equal(tokens[1], "mir")
 	assert.Equal(tokens[2], "profile.jpeg")
@@ -700,21 +700,21 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 
 	// testTokenizerFile1
 
-	tokens = ttokenize(mat, w, "Zeig mir c:\\Dokumente\\profile.docx")
+	tokens = ttokenize(mat_de, w, "Zeig mir c:\\Dokumente\\profile.docx")
 	assert.Equal(tokens[0], "Zeig")
 	assert.Equal(tokens[1], "mir")
 	assert.Equal(tokens[2], "c:\\Dokumente\\profile.docx")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerFile2
-	tokens = ttokenize(mat, w, "Gehe zu /Dokumente/profile.docx")
+	tokens = ttokenize(mat_de, w, "Gehe zu /Dokumente/profile.docx")
 	assert.Equal(tokens[0], "Gehe")
 	assert.Equal(tokens[1], "zu")
 	assert.Equal(tokens[2], "/Dokumente/profile.docx")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerFile3
-	tokens = ttokenize(mat, w, "Zeig mir c:\\Dokumente\\profile.jpeg")
+	tokens = ttokenize(mat_de, w, "Zeig mir c:\\Dokumente\\profile.jpeg")
 	assert.Equal(tokens[0], "Zeig")
 	assert.Equal(tokens[1], "mir")
 	assert.Equal(tokens[2], "c:\\Dokumente\\profile.jpeg")
@@ -722,7 +722,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerPunct
-	tokens = ttokenize(mat, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")
+	tokens = ttokenize(mat_de, w, "Er sagte: \"Es geht mir gut!\", daraufhin ging er.")
 	assert.Equal(tokens[0], "Er")
 	assert.Equal(tokens[1], "sagte")
 	assert.Equal(tokens[2], ":")
@@ -741,7 +741,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 15)
 
 	// testTokenizerPlusAmpersand
-	tokens = ttokenize(mat, w, "&quot;Das ist von C&A!&quot;")
+	tokens = ttokenize(mat_de, w, "&quot;Das ist von C&A!&quot;")
 	assert.Equal(tokens[0], "&quot;")
 	assert.Equal(tokens[1], "Das")
 	assert.Equal(tokens[2], "ist")
@@ -752,20 +752,20 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 7)
 
 	// testTokenizerLongEnd
-	tokens = ttokenize(mat, w, "Siehst Du?!!?")
+	tokens = ttokenize(mat_de, w, "Siehst Du?!!?")
 	assert.Equal(tokens[0], "Siehst")
 	assert.Equal(tokens[1], "Du")
 	assert.Equal(tokens[2], "?!!?")
 	assert.Equal(len(tokens), 3)
 
 	// testTokenizerIrishO
-	tokens = ttokenize(mat, w, "Peter O'Toole")
+	tokens = ttokenize(mat_de, w, "Peter O'Toole")
 	assert.Equal(tokens[0], "Peter")
 	assert.Equal(tokens[1], "O'Toole")
 	assert.Equal(len(tokens), 2)
 
 	// testTokenizerAbr
-	tokens = ttokenize(mat, w, "Früher bzw. später ...")
+	tokens = ttokenize(mat_de, w, "Früher bzw. später ...")
 	assert.Equal(tokens[0], "Früher")
 	assert.Equal(tokens[1], "bzw.")
 	assert.Equal(tokens[2], "später")
@@ -773,7 +773,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 4)
 
 	// testTokenizerUppercaseRule
-	tokens = ttokenize(mat, w, "Es war spät.Morgen ist es früh.")
+	tokens = ttokenize(mat_de, w, "Es war spät.Morgen ist es früh.")
 	assert.Equal(tokens[0], "Es")
 	assert.Equal(tokens[1], "war")
 	assert.Equal(tokens[2], "spät")
@@ -787,7 +787,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	// Ignored in KorAP-Tokenizer
 
 	// testTokenizerOrd
-	tokens = ttokenize(mat, w, "Sie erreichte den 1. Platz!")
+	tokens = ttokenize(mat_de, w, "Sie erreichte den 1. Platz!")
 	assert.Equal(tokens[0], "Sie")
 	assert.Equal(tokens[1], "erreichte")
 	assert.Equal(tokens[2], "den")
@@ -797,7 +797,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(len(tokens), 6)
 
 	// testNoZipOuputArchive
-	tokens = ttokenize(mat, w, "Archive:  Ich bin kein zip\n")
+	tokens = ttokenize(mat_de, w, "Archive:  Ich bin kein zip\n")
 	assert.Equal(tokens[0], "Archive")
 	assert.Equal(tokens[1], ":")
 	assert.Equal(tokens[2], "Ich")
@@ -807,12 +807,12 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(6, len(tokens))
 
 	// testTokenizerStrasse
-	tokens = ttokenize(mat, w, "Ich wohne in der Weststr. und Du?")
+	tokens = ttokenize(mat_de, w, "Ich wohne in der Weststr. und Du?")
 	assert.Equal(tokens[4], "Weststr.")
 	assert.Equal(8, len(tokens))
 
 	// germanTokenizerKnowsGermanOmissionWords
-	tokens = ttokenize(mat, w, "D'dorf Ku'damm Lu'hafen M'gladbach W'schaft")
+	tokens = ttokenize(mat_de, w, "D'dorf Ku'damm Lu'hafen M'gladbach W'schaft")
 	assert.Equal("D'dorf", tokens[0])
 	assert.Equal("Ku'damm", tokens[1])
 	assert.Equal("Lu'hafen", tokens[2])
@@ -821,7 +821,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(5, len(tokens))
 
 	// germanTokenizerDoesNOTSeparateGermanContractions
-	tokens = ttokenize(mat, w, "mach's macht's was'n ist's haste willste kannste biste kriegste")
+	tokens = ttokenize(mat_de, w, "mach's macht's was'n ist's haste willste kannste biste kriegste")
 	assert.Equal("mach's", tokens[0])
 	assert.Equal("macht's", tokens[1])
 	assert.Equal("was'n", tokens[2])
@@ -833,7 +833,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal("kriegste", tokens[8])
 	assert.Equal(9, len(tokens))
 
-	tokens = ttokenize(mat, w, "Es ist gleich 2:30 Uhr.")
+	tokens = ttokenize(mat_de, w, "Es ist gleich 2:30 Uhr.")
 	assert.Equal("Es", tokens[0])
 	assert.Equal("ist", tokens[1])
 	assert.Equal("gleich", tokens[2])
@@ -842,7 +842,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(".", tokens[5])
 	assert.Equal(6, len(tokens))
 
-	tokens = ttokenize(mat, w, "Sie schwamm die Strecke in 00:00:57,34 00:57,341 0:57 Stunden.")
+	tokens = ttokenize(mat_de, w, "Sie schwamm die Strecke in 00:00:57,34 00:57,341 0:57 Stunden.")
 	assert.Equal("Sie", tokens[0])
 	assert.Equal("schwamm", tokens[1])
 	assert.Equal("die", tokens[2])
@@ -856,7 +856,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(10, len(tokens))
 
 	// waste example
-	tokens = ttokenize(mat, w, "Am 24.1.1806 feierte E. T. A. Hoffmann seinen 30. Geburtstag.")
+	tokens = ttokenize(mat_de, w, "Am 24.1.1806 feierte E. T. A. Hoffmann seinen 30. Geburtstag.")
 	assert.Equal(tokens[0], "Am")
 	assert.Equal(tokens[1], "24.1.1806")
 	assert.Equal(tokens[2], "feierte")
@@ -871,7 +871,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(11, len(tokens))
 
 	// IPtest
-	tokens = ttokenize(mat, w, "Meine IP ist 192.178.168.55.")
+	tokens = ttokenize(mat_de, w, "Meine IP ist 192.178.168.55.")
 	assert.Equal(tokens[0], "Meine")
 	assert.Equal(tokens[1], "IP")
 	assert.Equal(tokens[2], "ist")
@@ -880,7 +880,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(5, len(tokens))
 
 	// XML entities
-	tokens = ttokenize(mat, w, "Das ist&nbsp;1:30 Stunden&20 Minuten zu spät &GT;.")
+	tokens = ttokenize(mat_de, w, "Das ist&nbsp;1:30 Stunden&20 Minuten zu spät &GT;.")
 	assert.Equal(tokens[0], "Das")
 	assert.Equal(tokens[1], "ist")
 	assert.Equal(tokens[2], "&nbsp;")
@@ -896,7 +896,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(12, len(tokens))
 
 	// Plusampersand compounds (1)
-	tokens = ttokenize(mat, w, "Die 2G+-Regel soll weitere Covid-19-Erkrankungen reduzieren.")
+	tokens = ttokenize(mat_de, w, "Die 2G+-Regel soll weitere Covid-19-Erkrankungen reduzieren.")
 	assert.Equal(tokens[0], "Die")
 	assert.Equal(tokens[1], "2G+-Regel")
 	assert.Equal(tokens[2], "soll")
@@ -907,14 +907,14 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(7, len(tokens))
 
 	// Plusampersand compounds (2)
-	tokens = ttokenize(mat, w, "Der Neu-C++-Programmierer.")
+	tokens = ttokenize(mat_de, w, "Der Neu-C++-Programmierer.")
 	assert.Equal(tokens[0], "Der")
 	assert.Equal(tokens[1], "Neu-C++-Programmierer")
 	assert.Equal(tokens[2], ".")
 	assert.Equal(3, len(tokens))
 
 	// z.B.
-	tokens = ttokenize(mat, w, "Dies sind z.B. zwei Wörter - z. B. auch.")
+	tokens = ttokenize(mat_de, w, "Dies sind z.B. zwei Wörter - z. B. auch.")
 	assert.Equal(tokens[0], "Dies")
 	assert.Equal(tokens[1], "sind")
 	assert.Equal(tokens[2], "z.")
@@ -929,7 +929,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(11, len(tokens))
 
 	// z.B.
-	tokens = ttokenize(mat, w, "Dies sind z.B. zwei Wörter - z. B. auch.")
+	tokens = ttokenize(mat_de, w, "Dies sind z.B. zwei Wörter - z. B. auch.")
 	assert.Equal(tokens[0], "Dies")
 	assert.Equal(tokens[1], "sind")
 	assert.Equal(tokens[2], "z.")
@@ -944,7 +944,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(11, len(tokens))
 
 	// Single quote handling
-	tokens = ttokenize(mat, w, "Es heißt 'Leitungssportteams' und nicht anders.")
+	tokens = ttokenize(mat_de, w, "Es heißt 'Leitungssportteams' und nicht anders.")
 	assert.Equal(tokens[0], "Es")
 	assert.Equal(tokens[1], "heißt")
 	assert.Equal(tokens[2], "'")
@@ -957,7 +957,7 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(9, len(tokens))
 
 	// Apostrophe handling
-	tokens = ttokenize(mat, w, "Das ist Nils’ Einkaufskorb bei McDonald's.")
+	tokens = ttokenize(mat_de, w, "Das ist Nils’ Einkaufskorb bei McDonald's.")
 	assert.Equal(tokens[0], "Das")
 	assert.Equal(tokens[1], "ist")
 	assert.Equal(tokens[2], "Nils’")
@@ -966,6 +966,64 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[5], "McDonald's")
 	assert.Equal(tokens[6], ".")
 	assert.Equal(7, len(tokens))
+
+}
+
+func TestMatrixFullTokenizerTokenSplitterEN(t *testing.T) {
+	assert := assert.New(t)
+
+	if mat_en == nil {
+		mat_en = LoadMatrixFile("testdata/tokenizer_en.matok")
+	}
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	// testEnglishTokenizerScienceAbbreviations
+	tokens = ttokenize(mat_en, w, "Approx. in Sept. 1954, Assoc. Prof. Dr. R. J. Ewing reviewed articles on Enzymol. Bacteriol. effects later published in Nutr. Rheumatol. No. 12 and Nº. 13., pp. 17-18.")
+	assert.Equal("Approx.", tokens[0])
+	assert.Equal("in", tokens[1])
+	assert.Equal("Sept.", tokens[2])
+	assert.Equal("1954", tokens[3])
+	assert.Equal(",", tokens[4])
+	assert.Equal("Assoc.", tokens[5])
+	assert.Equal("Prof.", tokens[6])
+	assert.Equal("Dr.", tokens[7])
+	assert.Equal("R.", tokens[8])
+	assert.Equal("J.", tokens[9])
+	assert.Equal("Ewing", tokens[10])
+	assert.Equal("reviewed", tokens[11])
+	assert.Equal("articles", tokens[12])
+	assert.Equal("on", tokens[13])
+	assert.Equal("Enzymol.", tokens[14])
+	assert.Equal("Bacteriol.", tokens[15])
+	assert.Equal("effects", tokens[16])
+	assert.Equal("later", tokens[17])
+	assert.Equal("published", tokens[18])
+	assert.Equal("in", tokens[19])
+	assert.Equal("Nutr.", tokens[20])
+	assert.Equal("Rheumatol.", tokens[21])
+	assert.Equal("No.", tokens[22])
+	assert.Equal("12", tokens[23])
+	assert.Equal("and", tokens[24])
+	assert.Equal("Nº.", tokens[25])
+	assert.Equal("13.", tokens[26])
+	assert.Equal(",", tokens[27])
+	assert.Equal("pp.", tokens[28])
+	assert.Equal("17-18", tokens[29])
+	assert.Equal(".", tokens[30])
+	/*
+
+		// englishTokenizerCanGuessWhetherIIsAbbrev
+		tokens = ttokenize(mat_en, w, "M. I. Baxter was born during World War I. So was I. He went to the Peter I. Hardy school. So did I.")
+		assert.Equal("I.", tokens[1])
+		assert.Equal("I", tokens[8])
+		assert.Equal(".", tokens[9])
+		assert.Equal("I", tokens[12])
+		assert.Equal(".", tokens[13])
+
+	*/
 
 	/*
 		@Test
@@ -1020,53 +1078,6 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 				assert.Equal("-elles", tokens[3]);
 		}
 
-		@Test
-		public void testEnglishTokenizerScienceAbbreviations () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "Approx. in Sept. 1954, Assoc. Prof. Dr. R. J. Ewing reviewed articles on Enzymol. Bacteriol. effects later published in Nutr. Rheumatol. No. 12 and Nº. 13., pp. 17-18.")
-				assert.Equal("Approx.", tokens[0]);
-				assert.Equal("in", tokens[1]);
-				assert.Equal("Sept.", tokens[2]);
-				assert.Equal("1954", tokens[3]);
-				assert.Equal(",", tokens[4]);
-				assert.Equal("Assoc.", tokens[5]);
-				assert.Equal("Prof.", tokens[6]);
-				assert.Equal("Dr.", tokens[7]);
-				assert.Equal("R.", tokens[8]);
-				assert.Equal("J.", tokens[9]);
-				assert.Equal("Ewing", tokens[10]);
-				assert.Equal("reviewed", tokens[11]);
-				assert.Equal("articles", tokens[12]);
-				assert.Equal("on", tokens[13]);
-				assert.Equal("Enzymol.", tokens[14]);
-				assert.Equal("Bacteriol.", tokens[15]);
-				assert.Equal("effects", tokens[16]);
-				assert.Equal("later", tokens[17]);
-				assert.Equal("published", tokens[18]);
-				assert.Equal("in", tokens[19]);
-				assert.Equal("Nutr.", tokens[20]);
-				assert.Equal("Rheumatol.", tokens[21]);
-				assert.Equal("No.", tokens[22]);
-				assert.Equal("12", tokens[23]);
-				assert.Equal("and", tokens[24]);
-				assert.Equal("Nº.", tokens[25]);
-				assert.Equal("13.", tokens[26]);
-				assert.Equal(",", tokens[27]);
-				assert.Equal("pp.", tokens[28]);
-				assert.Equal("17-18", tokens[29]);
-				assert.Equal(".", tokens[30]);
-		}
-
-		@Test
-		public void englishTokenizerCanGuessWhetherIIsAbbrev () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "M. I. Baxter was born during World War I. So was I. He went to the Peter I. Hardy school. So did I.")
-				assert.Equal("I.", tokens[1]);
-				assert.Equal("I", tokens[8]);
-				assert.Equal(".", tokens[9]);
-				assert.Equal("I", tokens[12]);
-				assert.Equal(".", tokens[13]);
-		}
 
 		@Test
 		public void testZipOuputArchive () {
@@ -1095,17 +1106,17 @@ func TestMatrixFullTokenizerTokenSplitter(t *testing.T) {
 func TestMatrixEmoticons(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 	var tokens []string
 
-	tokens = ttokenize(mat, w, ":-* ;) :)) :*( ^___^ T__T ^^; -_-;;; -_-^")
+	tokens = ttokenize(mat_de, w, ":-* ;) :)) :*( ^___^ T__T ^^; -_-;;; -_-^")
 	assert.Equal(tokens[0], ":-*")
 	assert.Equal(tokens[1], ";)")
 	assert.Equal(tokens[2], ":))")
@@ -1117,7 +1128,7 @@ func TestMatrixEmoticons(t *testing.T) {
 	assert.Equal(tokens[8], "-_-^")
 	assert.Equal(len(tokens), 9)
 
-	tokens = ttokenize(mat, w, "das -> Lustig<-!")
+	tokens = ttokenize(mat_de, w, "das -> Lustig<-!")
 	assert.Equal("das", tokens[0])
 	assert.Equal("->", tokens[1])
 	assert.Equal("Lustig", tokens[2])
@@ -1129,17 +1140,17 @@ func TestMatrixEmoticons(t *testing.T) {
 func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 	var tokens []string
 
-	tokens = ttokenize(mat, w, "Das <b>beste</b> Fußballspiel")
+	tokens = ttokenize(mat_de, w, "Das <b>beste</b> Fußballspiel")
 	assert.Equal("Das", tokens[0])
 	assert.Equal("<b>", tokens[1])
 	assert.Equal("beste", tokens[2])
@@ -1147,7 +1158,7 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert.Equal("Fußballspiel", tokens[4])
 	assert.Equal(5, len(tokens))
 
-	tokens = ttokenize(mat, w, "Das <b class=\"c\">beste</b> Fußballspiel")
+	tokens = ttokenize(mat_de, w, "Das <b class=\"c\">beste</b> Fußballspiel")
 	assert.Equal("Das", tokens[0])
 	assert.Equal("<b class=\"c\">", tokens[1])
 	assert.Equal("beste", tokens[2])
@@ -1155,7 +1166,7 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert.Equal("Fußballspiel", tokens[4])
 	assert.Equal(5, len(tokens))
 
-	tokens = ttokenize(mat, w, "der<x  y=\"alte \"> <x x> alte</x> etc. et. Mann.")
+	tokens = ttokenize(mat_de, w, "der<x  y=\"alte \"> <x x> alte</x> etc. et. Mann.")
 	assert.Equal("der", tokens[0])
 	assert.Equal("<x  y=\"alte \">", tokens[1])
 	assert.Equal("<x x>", tokens[2])
@@ -1168,14 +1179,14 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 	assert.Equal(".", tokens[9])
 	assert.Equal(10, len(tokens))
 
-	tokens = ttokenize(mat, w, "das<br   class=\"br\" />ging.")
+	tokens = ttokenize(mat_de, w, "das<br   class=\"br\" />ging.")
 	assert.Equal("das", tokens[0])
 	assert.Equal("<br   class=\"br\" />", tokens[1])
 	assert.Equal("ging", tokens[2])
 	assert.Equal(".", tokens[3])
 	assert.Equal(4, len(tokens))
 
-	tokens = ttokenize(mat, w, "das  <?robot xgh ?>  <!-- hm hm -->   <![CDATA[ cdata ]]>  <br />")
+	tokens = ttokenize(mat_de, w, "das  <?robot xgh ?>  <!-- hm hm -->   <![CDATA[ cdata ]]>  <br />")
 	assert.Equal("das", tokens[0])
 	assert.Equal("<?robot", tokens[1])
 	assert.Equal("xgh", tokens[2])
@@ -1195,8 +1206,8 @@ func TestMatrixFullTokenizerXML(t *testing.T) {
 func TestMatokDatokEquivalence(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 	dat := LoadDatokFile("testdata/tokenizer.datok")
 
@@ -1214,7 +1225,7 @@ func TestMatokDatokEquivalence(t *testing.T) {
 	w.Reset()
 
 	// Transduce with matrix representation
-	mat.Transduce(r, w)
+	mat_de.Transduce(r, w)
 
 	matStr := w.String()
 
@@ -1224,16 +1235,16 @@ func TestMatokDatokEquivalence(t *testing.T) {
 func TestMatrixFullTokenizerCallbackTransduce(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 
-	assert.True(mat.Transduce(strings.NewReader("Der alte Baum. Er war schon alt."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Der alte Baum. Er war schon alt."), w))
 
 	matStr := w.String()
 
@@ -1243,16 +1254,16 @@ func TestMatrixFullTokenizerCallbackTransduce(t *testing.T) {
 func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 
-	assert.True(mat.Transduce(strings.NewReader("Erste.\n\n\n\n\x04\x0aNächst.\x04"), w))
+	assert.True(mat_de.Transduce(strings.NewReader("Erste.\n\n\n\n\x04\x0aNächst.\x04"), w))
 	matStr := w.String()
 	assert.Equal("Erste\n.\n\n\nNächst\n.\n\n\n", matStr)
 }
@@ -1260,11 +1271,11 @@ func TestMatrixFullTokenizerTextTreatment(t *testing.T) {
 func TestMatrixFullTokenizerLongText(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
@@ -1300,7 +1311,7 @@ Author: Theodor Fontane
 Release Date: March, 2004  [EBook #5323]
 `
 
-	assert.True(mat.Transduce(strings.NewReader(text), w))
+	assert.True(mat_de.Transduce(strings.NewReader(text), w))
 
 	assert.True(strings.Contains(w.String(), "Release"))
 }
@@ -1308,16 +1319,16 @@ Release Date: March, 2004  [EBook #5323]
 func TestMatrixTrimming(t *testing.T) {
 	assert := assert.New(t)
 
-	if mat == nil {
-		mat = LoadMatrixFile("testdata/tokenizer.matok")
+	if mat_de == nil {
+		mat_de = LoadMatrixFile("testdata/tokenizer.matok")
 	}
 
-	assert.NotNil(mat)
+	assert.NotNil(mat_de)
 
 	b := make([]byte, 0, 2048)
 	w := bytes.NewBuffer(b)
 
-	assert.True(mat.Transduce(strings.NewReader("  Erste."), w))
+	assert.True(mat_de.Transduce(strings.NewReader("  Erste."), w))
 	matStr := w.String()
 	assert.Equal("Erste\n.\n\n\n", matStr)
 }
