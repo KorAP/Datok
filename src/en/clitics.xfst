@@ -1,0 +1,4 @@
+define Clitics [ Apos [[{ll}|d|{ve}|s|{re}|(e)m|n] .o. Caseinsensitive] ];
+# Following https://web.stanford.edu/~zwicky/ZPCliticsInfl.pdf
+define CliticsNTPart [[{do}({es})|{did}|{have}|{has}|{had}|{ca}|{could}|{might}|{sha}|{should}|{wo}|{would}|{dare}|{must}|{need}|{ought}|{are}|{is}|{was}|{were}|{ai}] {n}] .o. Caseinsensitive;
+define CliticsNT [CliticsNTPart "'" ["t"|"T"]];

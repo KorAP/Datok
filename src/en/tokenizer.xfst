@@ -89,10 +89,10 @@ define Letter [ [ AsciiLetter | ö | ü | ä | è | é | ú | á | â | ê | î 
 
 define NotSmallCaps [? - a - b - c - d - e - f - g - h - i - j - k - l - m - n - o - p - q - r - s - t - u - v - w - x - y - z - ü - ö - ä - è - é - ú - á - â - ê - î - ô - û];
 
-! Irrelevant becose of the more general rule followed
-! define Clitics [ Apos [{ll}|d|{ve}|s|{re}|m|n|{em}] .o. Caseinsensitive ] | ["n" Apos "t"] .o. Caseinsensitive ];
+source en/clitics.xfst
 
-define Word Char+ ([Apos|Asterisk] Char+)*;
+# define Word Char+ (Apos Char+)*;
+define Word [[ Char+ | Clitics ] - CliticsNTPart | CliticsNT];
 
 define Plusampersand @txt"de/plusampersand.txt";
 define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;
@@ -121,7 +121,11 @@ define Token [
   File @-> ... NLout,
   Domain @-> ... NLout,
   [Emoticons|Arrows] @-> ... NLout
-] .o. ["I" @-> ... NLout \/ NonAbbrI [WS | NLout ]+ _ ];
+]
+! I as a separate token
+.o. ["I" @-> ... NLout \/ NonAbbrI [WS | NLout ]+ _ ]
+! Negative clitics are tokens
+.o. [ {n't} ->@ NLout ... \/ NLout ];
 
 source all/allsentencesplit.xfst
 

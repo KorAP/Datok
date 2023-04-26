@@ -169,6 +169,7 @@ func (auto *Automaton) ToDoubleArray() *DaTokenizer {
 				dat.array[t1].setCheck(t)
 
 				// Set maxSize
+				// New: dat.maxSize = max(dat.maxSize, int(t1))
 				if dat.maxSize < int(t1) {
 					dat.maxSize = int(t1)
 				}

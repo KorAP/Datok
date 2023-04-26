@@ -190,6 +190,8 @@ The german tokenizer shipped is based on work done by the
 and [Marc Kupietz](https://github.com/KorAP/KorAP-Tokenizer)
 (published under the Apache License).
 
+The english clitics list is based on Zwicky & Pullum (1983).
+
 The foma parser is based on
 [*foma2js*](https://github.com/mhulden/foma),
 written by Mans Hulden (published under the Apache License).
@@ -216,3 +218,7 @@ Information Sciences 129, pp. 119-139.
 Kanda, Shunsuke, Yuma Fujita, Kazuhiro Morita & Masao Fuketa (2018):
 *Practical rearrangement methods for dynamic double-array dictionaries*.
 Software: Practice and Experience (SPE), 48(1), pp. 65–83.
+
+Zwicky, Arnold M., Geoffrey K. Pullum (1983):
+*Cliticization vs. Inflection: English N’T*.
+Language, 59, pp. 502-513.

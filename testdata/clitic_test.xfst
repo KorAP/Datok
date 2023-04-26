@@ -1,13 +1,21 @@
 define TB "@_TOKEN_BOUND_@";
+# define TB "_";
 define WS [" "|"\u000a"|"\u0009"];
 define PUNCT ["."|"?"|"!"];
-define Char \[WS|PUNCT];
-define Word Char+;
+define Char \[WS|PUNCT|"'"];
+define Clitic ["'" [{ll}|{d}|{ve}|{s}|{re}|"m"|"n"|"t"]];
+# Following https://web.stanford.edu/~zwicky/ZPCliticsInfl.pdf
+define CliticNTPart [[{do}({es})|{did}|{have}|{has}|{had}|{ca}|{could}|{might}|{sha}|{should}|{wo}|{would}|{dare}|{must}|{need}|{ought}|{are}|{is}|{was}|{were}|{ai}] {n}];
+define CliticNT [CliticNTPart "'" {t}];
+
+
+define Word [ [ Clitic |  Char+] - CliticNTPart | CliticNT];
 
 ! Compose token boundaries
-define Tokenizer [[Word|PUNCT] @-> ... TB] .o.
+define Tokenizer [[Word|PUNCT|CliticNT] @-> ... TB] .o.
  ! Compose Whitespace ignorance
 [WS+ @-> 0] .o.
  ! Compose sentence ends
 [[PUNCT+] @-> ... TB \/ TB _ ];
-read regex Tokenizer .o. [{'re} ->@ TB ... ];
+read regex Tokenizer .o. [{n't} ->@ TB ... \/ TB ];
+

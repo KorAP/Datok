@@ -125,12 +125,28 @@ func TestMatrixCliticRule(t *testing.T) {
 	tws := NewTokenWriter(w, TOKENS|SENTENCES)
 
 	assert.True(mat.TransduceTokenWriter(
+
 		strings.NewReader(exstring), tws),
 	)
 	tws.Flush()
 
 	matStr := w.String()
-	assert.Equal("dead\n.\n\n\n\n\n\n\n", matStr)
+	assert.Equal("dead\n.\n\n\n", matStr)
+
+	tokens = ttokenize(mat, w, "they're")
+	assert.Equal("they", tokens[0])
+	assert.Equal("'re", tokens[1])
+
+	tokens = ttokenize(mat, w, "they're They're their don't wouldn't")
+	assert.Equal("they", tokens[0])
+	assert.Equal("'re", tokens[1])
+	assert.Equal("They", tokens[2])
+	assert.Equal("'re", tokens[3])
+	assert.Equal("their", tokens[4])
+	assert.Equal("do", tokens[5])
+	assert.Equal("n't", tokens[6])
+	assert.Equal("would", tokens[7])
+	assert.Equal("n't", tokens[8])
 }
 
 func TestMatrixReadWriteTokenizer(t *testing.T) {
@@ -1051,22 +1067,22 @@ func TestMatrixFullTokenizerTokenSplitterEN(t *testing.T) {
 	assert.Equal("I", tokens[12])
 	assert.Equal(".", tokens[13])
 
+	// englishTokenizerSeparatesEnglishContractionsAndClitics
+	tokens = ttokenize(mat_en, w, "I've we'll you'd I'm we're Peter's isn't who'll've")
+	assert.Equal("I", tokens[0])
+	assert.Equal("'ve", tokens[1])
+	assert.Equal("'ll", tokens[3])
+	assert.Equal("'d", tokens[5])
+	assert.Equal("'m", tokens[7])
+	assert.Equal("'re", tokens[9])
+	assert.Equal("'s", tokens[11])
+	assert.Equal("is", tokens[12])
+	assert.Equal("n't", tokens[13])
+	assert.Equal("who", tokens[14])
+	assert.Equal("'ll", tokens[15])
+	assert.Equal("'ve", tokens[16])
+	assert.Equal(17, len(tokens))
 	/*
-		@Test
-		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
-				assert.Equal("'ve", tokens[1]);
-				assert.Equal("'ll", tokens[3]);
-				assert.Equal("'d", tokens[5]);
-				assert.Equal("'m", tokens[7]);
-				assert.Equal("'re", tokens[9]);
-				assert.Equal("'s", tokens[11]);
-				assert.Equal("is", tokens[12]);
-				assert.Equal("n't", tokens[13]);
-				assert.Equal(14, len(tokens));
-		}
-
 		@Test
 		public void frenchTokenizerKnowsFrenchAbbreviations () {
 				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
