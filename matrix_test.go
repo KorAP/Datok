@@ -104,6 +104,35 @@ func TestMatrixSimpleString(t *testing.T) {
 	assert.Equal("bauamt", tokens[3])
 }
 
+func TestMatrixCliticRule(t *testing.T) {
+	assert := assert.New(t)
+	mat := LoadMatrixFile("testdata/clitic_test.matok")
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+	var tokens []string
+
+	tokens = ttokenize(mat, w, "ibauamt")
+	assert.Equal("ibauamt", tokens[0])
+
+	exstring := "dead. "
+
+	tokens = ttokenize(mat, w, exstring)
+	assert.Equal("dead", tokens[0])
+	assert.Equal(".", tokens[1])
+
+	w.Reset()
+	tws := NewTokenWriter(w, TOKENS|SENTENCES)
+
+	assert.True(mat.TransduceTokenWriter(
+		strings.NewReader(exstring), tws),
+	)
+	tws.Flush()
+
+	matStr := w.String()
+	assert.Equal("dead\n.\n\n\n\n\n\n\n", matStr)
+}
+
 func TestMatrixReadWriteTokenizer(t *testing.T) {
 	assert := assert.New(t)
 	foma := LoadFomaFile("testdata/simpletok.fst")

@@ -932,8 +932,12 @@ PARSECHAR:
 				// token and start blank at the root node of the automaton for the remaining data.
 				// It may be beneficial to have something like a "drop()" event to capture these cases,
 				// as they are likely the result of a bad automaton design.
-				if buffc-bufft == 0 {
+				if buffc-bufft <= 0 {
 					buffc++
+					if buffc == 0 {
+						eof = true
+						break
+					}
 				}
 
 				if DEBUG {

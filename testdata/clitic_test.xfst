@@ -1,0 +1,13 @@
+define TB "@_TOKEN_BOUND_@";
+define WS [" "|"\u000a"|"\u0009"];
+define PUNCT ["."|"?"|"!"];
+define Char \[WS|PUNCT];
+define Word Char+;
+
+! Compose token boundaries
+define Tokenizer [[Word|PUNCT] @-> ... TB] .o.
+ ! Compose Whitespace ignorance
+[WS+ @-> 0] .o.
+ ! Compose sentence ends
+[[PUNCT+] @-> ... TB \/ TB _ ];
+read regex Tokenizer .o. [{'re} ->@ TB ... ];

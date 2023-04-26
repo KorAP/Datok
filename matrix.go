@@ -503,13 +503,21 @@ PARSECHARM:
 				// token and start blank at the root node of the automaton for the remaining data.
 				// It may be beneficial to have something like a "drop()" event to capture these cases,
 				// as they are likely the result of a bad automaton design.
-				if buffc-bufft == 0 {
+
+				//			fmt.Println("Problem", len(buffer), buffc, bufft)
+
+				if buffc-bufft <= 0 {
 					buffc++
+					if buffc == 0 {
+						eof = true
+						break
+					}
 				}
 
 				if DEBUG {
 					log.Println("-> Flush buffer: [", string(buffer[bufft:buffc]), "]", showBufferNew(buffer, bufft, buffc, buffi))
 				}
+
 				w.Token(bufft, buffer[:buffc])
 
 				sentenceEnd = false
