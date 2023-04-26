@@ -1013,17 +1013,14 @@ func TestMatrixFullTokenizerTokenSplitterEN(t *testing.T) {
 	assert.Equal("pp.", tokens[28])
 	assert.Equal("17-18", tokens[29])
 	assert.Equal(".", tokens[30])
-	/*
 
-		// englishTokenizerCanGuessWhetherIIsAbbrev
-		tokens = ttokenize(mat_en, w, "M. I. Baxter was born during World War I. So was I. He went to the Peter I. Hardy school. So did I.")
-		assert.Equal("I.", tokens[1])
-		assert.Equal("I", tokens[8])
-		assert.Equal(".", tokens[9])
-		assert.Equal("I", tokens[12])
-		assert.Equal(".", tokens[13])
-
-	*/
+	// englishTokenizerCanGuessWhetherIIsAbbrev
+	tokens = ttokenize(mat_en, w, "M. I. Baxter was born during World War I. So was I. He went to the Peter I. Hardy school. So did I.")
+	assert.Equal("I.", tokens[1])
+	assert.Equal("I", tokens[8])
+	assert.Equal(".", tokens[9])
+	assert.Equal("I", tokens[12])
+	assert.Equal(".", tokens[13])
 
 	/*
 		@Test

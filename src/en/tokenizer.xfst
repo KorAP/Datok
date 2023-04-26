@@ -107,6 +107,10 @@ echo - Compile Real Token
 
 define RealToken [Punct|Emdash|Abbr|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
 
+! Treatmeant for I as a word in "M. I. Baxter was killed in World War I. So was I."
+define NonAbbrI [ {am}|{was}|{will}|{have}|{had}|{would}|{do}|{did}|{and}|{War}|{than}|{not}|[P|p]{art} ];
+
+
 echo - Introduce Token splitter
 
 define Token [
@@ -117,7 +121,7 @@ define Token [
   File @-> ... NLout,
   Domain @-> ... NLout,
   [Emoticons|Arrows] @-> ... NLout
-];
+] .o. ["I" @-> ... NLout \/ NonAbbrI [WS | NLout ]+ _ ];
 
 source all/allsentencesplit.xfst
 
