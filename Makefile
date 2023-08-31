@@ -7,7 +7,7 @@ update:
 buildfoma_de:
 	cd src && \
 	foma -e "source de/tokenizer.xfst" \
-	-e "save stack ../testdata/tokenizer.fst" -q -s && \
+	-e "save stack ../testdata/tokenizer_de.fst" -q -s && \
 	cd ..
 
 buildfoma_en:
@@ -17,13 +17,13 @@ buildfoma_en:
 	cd ..
 
 buildmatok_de: buildfoma_de build
-	./bin/datok convert -i ./testdata/tokenizer.fst -o ./testdata/tokenizer.matok
+	./bin/datok convert -i ./testdata/tokenizer_de.fst -o ./testdata/tokenizer_de.matok
 
 buildmatok_en: buildfoma_en build
 	./bin/datok convert -i ./testdata/tokenizer_en.fst -o ./testdata/tokenizer_en.matok
 
-builddatok: buildfoma_de build
-	./bin/datok convert -i ./testdata/tokenizer.fst -o ./testdata/tokenizer.datok -d
+builddatok_de: buildfoma_de build
+	./bin/datok convert -i ./testdata/tokenizer_de.fst -o ./testdata/tokenizer_de.datok -d
 
 builddatok_en: buildfoma_en build
 	./bin/datok convert -i ./testdata/tokenizer_en.fst -o ./testdata/tokenizer_en.datok -d

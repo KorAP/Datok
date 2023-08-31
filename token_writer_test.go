@@ -34,7 +34,7 @@ func TestTokenWriterSimple(t *testing.T) {
 func TestTokenWriterFromOptions(t *testing.T) {
 	assert := assert.New(t)
 
-	mat := LoadMatrixFile("testdata/tokenizer.matok")
+	mat := LoadMatrixFile("testdata/tokenizer_de.matok")
 	assert.NotNil(mat)
 
 	b := make([]byte, 0, 2048)

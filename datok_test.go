@@ -210,7 +210,7 @@ func TestDoubleArrayFullTokenizer(t *testing.T) {
 	assert := assert.New(t)
 
 	if dat == nil {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
 	}
 	assert.NotNil(dat)
 	assert.True(dat.LoadFactor() >= 60)
@@ -239,10 +239,10 @@ func TestDoubleArrayTokenizerBranch(t *testing.T) {
 
 func XTestDoubleArrayFullTokenizerBuild(t *testing.T) {
 	assert := assert.New(t)
-	tok := LoadFomaFile("testdata/tokenizer.fst")
+	tok := LoadFomaFile("testdata/tokenizer_de.fst")
 	dat := tok.ToDoubleArray()
 	assert.NotNil(dat)
-	// n, err := dat.Save("testdata/tokenizer.datok")
+	// n, err := dat.Save("testdata/tokenizer_de.datok")
 	// assert.Nil(err)
 	// assert.True(n > 500)
 }
@@ -251,7 +251,7 @@ func TestDoubleArrayFullTokenizerTransduce(t *testing.T) {
 	assert := assert.New(t)
 
 	if dat == nil {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
 	}
 
 	assert.NotNil(dat)
@@ -284,7 +284,7 @@ func TestDoubleArrayFullTokenizerSentenceSplitter(t *testing.T) {
 	assert := assert.New(t)
 
 	if dat == nil {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
 	}
 
 	assert.NotNil(dat)
@@ -378,7 +378,7 @@ func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 	assert := assert.New(t)
 
 	if dat == nil {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
 	}
 
 	assert.NotNil(dat)
@@ -920,7 +920,7 @@ func TestDoubleArrayFullTokenizerSentenceSplitterBug1(t *testing.T) {
 	assert := assert.New(t)
 
 	if dat == nil {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
 	}
 
 	b := make([]byte, 0, 2048)
@@ -951,7 +951,7 @@ func TestDoubleArrayFullTokenizerXML(t *testing.T) {
 	assert := assert.New(t)
 
 	if dat == nil {
-		dat = LoadDatokFile("testdata/tokenizer.datok")
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
 	}
 
 	assert.NotNil(dat)
@@ -1005,7 +1005,7 @@ func BenchmarkDoubleArrayTransduce(b *testing.B) {
 	Mach's macht's was'n ist's haste willste kannste biste kriegste.`
 	r := strings.NewReader(s)
 
-	dat := LoadDatokFile("testdata/tokenizer.datok")
+	dat := LoadDatokFile("testdata/tokenizer_de.datok")
 
 	b.ResetTimer()
 
@@ -1024,7 +1024,7 @@ func BenchmarkDoubleArrayTransduce(b *testing.B) {
 // This test is deprecated as the datok file changes over time
 func XBenchmarkLoadDatokFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		dat := LoadDatokFile("testdata/tokenizer.datok")
+		dat := LoadDatokFile("testdata/tokenizer_de.datok")
 		if dat == nil {
 			fmt.Println("Fail!")
 			os.Exit(1)
