@@ -5,13 +5,18 @@
 ![Introduction to Datok](https://raw.githubusercontent.com/KorAP/Datok/master/misc/introducing-datok.gif)
 
 Implementation of a finite state automaton for
-high-performance natural language tokenization, based on a finite state
+high-performance large-scale natural language tokenization,
+based on a finite state
 transducer generated with [Foma](https://fomafst.github.io/).
 
 The library contains precompiled tokenizer models for
 
 - [german](testdata/tokenizer_de.matok)
 - [english](testdata/tokenizer_en.matok)
+
+The focus of development is on the tokenization of
+[DeReKo](https://www.ids-mannheim.de/digspra/kl/projekte/korpora),
+the german reference corpus.
 
 ## Performance
 
