@@ -13,6 +13,14 @@ The library contains precompiled tokenizer models for
 - [german](testdata/tokenizer_de.matok)
 - [english](testdata/tokenizer_en.matok)
 
+## Performance
+
+![Speed comparison of german tokenizers](https://raw.githubusercontent.com/KorAP/Datok/master/misc/benchmarks.svg)
+
+Speed comparison of different tokenizers and sentence splitters for German.
+For further benchmarks, especially regarding the quality of tokenization,
+see Diewald/Kupietz/Lüngen (2022).
+
 ## Tokenization
 
 ```
