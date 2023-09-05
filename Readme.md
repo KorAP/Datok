@@ -22,7 +22,11 @@ the german reference corpus.
 
 ![Speed comparison of german tokenizers](https://raw.githubusercontent.com/KorAP/Datok/master/misc/benchmarks.svg)
 
-Speed comparison of different tokenizers and sentence splitters for German.
+Chart showing speed comparison of different tokenizers and sentence splitters
+for German. `Effi` refers to tokenizing and/or sentence splitting of one
+issue of [Effi Briest](https://www.gutenberg.org/cache/epub/5323/pg5323.html).
+Datok is optimized for large batch sizes, while other tools may
+perform better in other scenarios.
 For further benchmarks, especially regarding the quality of tokenization,
 see Diewald/Kupietz/Lüngen (2022).
 
