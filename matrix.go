@@ -592,6 +592,10 @@ PARSECHARM:
 
 		if eot {
 			eot = false
+			if !sentenceEnd {
+				sentenceEnd = true
+				w.SentenceEnd(buffc)
+			}
 			textEnd = true
 			w.TextEnd(buffc)
 			rewindBuffer = true

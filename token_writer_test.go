@@ -85,6 +85,18 @@ func TestTokenWriterFromOptions(t *testing.T) {
 	matStr = w.String()
 	assert.Equal("1 5 5 6\n1 6\n0 3 3 4\n0 4\n", matStr)
 
+	w.Reset()
+	mat.TransduceTokenWriter(strings.NewReader("Tree\n\x04\n"), tws)
+
+	matStr = w.String()
+	assert.Equal("0 4\n0 4\n", matStr)
+
+	w.Reset()
+	mat.TransduceTokenWriter(strings.NewReader("Tree.\n\x04\n"), tws)
+
+	matStr = w.String()
+	assert.Equal("0 4 4 5\n0 5\n", matStr)
+
 	//
 	// Write sentence offsets without token offsets
 	tws = NewTokenWriter(w, SENTENCE_POS|NEWLINE_AFTER_EOT)

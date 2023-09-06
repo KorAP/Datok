@@ -1018,6 +1018,10 @@ PARSECHAR:
 
 		if eot {
 			eot = false
+			if !sentenceEnd {
+				sentenceEnd = true
+				w.SentenceEnd(buffc)
+			}
 			textEnd = true
 			w.TextEnd(0)
 			if DEBUG {
