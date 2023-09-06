@@ -9,7 +9,7 @@ high-performance large-scale natural language tokenization,
 based on a finite state
 transducer generated with [Foma](https://fomafst.github.io/).
 
-The library contains precompiled tokenizer models for
+The repository currently contains precompiled tokenizer models for
 
 - [german](testdata/tokenizer_de.matok)
 - [english](testdata/tokenizer_en.matok)
@@ -17,6 +17,8 @@ The library contains precompiled tokenizer models for
 The focus of development is on the tokenization of
 [DeReKo](https://www.ids-mannheim.de/digspra/kl/projekte/korpora),
 the german reference corpus.
+
+Datok can be used as a standalone tool or as a library in Go.
 
 ## Performance
 
@@ -54,6 +56,7 @@ The special `END OF TRANSMISSION` character (`\x04`) can be used to mark the end
 > *Caution*: When experimenting with STDIN and echo,
 > you may need to disable [history expansion](https://www.gnu.org/software/bash/manual/html_node/History-Interaction.html).
 
+
 ## Conversion
 
 ```
@@ -66,6 +69,38 @@ Flags:
   -o, --tokenizer=STRING    The Tokenizer file
   -d, --double-array        Convert to Double Array instead of Matrix
                             representation
+```
+
+## Library
+
+```go
+package main
+
+import (
+	"github.com/KorAP/datok"
+	"os"
+	"strings"
+)
+
+func main () {
+
+	// Load transducer binary
+	dat := datok.LoadTokenizerFile("tokenizer_de.matok")
+	if dat == nil {
+		panic("Can't load tokenizer")
+	}
+
+	// Create a new TokenWriter object
+	tw := datok.NewTokenWriter(os.Stdout, datok.TOKENS|datok.SENTENCES)
+	defer tw.Flush()
+
+	// Create an io.Reader object refering to the data to tokenize
+	r := strings.NewReader("Das ist <em>interessant</em>!")
+
+	// The transduceTokenWriter accepts an io.Reader
+	// object and a TokenWriter object to transduce the input
+	dat.TransduceTokenWriter(r, tw)
+}
 ```
 
 ## Conventions
