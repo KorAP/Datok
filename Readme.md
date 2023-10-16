@@ -1,6 +1,6 @@
 # Datok - Finite State Tokenizer
 
-[![DOI](https://zenodo.org/badge/416456182.svg)](https://zenodo.org/badge/latestdoi/416456182)
+![DOI](https://zenodo.org/badge/416456182.svg)](https://zenodo.org/badge/latestdoi/416456182)
 
 ![Introduction to Datok](https://raw.githubusercontent.com/KorAP/Datok/master/misc/introducing-datok.gif)
 
