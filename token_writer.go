@@ -8,6 +8,12 @@ import (
 
 type Bits uint8
 
+// TODO-Perf:
+// - TokenWriter may support AvailableBuffer(), so tokens can be written
+//   directly without a separate buffer. copying from the same underlying
+//   byte array is a nop thren (Go 1.18).
+
+
 const (
 	TOKENS Bits = 1 << iota
 	SENTENCES
