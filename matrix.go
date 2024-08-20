@@ -209,7 +209,7 @@ func (mat *MatrixTokenizer) WriteTo(w io.Writer) (n int64, err error) {
 	return int64(all), err
 }
 
-// LoadDatokFile reads a double array represented tokenizer
+// LoadMatrixFile reads a matrix represented tokenizer
 // from a file.
 func LoadMatrixFile(file string) *MatrixTokenizer {
 	f, err := os.Open(file)
@@ -230,7 +230,7 @@ func LoadMatrixFile(file string) *MatrixTokenizer {
 	return ParseMatrix(gz)
 }
 
-// LoadMatrixFile reads a matrix represented tokenizer
+// ParseMatrix reads a matrix represented tokenizer
 // from an io.Reader
 func ParseMatrix(ior io.Reader) *MatrixTokenizer {
 
