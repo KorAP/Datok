@@ -793,167 +793,330 @@ func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 
 	// Regression test for hyphenated abbreviations from Wiktionary (2024-12)
 	tokens = ttokenize(dat, w, "Ich wohne in Ba.-Wü. und bin Dipl.-Ing. bei Reg.-Bez. Karlsruhe.")
-        assert.Equal("Ich", tokens[0])
-        assert.Equal("wohne", tokens[1])
-        assert.Equal("in", tokens[2])
-        assert.Equal("Ba.-Wü.", tokens[3])
-        assert.Equal("und", tokens[4])
-        assert.Equal("bin", tokens[5])
-        assert.Equal("Dipl.-Ing.", tokens[6])
-        assert.Equal("bei", tokens[7])
-        assert.Equal("Reg.-Bez.", tokens[8])
-        assert.Equal("Karlsruhe", tokens[9])
-        assert.Equal(".", tokens[10])
-	assert.Equal(11, len(tokens));
+	assert.Equal("Ich", tokens[0])
+	assert.Equal("wohne", tokens[1])
+	assert.Equal("in", tokens[2])
+	assert.Equal("Ba.-Wü.", tokens[3])
+	assert.Equal("und", tokens[4])
+	assert.Equal("bin", tokens[5])
+	assert.Equal("Dipl.-Ing.", tokens[6])
+	assert.Equal("bei", tokens[7])
+	assert.Equal("Reg.-Bez.", tokens[8])
+	assert.Equal("Karlsruhe", tokens[9])
+	assert.Equal(".", tokens[10])
+	assert.Equal(11, len(tokens))
 
 	// Regression test for https://github.com/KorAP/KorAP-Tokenizer/issues/131
 	tokens = ttokenize(dat, w, "Donau\u00ADdampf\u00ADschiff")
-        assert.Equal("Donau\u00ADdampf\u00ADschiff", tokens[0])
-	assert.Equal(1, len(tokens));
+	assert.Equal("Donau\u00ADdampf\u00ADschiff", tokens[0])
+	assert.Equal(1, len(tokens))
 
 	// Regression test for https://github.com/KorAP/KorAP-Tokenizer/issues/115
 	tokens = ttokenize(dat, w, "Die Serb*innen wie die Kosovo-Albaner*innen")
-        assert.Equal("Die", tokens[0]);
-        assert.Equal("Serb*innen", tokens[1]);
-        assert.Equal("wie", tokens[2]);
-        assert.Equal("die", tokens[3]);
-        assert.Equal("Kosovo-Albaner*innen", tokens[4]);
-        assert.Equal(5, len(tokens));
-       
-        // Test Wikipedia emoji template from the issue
+	assert.Equal("Die", tokens[0])
+	assert.Equal("Serb*innen", tokens[1])
+	assert.Equal("wie", tokens[2])
+	assert.Equal("die", tokens[3])
+	assert.Equal("Kosovo-Albaner*innen", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	// Test Wikipedia emoji template from the issue
 	tokens = ttokenize(dat, w, "Ein Smiley [_EMOJI:{{S|;)}}_] hier")
-        assert.Equal("Ein", tokens[0]);
-        assert.Equal("Smiley", tokens[1]);
-        assert.Equal("[_EMOJI:{{S|;)}}_]", tokens[2]); // Should be one token
-        assert.Equal("hier", tokens[3]);
-        assert.Equal(4, len(tokens));
-        
-        // Test simple pragma still works
+	assert.Equal("Ein", tokens[0])
+	assert.Equal("Smiley", tokens[1])
+	assert.Equal("[_EMOJI:{{S|;)}}_]", tokens[2]) // Should be one token
+	assert.Equal("hier", tokens[3])
+	assert.Equal(4, len(tokens))
+
+	// Test simple pragma still works
 	tokens = ttokenize(dat, w, "Name: [_ANONYMIZED_] Ende")
-        assert.Equal("Name", tokens[0]);
-        assert.Equal(":", tokens[1]);
-        assert.Equal("[_ANONYMIZED_]", tokens[2]); // Should be one token
-        assert.Equal("Ende", tokens[3]);
-        assert.Equal(4, len(tokens));
+	assert.Equal("Name", tokens[0])
+	assert.Equal(":", tokens[1])
+	assert.Equal("[_ANONYMIZED_]", tokens[2]) // Should be one token
+	assert.Equal("Ende", tokens[3])
+	assert.Equal(4, len(tokens))
+
+	// Gender forms
+	// Basic colon forms with -in/-innen
+	tokens = ttokenize(dat, w, "Die Schüler:innen und Lehrer:in kamen.")
+	assert.Equal("Die", tokens[0])
+	assert.Equal("Schüler:innen", tokens[1])
+	assert.Equal("und", tokens[2])
+	assert.Equal("Lehrer:in", tokens[3])
+	assert.Equal("kamen", tokens[4])
+	assert.Equal(".", tokens[5])
+	assert.Equal(6, len(tokens))
+
+	// More colon examples
+	tokens = ttokenize(dat, w, "Künstler:innen Mitarbeiter:innen Bürger:innen")
+	assert.Equal("Künstler:innen", tokens[0])
+	assert.Equal("Mitarbeiter:innen", tokens[1])
+	assert.Equal("Bürger:innen", tokens[2])
+	assert.Equal(3, len(tokens))
+
+	// Basic slash forms
+	tokens = ttokenize(dat, w, "Autor/in Autor/innen Teilnehmer/innen")
+	assert.Equal("Autor/in", tokens[0])
+	assert.Equal("Autor/innen", tokens[1])
+	assert.Equal("Teilnehmer/innen", tokens[2])
+	assert.Equal(3, len(tokens))
+
+	// Slash forms with hyphen: /-in, /-innen, /-frau
+	tokens = ttokenize(dat, w, "Kaufmann/-frau und Fachmann/-frau")
+	assert.Equal("Kaufmann/-frau", tokens[0])
+	assert.Equal("und", tokens[1])
+	assert.Equal("Fachmann/-frau", tokens[2])
+	assert.Equal(3, len(tokens))
+
+	// Slash forms without hyphen for frau (lowercase only)
+	tokens = ttokenize(dat, w, "Kaufmann/frau ist auch korrekt.")
+	assert.Equal("Kaufmann/frau", tokens[0])
+	assert.Equal("ist", tokens[1])
+	assert.Equal("auch", tokens[2])
+	assert.Equal("korrekt", tokens[3])
+	assert.Equal(".", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	// Basic parenthetical forms
+	tokens = ttokenize(dat, w, "Schüler(innen) und Lehrer(in) kamen.")
+	assert.Equal("Schüler(innen)", tokens[0])
+	assert.Equal("und", tokens[1])
+	assert.Equal("Lehrer(in)", tokens[2])
+	assert.Equal("kamen", tokens[3])
+	assert.Equal(".", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	// Compound words with hyphen + gender ending
+	tokens = ttokenize(dat, w, "Die Kosovo-Albaner/innen und Kosovo-Albaner:innen trafen sich.")
+	assert.Equal("Die", tokens[0])
+	assert.Equal("Kosovo-Albaner/innen", tokens[1])
+	assert.Equal("und", tokens[2])
+	assert.Equal("Kosovo-Albaner:innen", tokens[3])
+	assert.Equal("trafen", tokens[4])
+	assert.Equal("sich", tokens[5])
+	assert.Equal(".", tokens[6])
+	assert.Equal(7, len(tokens))
+
+	// With hyphen: Kosovo-Albaner/-innen
+	tokens = ttokenize(dat, w, "Kosovo-Albaner/-innen kamen.")
+	assert.Equal("Kosovo-Albaner/-innen", tokens[0])
+	assert.Equal("kamen", tokens[1])
+	assert.Equal(".", tokens[2])
+	assert.Equal(3, len(tokens))
+
+	// Mann/Frau should be separated (capital F = standalone word, not suffix)
+	tokens = ttokenize(dat, w, "Ob Mann/Frau das will?")
+	assert.Equal("Ob", tokens[0])
+	assert.Equal("Mann", tokens[1])
+	assert.Equal("/", tokens[2])
+	assert.Equal("Frau", tokens[3])
+	assert.Equal("das", tokens[4])
+	assert.Equal("will", tokens[5])
+	assert.Equal("?", tokens[6])
+	assert.Equal(7, len(tokens))
+
+	// Also Männer/Frauen
+	tokens = ttokenize(dat, w, "Männer/Frauen sind willkommen.")
+	assert.Equal("Männer", tokens[0])
+	assert.Equal("/", tokens[1])
+	assert.Equal("Frauen", tokens[2])
+	assert.Equal("sind", tokens[3])
+	assert.Equal("willkommen", tokens[4])
+	assert.Equal(".", tokens[5])
+	assert.Equal(6, len(tokens))
+
+	// /frau should only be joined when word ends in "mann"
+	// "xxx/frau" where xxx doesn't end in "mann" should be SEPARATED
+	tokens = ttokenize(dat, w, "xxx/frau sollte getrennt sein.")
+	assert.Equal("xxx", tokens[0])
+	assert.Equal("/", tokens[1])
+	assert.Equal("frau", tokens[2])
+	assert.Equal("sollte", tokens[3])
+	assert.Equal("getrennt", tokens[4])
+	assert.Equal("sein", tokens[5])
+	assert.Equal(".", tokens[6])
+	assert.Equal(7, len(tokens))
+
+	// But Kaufmann/frau should be one token (word ends in "mann")
+	tokens = ttokenize(dat, w, "Kaufmann/frau ist ein Beruf.")
+	assert.Equal("Kaufmann/frau", tokens[0])
+	assert.Equal("ist", tokens[1])
+	assert.Equal("ein", tokens[2])
+	assert.Equal("Beruf", tokens[3])
+	assert.Equal(".", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	// And Fachmann/-frau should be one token
+	tokens = ttokenize(dat, w, "Fachmann/-frau gesucht")
+	assert.Equal("Fachmann/-frau", tokens[0])
+	assert.Equal("gesucht", tokens[1])
+	assert.Equal(2, len(tokens))
+
+	// Geschäftsmann/frau should also be one token
+	tokens = ttokenize(dat, w, "Ein Geschäftsmann/frau wird gesucht.")
+	assert.Equal("Ein", tokens[0])
+	assert.Equal("Geschäftsmann/frau", tokens[1])
+	assert.Equal("wird", tokens[2])
+	assert.Equal("gesucht", tokens[3])
+	assert.Equal(".", tokens[4])
+	assert.Equal(5, len(tokens))
+
+	// Genderstern forms (these should already work via existing rules)
+	tokens = ttokenize(dat, w, "Schüler*innen und Lehrer*innen")
+	assert.Equal("Schüler*innen", tokens[0])
+	assert.Equal("und", tokens[1])
+	assert.Equal("Lehrer*innen", tokens[2])
+	assert.Equal(3, len(tokens))
+
+	// Mixed sentence with various gender forms
+	tokens = ttokenize(dat, w, "Die Schüler:innen, Lehrer/innen und Mitarbeiter(innen) sowie Kaufmann/-frau trafen sich.")
+	assert.Equal("Die", tokens[0])
+	assert.Equal("Schüler:innen", tokens[1])
+	assert.Equal(",", tokens[2])
+	assert.Equal("Lehrer/innen", tokens[3])
+	assert.Equal("und", tokens[4])
+	assert.Equal("Mitarbeiter(innen)", tokens[5])
+	assert.Equal("sowie", tokens[6])
+	assert.Equal("Kaufmann/-frau", tokens[7])
+	assert.Equal("trafen", tokens[8])
+	assert.Equal("sich", tokens[9])
+	assert.Equal(".", tokens[10])
+	assert.Equal(11, len(tokens))
+
+	tokens = ttokenize(dat, w, "Nutzer/Innenarchitekt")
+	assert.Equal("Nutzer", tokens[0])
+	assert.Equal("/", tokens[1])
+	assert.Equal("Innenarchitekt", tokens[2])
+	assert.Equal(3, len(tokens))
+
+	tokens = ttokenize(dat, w, "Innenminister/in")
+	assert.Equal("Innenminister/in", tokens[0])
+	assert.Equal(1, len(tokens))
+
+	tokens = ttokenize(dat, w, "Innenminister/Innenministerinnen")
+	assert.Equal("Innenminister", tokens[0])
+	assert.Equal("/", tokens[1])
+	assert.Equal("Innenministerinnen", tokens[2])
+	assert.Equal(3, len(tokens))
 
 	/*
-        DeReKo-Behaviour
-	tokens = ttokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
-	assert.Equal("'ve", tokens[1]);
-	assert.Equal("'ll", tokens[3]);
-	assert.Equal("'d", tokens[5]);
-	assert.Equal("'m", tokens[7]);
-	assert.Equal("'re", tokens[9]);
-	assert.Equal("'s", tokens[11]);
-	assert.Equal("is", tokens[12]);
-	assert.Equal("n't", tokens[13]);
-	assert.Equal(14, len(tokens));
+		        DeReKo-Behaviour
+			tokens = ttokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
+			assert.Equal("'ve", tokens[1]);
+			assert.Equal("'ll", tokens[3]);
+			assert.Equal("'d", tokens[5]);
+			assert.Equal("'m", tokens[7]);
+			assert.Equal("'re", tokens[9]);
+			assert.Equal("'s", tokens[11]);
+			assert.Equal("is", tokens[12]);
+			assert.Equal("n't", tokens[13]);
+			assert.Equal(14, len(tokens));
 
-	
-	assert.Equal(tokens[0], "Der")
-	assert.Equal(tokens[1], "alte")
-	assert.Equal(tokens[2], "Mann")
-	assert.Equal(len(tokens), 3)
 
-	/*
-		@Test
-		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-		}
+			assert.Equal(tokens[0], "Der")
+			assert.Equal(tokens[1], "alte")
+			assert.Equal(tokens[2], "Mann")
+			assert.Equal(len(tokens), 3)
 
-		@Test
-		public void frenchTokenizerKnowsFrenchAbbreviations () {
-				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
-				tokens = tokenize(dat, w, "Approx. en juill. 2004 mon prof. M. Foux m'a dit qu'il faut faire exerc. no. 4, et lire pp. 27-30.")
-				assert.Equal("Approx.", tokens[0]);
-				assert.Equal("juill.", tokens[2]);
-				assert.Equal("prof.", tokens[5]);
-				assert.Equal("exerc.", tokens[15]);
-				assert.Equal("no.", tokens[16]);
-				assert.Equal("pp.", tokens[21]);
-		}
+			/*
+				@Test
+				public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
+						DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
+				}
 
-		@Test
-		public void frenchTokenizerKnowsFrenchContractions () {
-				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
-				tokens = tokenize(dat, w, "J'ai j'habite qu'il d'un jusqu'à Aujourd'hui D'accord Quelqu'un Presqu'île")
-				assert.Equal("J'", tokens[0]);
-				assert.Equal("j'", tokens[2]);
-				assert.Equal("qu'", tokens[4]);
-				assert.Equal("d'", tokens[6]);
-				assert.Equal("jusqu'", tokens[8]);
-				assert.Equal("Aujourd'hui", tokens[10]);
-				assert.Equal("D'", tokens[11]); // ’
-				assert.Equal("Quelqu'un", tokens[13]); // ’
-				assert.Equal("Presqu'île", tokens[14]); // ’
-		}
+				@Test
+				public void frenchTokenizerKnowsFrenchAbbreviations () {
+						DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
+						tokens = tokenize(dat, w, "Approx. en juill. 2004 mon prof. M. Foux m'a dit qu'il faut faire exerc. no. 4, et lire pp. 27-30.")
+						assert.Equal("Approx.", tokens[0]);
+						assert.Equal("juill.", tokens[2]);
+						assert.Equal("prof.", tokens[5]);
+						assert.Equal("exerc.", tokens[15]);
+						assert.Equal("no.", tokens[16]);
+						assert.Equal("pp.", tokens[21]);
+				}
 
-		@Test
-		public void frenchTokenizerKnowsFrenchClitics () {
-				DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
-				tokens = tokenize(dat, w, "suis-je sont-elles ")
-				assert.Equal("suis", tokens[0]);
-				assert.Equal("-je", tokens[1]);
-				assert.Equal("sont", tokens[2]);
-				assert.Equal("-elles", tokens[3]);
-		}
+				@Test
+				public void frenchTokenizerKnowsFrenchContractions () {
+						DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
+						tokens = tokenize(dat, w, "J'ai j'habite qu'il d'un jusqu'à Aujourd'hui D'accord Quelqu'un Presqu'île")
+						assert.Equal("J'", tokens[0]);
+						assert.Equal("j'", tokens[2]);
+						assert.Equal("qu'", tokens[4]);
+						assert.Equal("d'", tokens[6]);
+						assert.Equal("jusqu'", tokens[8]);
+						assert.Equal("Aujourd'hui", tokens[10]);
+						assert.Equal("D'", tokens[11]); // ’
+						assert.Equal("Quelqu'un", tokens[13]); // ’
+						assert.Equal("Presqu'île", tokens[14]); // ’
+				}
 
-		@Test
-		public void testEnglishTokenizerScienceAbbreviations () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "Approx. in Sept. 1954, Assoc. Prof. Dr. R. J. Ewing reviewed articles on Enzymol. Bacteriol. effects later published in Nutr. Rheumatol. No. 12 and Nº. 13., pp. 17-18.")
-				assert.Equal("Approx.", tokens[0]);
-				assert.Equal("in", tokens[1]);
-				assert.Equal("Sept.", tokens[2]);
-				assert.Equal("1954", tokens[3]);
-				assert.Equal(",", tokens[4]);
-				assert.Equal("Assoc.", tokens[5]);
-				assert.Equal("Prof.", tokens[6]);
-				assert.Equal("Dr.", tokens[7]);
-				assert.Equal("R.", tokens[8]);
-				assert.Equal("J.", tokens[9]);
-				assert.Equal("Ewing", tokens[10]);
-				assert.Equal("reviewed", tokens[11]);
-				assert.Equal("articles", tokens[12]);
-				assert.Equal("on", tokens[13]);
-				assert.Equal("Enzymol.", tokens[14]);
-				assert.Equal("Bacteriol.", tokens[15]);
-				assert.Equal("effects", tokens[16]);
-				assert.Equal("later", tokens[17]);
-				assert.Equal("published", tokens[18]);
-				assert.Equal("in", tokens[19]);
-				assert.Equal("Nutr.", tokens[20]);
-				assert.Equal("Rheumatol.", tokens[21]);
-				assert.Equal("No.", tokens[22]);
-				assert.Equal("12", tokens[23]);
-				assert.Equal("and", tokens[24]);
-				assert.Equal("Nº.", tokens[25]);
-				assert.Equal("13.", tokens[26]);
-				assert.Equal(",", tokens[27]);
-				assert.Equal("pp.", tokens[28]);
-				assert.Equal("17-18", tokens[29]);
-				assert.Equal(".", tokens[30]);
-		}
+				@Test
+				public void frenchTokenizerKnowsFrenchClitics () {
+						DerekoDfaTokenizer_fr tok = new DerekoDfaTokenizer_fr();
+						tokens = tokenize(dat, w, "suis-je sont-elles ")
+						assert.Equal("suis", tokens[0]);
+						assert.Equal("-je", tokens[1]);
+						assert.Equal("sont", tokens[2]);
+						assert.Equal("-elles", tokens[3]);
+				}
 
-		@Test
-		public void englishTokenizerCanGuessWhetherIIsAbbrev () {
-				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "M. I. Baxter was born during World War I. So was I. He went to the Peter I. Hardy school. So did I.")
-				assert.Equal("I.", tokens[1]);
-				assert.Equal("I", tokens[8]);
-				assert.Equal(".", tokens[9]);
-				assert.Equal("I", tokens[12]);
-				assert.Equal(".", tokens[13]);
-		}
+				@Test
+				public void testEnglishTokenizerScienceAbbreviations () {
+						DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
+						tokens = tokenize(dat, w, "Approx. in Sept. 1954, Assoc. Prof. Dr. R. J. Ewing reviewed articles on Enzymol. Bacteriol. effects later published in Nutr. Rheumatol. No. 12 and Nº. 13., pp. 17-18.")
+						assert.Equal("Approx.", tokens[0]);
+						assert.Equal("in", tokens[1]);
+						assert.Equal("Sept.", tokens[2]);
+						assert.Equal("1954", tokens[3]);
+						assert.Equal(",", tokens[4]);
+						assert.Equal("Assoc.", tokens[5]);
+						assert.Equal("Prof.", tokens[6]);
+						assert.Equal("Dr.", tokens[7]);
+						assert.Equal("R.", tokens[8]);
+						assert.Equal("J.", tokens[9]);
+						assert.Equal("Ewing", tokens[10]);
+						assert.Equal("reviewed", tokens[11]);
+						assert.Equal("articles", tokens[12]);
+						assert.Equal("on", tokens[13]);
+						assert.Equal("Enzymol.", tokens[14]);
+						assert.Equal("Bacteriol.", tokens[15]);
+						assert.Equal("effects", tokens[16]);
+						assert.Equal("later", tokens[17]);
+						assert.Equal("published", tokens[18]);
+						assert.Equal("in", tokens[19]);
+						assert.Equal("Nutr.", tokens[20]);
+						assert.Equal("Rheumatol.", tokens[21]);
+						assert.Equal("No.", tokens[22]);
+						assert.Equal("12", tokens[23]);
+						assert.Equal("and", tokens[24]);
+						assert.Equal("Nº.", tokens[25]);
+						assert.Equal("13.", tokens[26]);
+						assert.Equal(",", tokens[27]);
+						assert.Equal("pp.", tokens[28]);
+						assert.Equal("17-18", tokens[29]);
+						assert.Equal(".", tokens[30]);
+				}
 
-		@Test
-		public void testZipOuputArchive () {
+				@Test
+				public void englishTokenizerCanGuessWhetherIIsAbbrev () {
+						DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
+						tokens = tokenize(dat, w, "M. I. Baxter was born during World War I. So was I. He went to the Peter I. Hardy school. So did I.")
+						assert.Equal("I.", tokens[1]);
+						assert.Equal("I", tokens[8]);
+						assert.Equal(".", tokens[9]);
+						assert.Equal("I", tokens[12]);
+						assert.Equal(".", tokens[13]);
+				}
 
-				final ByteArrayOutputStream clearOut = new ByteArrayOutputStream();
-				System.setOut(new PrintStream(clearOut));
-				tokens = tokenize(dat, w, "Archive:  ich/bin/ein.zip\n")
-				assert.Equal(0, len(tokens));
-		}
+				@Test
+				public void testZipOuputArchive () {
+
+						final ByteArrayOutputStream clearOut = new ByteArrayOutputStream();
+						System.setOut(new PrintStream(clearOut));
+						tokens = tokenize(dat, w, "Archive:  ich/bin/ein.zip\n")
+						assert.Equal(0, len(tokens));
+				}
 	*/
 	/*
 

@@ -1,0 +1,34 @@
+! Gender-sensitive endings (German)
+! By M. Kupietz (KorAP-Tokenizer)
+
+! Matches patterns like: in, innen, In, Innen, IN, INNEN (case-insensitive)
+define genderEndingsIn [ [i | I] [n | N] ( [n | N] [e | E] [n | N] ) ];
+
+! Slash forms are restricted to lowercase in/innen to avoid
+! false positives in compounds like "Nutzer/Innenarchitekt".
+define genderEndingsInLower [ i n ( n e n ) ];
+
+! Gender-sensitive endings with frau/frauen
+! (lowercase only - capitalized Frau is a standalone word)
+! Note: This is now only used for words ending in "mann"
+! (with non-empty prefix) for Kaufmann/frau pattern
+! Matches: Kaufmann, Geschäftsmann, etc. but NOT just "mann"
+define genderEndingsFrau [ {frau} ( {en} ) ];
+
+! General gender endings (only -in/-innen forms for colon, slash, parenthetical)
+! Colon forms: Nutzer:in, Nutzer:In, Nutzer:innen
+! Slash forms for -in/-innen: Nutzer/in, Nutzer/innen, Nutzer/-in, Kosovo-Albaner/innen
+define genderIn [ ":" genderEndingsIn | Slash ( %- ) genderEndingsInLower ];
+
+! Slash forms for -frau: Kaufmann/frau, Kaufmann/-frau, Geschäftsmann/frau
+! Only applies when word ends in "mann" (with non-empty prefix before it)
+define genderFrau [ {mann} Slash ( %- ) genderEndingsFrau ];
+
+! Parenthetical forms for -in/-innen: Nutzer(in), Nutzer(innen), Nutzer(-in)
+define genderParenIn %( ( %- ) genderEndingsIn %);
+
+! Parenthetical forms for -frau: Kaufmann(frau), Kaufmann(-frau)
+! Only applies when word ends in "mann" (with non-empty prefix before it)
+define genderParenFrau {mann} %( ( %- ) genderEndingsFrau %);
+
+define GenderEndings [ genderIn | genderFrau | genderParenIn | genderParenFrau ];
