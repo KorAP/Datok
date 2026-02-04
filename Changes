@@ -1,5 +1,6 @@
-0.3.1 2026-02-03
+0.3.1 2026-02-04
     - Introduce hyphenated abbreviations in german tokenizer.
+    - Support Wikipedia templates.
 
 0.2.2 2023-09-06
     - Fix behaviour for end of text character positions

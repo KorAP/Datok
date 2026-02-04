@@ -1,0 +1,1 @@
+define Wikitemplate [ %[ "_" [ AsciiLetterCap | "-" ]+ ( %: [ ? - %[ - %] ]+ ) "_" %] ];

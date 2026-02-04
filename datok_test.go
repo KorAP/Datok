@@ -806,21 +806,59 @@ func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
         assert.Equal(".", tokens[10])
 	assert.Equal(11, len(tokens));
 
+	// Regression test for https://github.com/KorAP/KorAP-Tokenizer/issues/131
+	tokens = ttokenize(dat, w, "Donau\u00ADdampf\u00ADschiff")
+        assert.Equal("Donau\u00ADdampf\u00ADschiff", tokens[0])
+	assert.Equal(1, len(tokens));
+
+	// Regression test for https://github.com/KorAP/KorAP-Tokenizer/issues/115
+	tokens = ttokenize(dat, w, "Die Serb*innen wie die Kosovo-Albaner*innen")
+        assert.Equal("Die", tokens[0]);
+        assert.Equal("Serb*innen", tokens[1]);
+        assert.Equal("wie", tokens[2]);
+        assert.Equal("die", tokens[3]);
+        assert.Equal("Kosovo-Albaner*innen", tokens[4]);
+        assert.Equal(5, len(tokens));
+       
+        // Test Wikipedia emoji template from the issue
+	tokens = ttokenize(dat, w, "Ein Smiley [_EMOJI:{{S|;)}}_] hier")
+        assert.Equal("Ein", tokens[0]);
+        assert.Equal("Smiley", tokens[1]);
+        assert.Equal("[_EMOJI:{{S|;)}}_]", tokens[2]); // Should be one token
+        assert.Equal("hier", tokens[3]);
+        assert.Equal(4, len(tokens));
+        
+        // Test simple pragma still works
+	tokens = ttokenize(dat, w, "Name: [_ANONYMIZED_] Ende")
+        assert.Equal("Name", tokens[0]);
+        assert.Equal(":", tokens[1]);
+        assert.Equal("[_ANONYMIZED_]", tokens[2]); // Should be one token
+        assert.Equal("Ende", tokens[3]);
+        assert.Equal(4, len(tokens));
+
+	/*
+        DeReKo-Behaviour
+	tokens = ttokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
+	assert.Equal("'ve", tokens[1]);
+	assert.Equal("'ll", tokens[3]);
+	assert.Equal("'d", tokens[5]);
+	assert.Equal("'m", tokens[7]);
+	assert.Equal("'re", tokens[9]);
+	assert.Equal("'s", tokens[11]);
+	assert.Equal("is", tokens[12]);
+	assert.Equal("n't", tokens[13]);
+	assert.Equal(14, len(tokens));
+
+	
+	assert.Equal(tokens[0], "Der")
+	assert.Equal(tokens[1], "alte")
+	assert.Equal(tokens[2], "Mann")
+	assert.Equal(len(tokens), 3)
 
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {
 				DerekoDfaTokenizer_en tok = new DerekoDfaTokenizer_en();
-				tokens = tokenize(dat, w, "I've we'll you'd I'm we're Peter's isn't")
-				assert.Equal("'ve", tokens[1]);
-				assert.Equal("'ll", tokens[3]);
-				assert.Equal("'d", tokens[5]);
-				assert.Equal("'m", tokens[7]);
-				assert.Equal("'re", tokens[9]);
-				assert.Equal("'s", tokens[11]);
-				assert.Equal("is", tokens[12]);
-				assert.Equal("n't", tokens[13]);
-				assert.Equal(14, len(tokens));
 		}
 
 		@Test

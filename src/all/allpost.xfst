@@ -16,6 +16,9 @@ source all/xml.xfst
 ! XML entities
 source all/entities.xfst
 
+! Wikipedia templates
+source all/wiki.xfst
+
 ! Arrows
 define Arrows [Alldash ">" | "<" Alldash];
 
