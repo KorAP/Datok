@@ -791,6 +791,22 @@ func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal("kriegste", tokens[8])
 	assert.Equal(9, len(tokens))
 
+	// Regression test for hyphenated abbreviations from Wiktionary (2024-12)
+	tokens = ttokenize(dat, w, "Ich wohne in Ba.-Wü. und bin Dipl.-Ing. bei Reg.-Bez. Karlsruhe.")
+        assert.Equal("Ich", tokens[0])
+        assert.Equal("wohne", tokens[1])
+        assert.Equal("in", tokens[2])
+        assert.Equal("Ba.-Wü.", tokens[3])
+        assert.Equal("und", tokens[4])
+        assert.Equal("bin", tokens[5])
+        assert.Equal("Dipl.-Ing.", tokens[6])
+        assert.Equal("bei", tokens[7])
+        assert.Equal("Reg.-Bez.", tokens[8])
+        assert.Equal("Karlsruhe", tokens[9])
+        assert.Equal(".", tokens[10])
+	assert.Equal(11, len(tokens));
+
+
 	/*
 		@Test
 		public void englishTokenizerSeparatesEnglishContractionsAndClitics () {

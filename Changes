@@ -1,3 +1,6 @@
+0.3.1 2026-02-03
+    - Introduce hyphenated abbreviations in german tokenizer.
+
 0.2.2 2023-09-06
     - Fix behaviour for end of text character positions
       when no end of sentence occured before.

@@ -56,13 +56,15 @@ define Word [Plusampersand | Word] (Dash [Plusampersand | Word])*;
 ! of the IDS.
 define Abbr [ @txt"de/abbrv.txt" | Letter ] %.;
 
+define HypAbbr [ Abbr ( %- Abbr )+ | {Ba.-Wü.}];
+
 define Streetname Word {str} %.;
 
 source all/allpost.xfst
 
 echo - Compile Real Token
 
-define RealToken [Punct|Emdash|Abbr|Streetname|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
+define RealToken [Punct|Emdash|HypAbbr|Streetname|Word|SNS|AcronymDep|Ord|Num|Years|Times|XMLEntities|Omission];
 
 echo - Introduce Token splitter
 
