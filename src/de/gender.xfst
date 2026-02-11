@@ -8,6 +8,12 @@ define genderEndingsIn [ [i | I] [n | N] ( [n | N] [e | E] [n | N] ) ];
 ! false positives in compounds like "Nutzer/Innenarchitekt".
 define genderEndingsInLower [ i n ( n e n ) ];
 
+! Short endings for determiners, adjectives and pronouns:
+! e, n, r, s, m, es, er, em, en
+define genderShortSuffix [ [e|n|r|s|m] | [ e [s|r|m|n] ] ];
+
+define genderSeparator [":" | Slash ( %- ) | Asterisk | "_" ];
+
 ! Gender-sensitive endings with frau/frauen
 ! (lowercase only - capitalized Frau is a standalone word)
 ! Note: This is now only used for words ending in "mann"
@@ -15,10 +21,21 @@ define genderEndingsInLower [ i n ( n e n ) ];
 ! Matches: Kaufmann, Geschäftsmann, etc. but NOT just "mann"
 define genderEndingsFrau [ {frau} ( {en} ) ];
 
-! General gender endings (only -in/-innen forms for colon, slash, parenthetical)
-! Colon forms: Nutzer:in, Nutzer:In, Nutzer:innen
-! Slash forms for -in/-innen: Nutzer/in, Nutzer/innen, Nutzer/-in, Kosovo-Albaner/innen
-define genderIn [ ":" genderEndingsIn | Slash ( %- ) genderEndingsInLower ];
+! General gender endings for -in/-innen without continuation:
+! allow all I/i variants for :, *, _; keep slash lowercase-only to
+! avoid false positives like Nutzer/Innenarchitekt.
+define genderIn [
+  [ ":" | Asterisk | "_" ] genderEndingsIn |
+  Slash ( %- ) genderEndingsInLower
+];
+
+! Short forms for DET/ADJ/PRON with colon/slash/star/underscore:
+! gute:r, ihm/r, ein*e, ein_e, diese:r
+define genderShort [ genderSeparator genderShortSuffix ];
+
+! Parenthetical short forms:
+! eine(n), ein(e)
+define genderParenShort %( ( %- ) genderShortSuffix %);
 
 ! Slash forms for -frau: Kaufmann/frau, Kaufmann/-frau, Geschäftsmann/frau
 ! Only applies when word ends in "mann" (with non-empty prefix before it)
@@ -31,4 +48,12 @@ define genderParenIn %( ( %- ) genderEndingsIn %);
 ! Only applies when word ends in "mann" (with non-empty prefix before it)
 define genderParenFrau {mann} %( ( %- ) genderEndingsFrau %);
 
-define GenderEndings [ genderIn | genderFrau | genderParenIn | genderParenFrau ];
+! Compound continuation for forms like Lehrer:innenfortbildung.
+! For slash, restrict to lowercase in/innen so /Innen... keeps splitting
+! (e.g. Nutzer/Innenarchitekt, Innenminister/Innenministerinnen).
+define genderInComp [
+  [ ":" | Asterisk | "_" ] genderEndingsIn Char+ |
+  Slash ( %- ) genderEndingsInLower Char+
+];
+
+define GenderEndings [ genderIn | genderInComp | genderShort | genderFrau | genderParenIn | genderParenShort | genderParenFrau ];

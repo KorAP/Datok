@@ -1,6 +1,7 @@
 package datok
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -29,6 +30,28 @@ func ttokenize(tok Tokenizer, w *bytes.Buffer, str string) []string {
 
 	tokens := obj.Split(w.String(), -1)
 	return tokens[:len(tokens)-1]
+}
+
+func ttokenLines(t *testing.T, path string) []string {
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("failed to open %s: %v", path, err)
+	}
+	defer f.Close()
+
+	lines := []string{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("failed to read %s: %v", path, err)
+	}
+	return lines
 }
 
 func TestDoubleArraySimpleString(t *testing.T) {
@@ -1155,6 +1178,43 @@ func TestDoubleArrayFullTokenizerSentenceSplitterBug1(t *testing.T) {
 	assert.Equal("Ich\nquäle\nSie\nnicht\nlänger\nmit\nmeinem\n'\nMuß\nes\nsein\n?\n'\n.", sentences[2])
 	assert.Equal("Die\nWelt\nist\neinmal\n,\nwie\nsie\nist\n,\nund\ndie\nDinge\nverlaufen\nnicht\n,\nwie\nwir\nwollen\n,\nsondern\nwie\ndie\nandern\nwollen\n.", sentences[3])
 	assert.Equal("Das\nmit\ndem\n'\nGottesgericht\n'\n,\nwie\nmanche\nhochtrabend\nversichern\n,\nist\nfreilich\nein\nUnsinn\n,\nnichts\ndavon\n,\numgekehrt\n,\nunser\nEhrenkultus\nist\nein\nGötzendienst\n,\naber\nwir\nmüssen\nuns\nihm\nunterwerfen\n,\nsolange\nder\nGötze\ngilt\n.\n«", sentences[4])
+}
+
+func TestDoubleArrayFullTokenizerGenderDontSplitFromFile(t *testing.T) {
+	assert := assert.New(t)
+
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
+	}
+	assert.NotNil(dat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+
+	for _, token := range ttokenLines(t, "testdata/de/dontsplit.txt") {
+		tokens := ttokenize(dat, w, token)
+		assert.Equalf(1, len(tokens), "should not split %q", token)
+		if len(tokens) == 1 {
+			assert.Equalf(token, tokens[0], "token surface should match for %q", token)
+		}
+	}
+}
+
+func TestDoubleArrayFullTokenizerGenderSplitFromFile(t *testing.T) {
+	assert := assert.New(t)
+
+	if dat == nil {
+		dat = LoadDatokFile("testdata/tokenizer_de.datok")
+	}
+	assert.NotNil(dat)
+
+	b := make([]byte, 0, 2048)
+	w := bytes.NewBuffer(b)
+
+	for _, token := range ttokenLines(t, "testdata/de/split.txt") {
+		tokens := ttokenize(dat, w, token)
+		assert.Greaterf(len(tokens), 1, "should split %q", token)
+	}
 }
 
 func TestDoubleArrayLoadFactor1(t *testing.T) {
