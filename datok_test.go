@@ -584,6 +584,24 @@ func TestDoubleArrayFullTokenizerTokenSplitter(t *testing.T) {
 	assert.Equal(tokens[4], "5/9/2018")
 	assert.Equal(len(tokens), 5)
 
+	tokens = ttokenize(dat, w, "Der Termin ist am 5/9/2018")
+	assert.Equal(tokens[0], "Der")
+	assert.Equal(tokens[1], "Termin")
+	assert.Equal(tokens[2], "ist")
+	assert.Equal(tokens[3], "am")
+	assert.Equal(tokens[4], "5/9/2018")
+	assert.Equal(len(tokens), 5)
+
+	tokens = ttokenize(dat, w, "Die Gewerkschaft ver.di fordert mehr Lohn.")
+	assert.Equal("Die", tokens[0])
+	assert.Equal("Gewerkschaft", tokens[1])
+	assert.Equal("ver.di", tokens[2])
+	assert.Equal("fordert", tokens[3])
+	assert.Equal("mehr", tokens[4])
+	assert.Equal("Lohn", tokens[5])
+	assert.Equal(".", tokens[6])
+	assert.Equal(len(tokens), 7)
+
 	// testTokenizerDateRange
 	/*
 		tokens = tokenize(dat, w, "Der Termin war vom 4.-5.9.2018")

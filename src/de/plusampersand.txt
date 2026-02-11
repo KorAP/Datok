@@ -633,6 +633,8 @@ Xbase++
 XHTML+SMIL
 Y&R
 Y&T
+ver.di
+Ver.di
 Yin&Yang
 Yotsuba&
 Young&Queer
